@@ -52,7 +52,11 @@ export function AppointmentDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    const dataToSave = {
+      ...formData,
+      duration: Number(formData.duration),
+    };
+    onSave(dataToSave);
     onOpenChange(false);
   };
 
