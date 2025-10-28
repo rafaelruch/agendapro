@@ -1,15 +1,16 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function SettingsPage() {
+  const baseUrl = window.location.origin;
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-semibold">Configurações</h1>
-        <p className="text-muted-foreground">Gerencie as configurações do sistema</p>
+        <p className="text-muted-foreground">Gerencie as configurações do sistema e documentação da API</p>
       </div>
 
       <div className="grid gap-6">
@@ -33,162 +34,295 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>API de Integração - Clientes</CardTitle>
+            <CardTitle>API de Integração</CardTitle>
             <CardDescription>
-              Endpoints para gerenciar clientes via N8N
+              Documentação completa dos endpoints REST para integração com N8N, Zapier e outras ferramentas
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Métodos Disponíveis</Label>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">GET</code>
-                  <span className="text-muted-foreground">/api/clients - Listar todos os clientes</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">GET</code>
-                  <span className="text-muted-foreground">/api/clients/:id - Buscar cliente específico</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">POST</code>
-                  <span className="text-muted-foreground">/api/clients - Criar novo cliente</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">PUT</code>
-                  <span className="text-muted-foreground">/api/clients/:id - Atualizar cliente</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">DELETE</code>
-                  <span className="text-muted-foreground">/api/clients/:id - Excluir cliente</span>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Exemplo de Corpo (POST/PUT)</Label>
-              <pre className="bg-muted p-3 rounded text-xs overflow-auto">
-{`{
-  "name": "João Silva",
-  "email": "joao@example.com",
-  "phone": "(11) 98765-4321"
-}`}
-              </pre>
-            </div>
-          </CardContent>
-        </Card>
+          <CardContent>
+            <Tabs defaultValue="clients" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="clients">Clientes</TabsTrigger>
+                <TabsTrigger value="services">Serviços</TabsTrigger>
+                <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
+              </TabsList>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>API de Integração - Serviços</CardTitle>
-            <CardDescription>
-              Endpoints para gerenciar serviços via N8N
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Métodos Disponíveis</Label>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">GET</code>
-                  <span className="text-muted-foreground">/api/services - Listar todos os serviços</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">GET</code>
-                  <span className="text-muted-foreground">/api/services/:id - Buscar serviço específico</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">POST</code>
-                  <span className="text-muted-foreground">/api/services - Criar novo serviço</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">PUT</code>
-                  <span className="text-muted-foreground">/api/services/:id - Atualizar serviço</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">DELETE</code>
-                  <span className="text-muted-foreground">/api/services/:id - Excluir serviço</span>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Exemplo de Corpo (POST/PUT)</Label>
-              <pre className="bg-muted p-3 rounded text-xs overflow-auto">
-{`{
-  "name": "Corte de Cabelo",
-  "category": "Cabelo",
-  "value": 50.00
-}`}
-              </pre>
-            </div>
-          </CardContent>
-        </Card>
+              <TabsContent value="clients" className="space-y-4 mt-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Endpoints Disponíveis</Label>
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-1 text-white px-2 py-1 rounded font-mono text-xs">GET</code>
+                          <span className="font-mono text-muted-foreground">/api/clients</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Listar todos os clientes</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X GET ${baseUrl}/api/clients`}
+                        </pre>
+                      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>API de Integração - Agendamentos</CardTitle>
-            <CardDescription>
-              Endpoints para gerenciar agendamentos via N8N
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Métodos Disponíveis</Label>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">GET</code>
-                  <span className="text-muted-foreground">/api/appointments - Listar agendamentos</span>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-1 text-white px-2 py-1 rounded font-mono text-xs">GET</code>
+                          <span className="font-mono text-muted-foreground">/api/clients/{"{id}"}</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Buscar cliente específico</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X GET ${baseUrl}/api/clients/{id}`}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-2 text-white px-2 py-1 rounded font-mono text-xs">POST</code>
+                          <span className="font-mono text-muted-foreground">/api/clients</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Criar novo cliente</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X POST ${baseUrl}/api/clients \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "João Silva",
+    "email": "joao@example.com",
+    "phone": "(11) 98765-4321"
+  }'`}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-3 text-white px-2 py-1 rounded font-mono text-xs">PUT</code>
+                          <span className="font-mono text-muted-foreground">/api/clients/{"{id}"}</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Atualizar cliente existente</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X PUT ${baseUrl}/api/clients/{id} \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "João Silva",
+    "email": "joao.silva@example.com",
+    "phone": "(11) 98765-4321"
+  }'`}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-destructive text-white px-2 py-1 rounded font-mono text-xs">DELETE</code>
+                          <span className="font-mono text-muted-foreground">/api/clients/{"{id}"}</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Excluir cliente</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X DELETE ${baseUrl}/api/clients/{id}`}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">GET</code>
-                  <span className="text-muted-foreground">/api/appointments/:id - Buscar agendamento específico</span>
+              </TabsContent>
+
+              <TabsContent value="services" className="space-y-4 mt-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Endpoints Disponíveis</Label>
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-1 text-white px-2 py-1 rounded font-mono text-xs">GET</code>
+                          <span className="font-mono text-muted-foreground">/api/services</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Listar todos os serviços</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X GET ${baseUrl}/api/services`}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-1 text-white px-2 py-1 rounded font-mono text-xs">GET</code>
+                          <span className="font-mono text-muted-foreground">/api/services/{"{id}"}</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Buscar serviço específico</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X GET ${baseUrl}/api/services/{id}`}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-2 text-white px-2 py-1 rounded font-mono text-xs">POST</code>
+                          <span className="font-mono text-muted-foreground">/api/services</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Criar novo serviço</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X POST ${baseUrl}/api/services \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "Corte de Cabelo",
+    "category": "Cabelo",
+    "value": 50.00
+  }'`}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-3 text-white px-2 py-1 rounded font-mono text-xs">PUT</code>
+                          <span className="font-mono text-muted-foreground">/api/services/{"{id}"}</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Atualizar serviço existente</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X PUT ${baseUrl}/api/services/{id} \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "Corte e Barba",
+    "category": "Cabelo",
+    "value": 75.00
+  }'`}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-destructive text-white px-2 py-1 rounded font-mono text-xs">DELETE</code>
+                          <span className="font-mono text-muted-foreground">/api/services/{"{id}"}</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Excluir serviço</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X DELETE ${baseUrl}/api/services/{id}`}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">POST</code>
-                  <span className="text-muted-foreground">/api/appointments - Criar agendamento</span>
+              </TabsContent>
+
+              <TabsContent value="appointments" className="space-y-4 mt-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Endpoints Disponíveis</Label>
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-1 text-white px-2 py-1 rounded font-mono text-xs">GET</code>
+                          <span className="font-mono text-muted-foreground">/api/appointments</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Listar todos os agendamentos (com filtros opcionais)</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`# Listar todos
+curl -X GET ${baseUrl}/api/appointments
+
+# Filtrar por cliente
+curl -X GET "${baseUrl}/api/appointments?clientId={clientId}"
+
+# Filtrar por intervalo de datas
+curl -X GET "${baseUrl}/api/appointments?startDate=2025-01-01&endDate=2025-01-31"
+
+# Verificar disponibilidade em data/horário
+curl -X GET "${baseUrl}/api/appointments?date=2025-01-15&time=14:00"`}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-1 text-white px-2 py-1 rounded font-mono text-xs">GET</code>
+                          <span className="font-mono text-muted-foreground">/api/appointments/{"{id}"}</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Buscar agendamento específico</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X GET ${baseUrl}/api/appointments/{id}`}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-2 text-white px-2 py-1 rounded font-mono text-xs">POST</code>
+                          <span className="font-mono text-muted-foreground">/api/appointments</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Criar novo agendamento</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X POST ${baseUrl}/api/appointments \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "clientId": "uuid-do-cliente",
+    "serviceId": "uuid-do-servico",
+    "date": "2025-01-15",
+    "time": "14:00",
+    "duration": 60,
+    "status": "scheduled",
+    "notes": "Observações opcionais"
+  }'`}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-3 text-white px-2 py-1 rounded font-mono text-xs">PUT</code>
+                          <span className="font-mono text-muted-foreground">/api/appointments/{"{id}"}</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Atualizar agendamento existente</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X PUT ${baseUrl}/api/appointments/{id} \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "clientId": "uuid-do-cliente",
+    "serviceId": "uuid-do-servico",
+    "date": "2025-01-15",
+    "time": "15:00",
+    "duration": 90,
+    "status": "completed",
+    "notes": "Atualizado"
+  }'`}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-destructive text-white px-2 py-1 rounded font-mono text-xs">DELETE</code>
+                          <span className="font-mono text-muted-foreground">/api/appointments/{"{id}"}</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Excluir agendamento</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X DELETE ${baseUrl}/api/appointments/{id}`}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-4 border-t">
+                    <Label>Parâmetros de Consulta (Query Params)</Label>
+                    <div className="space-y-1 text-xs">
+                      <p className="text-muted-foreground">
+                        <code className="bg-muted px-1 py-0.5 rounded">?clientId={"{uuid}"}</code> - Filtrar por cliente
+                      </p>
+                      <p className="text-muted-foreground">
+                        <code className="bg-muted px-1 py-0.5 rounded">?serviceId={"{uuid}"}</code> - Filtrar por serviço
+                      </p>
+                      <p className="text-muted-foreground">
+                        <code className="bg-muted px-1 py-0.5 rounded">?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD</code> - Intervalo de datas
+                      </p>
+                      <p className="text-muted-foreground">
+                        <code className="bg-muted px-1 py-0.5 rounded">?date=YYYY-MM-DD</code> - Data específica
+                      </p>
+                      <p className="text-muted-foreground">
+                        <code className="bg-muted px-1 py-0.5 rounded">?time=HH:MM</code> - Horário específico
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-4 border-t">
+                    <Label>Status Disponíveis</Label>
+                    <div className="flex gap-2">
+                      <code className="bg-muted px-2 py-1 rounded text-xs">scheduled</code>
+                      <code className="bg-muted px-2 py-1 rounded text-xs">completed</code>
+                      <code className="bg-muted px-2 py-1 rounded text-xs">cancelled</code>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">PUT</code>
-                  <span className="text-muted-foreground">/api/appointments/:id - Atualizar agendamento</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">DELETE</code>
-                  <span className="text-muted-foreground">/api/appointments/:id - Excluir agendamento</span>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Filtros Disponíveis (Query Params)</Label>
-              <div className="space-y-1 text-xs">
-                <p className="text-muted-foreground">
-                  <code className="bg-muted px-1 py-0.5 rounded">?clientId=uuid</code> - Filtrar por cliente
-                </p>
-                <p className="text-muted-foreground">
-                  <code className="bg-muted px-1 py-0.5 rounded">?startDate=2025-01-01&endDate=2025-01-31</code> - Intervalo de datas
-                </p>
-                <p className="text-muted-foreground">
-                  <code className="bg-muted px-1 py-0.5 rounded">?date=2025-01-15</code> - Data específica (verificar disponibilidade)
-                </p>
-                <p className="text-muted-foreground">
-                  <code className="bg-muted px-1 py-0.5 rounded">?time=14:00</code> - Horário específico (verificar disponibilidade)
-                </p>
-                <p className="text-muted-foreground">
-                  <code className="bg-muted px-1 py-0.5 rounded">?date=2025-01-15&time=14:00</code> - Verificar se há agendamento nesse dia/horário
-                </p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Exemplo de Corpo (POST/PUT)</Label>
-              <pre className="bg-muted p-3 rounded text-xs overflow-auto">
-{`{
-  "clientId": "uuid-do-cliente",
-  "date": "2025-01-15",
-  "time": "14:00",
-  "duration": 60,
-  "status": "scheduled",
-  "notes": "Consulta inicial"
-}`}
-              </pre>
-            </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
