@@ -9,15 +9,19 @@ import {
   type InsertTenant,
   type User,
   type InsertUser,
+  type TenantApiToken,
+  type InsertTenantApiToken,
   clients,
   services,
   appointments,
   tenants,
-  users
+  users,
+  tenantApiTokens
 } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { randomBytes } from "crypto";
 import { db } from "./db";
-import { eq, and, gte, lte, desc, or, like } from "drizzle-orm";
+import { eq, and, gte, lte, desc, or, like, isNull } from "drizzle-orm";
+import bcrypt from "bcrypt";
 
 export interface IStorage {
   // Tenant operations
@@ -68,6 +72,13 @@ export interface IStorage {
     cancelledAppointments: number;
     lastAppointment: Appointment | undefined;
   }>;
+
+  // API Token operations
+  createApiToken(tenantId: string, label: string, createdBy: string): Promise<{ token: string; tokenRecord: TenantApiToken }>;
+  getApiTokensByTenant(tenantId: string): Promise<TenantApiToken[]>;
+  revokeApiToken(id: string, tenantId: string): Promise<boolean>;
+  validateApiToken(token: string): Promise<{ tenantId: string; tokenId: string } | null>;
+  markApiTokenUsed(id: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -365,6 +376,74 @@ export class DbStorage implements IStorage {
       cancelledAppointments,
       lastAppointment,
     };
+  }
+
+  // API Token operations
+  async createApiToken(tenantId: string, label: string, createdBy: string): Promise<{ token: string; tokenRecord: TenantApiToken }> {
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = await bcrypt.hash(token, 10);
+    
+    const result = await db.insert(tenantApiTokens).values({
+      tenantId,
+      tokenHash,
+      label,
+      createdBy,
+    }).returning();
+    
+    return {
+      token,
+      tokenRecord: result[0],
+    };
+  }
+
+  async getApiTokensByTenant(tenantId: string): Promise<TenantApiToken[]> {
+    return await db
+      .select()
+      .from(tenantApiTokens)
+      .where(and(
+        eq(tenantApiTokens.tenantId, tenantId),
+        isNull(tenantApiTokens.revokedAt)
+      ))
+      .orderBy(desc(tenantApiTokens.createdAt));
+  }
+
+  async revokeApiToken(id: string, tenantId: string): Promise<boolean> {
+    const result = await db
+      .update(tenantApiTokens)
+      .set({ revokedAt: new Date() })
+      .where(and(
+        eq(tenantApiTokens.id, id),
+        eq(tenantApiTokens.tenantId, tenantId),
+        isNull(tenantApiTokens.revokedAt)
+      ))
+      .returning();
+    return result.length > 0;
+  }
+
+  async validateApiToken(token: string): Promise<{ tenantId: string; tokenId: string } | null> {
+    const allTokens = await db
+      .select()
+      .from(tenantApiTokens)
+      .where(isNull(tenantApiTokens.revokedAt));
+    
+    for (const tokenRecord of allTokens) {
+      const isValid = await bcrypt.compare(token, tokenRecord.tokenHash);
+      if (isValid) {
+        return {
+          tenantId: tokenRecord.tenantId,
+          tokenId: tokenRecord.id,
+        };
+      }
+    }
+    
+    return null;
+  }
+
+  async markApiTokenUsed(id: string): Promise<void> {
+    await db
+      .update(tenantApiTokens)
+      .set({ lastUsedAt: new Date() })
+      .where(eq(tenantApiTokens.id, id));
   }
 }
 
