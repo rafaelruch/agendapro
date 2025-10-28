@@ -23,8 +23,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies only
-RUN npm ci --only=production
+# Install ALL dependencies (including dev) because drizzle-kit and vite are needed
+RUN npm ci
 
 # Copy built files from builder (frontend está em dist/public/ e backend em dist/)
 COPY --from=builder /app/dist ./dist
