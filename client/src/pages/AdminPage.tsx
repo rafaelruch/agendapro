@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ApiDocumentation } from "@/components/ApiDocumentation";
 import type { Tenant, User } from "@shared/schema";
 
 type ApiToken = {
@@ -388,127 +389,8 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="docs" className="space-y-6 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>API de Integração</CardTitle>
-              <CardDescription>
-                Documentação dos principais endpoints REST para integração com N8N, Zapier e outras ferramentas
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Alert className="mb-4">
-                <Key className="h-4 w-4" />
-                <AlertDescription>
-                  <p className="font-semibold mb-2">Autenticação com Token de API</p>
-                  <p className="text-sm mb-2">
-                    Use os tokens de API criados na aba "Tokens de API" para autenticar as requisições. 
-                    Adicione o header <code className="bg-muted px-1 rounded">Authorization: Bearer SEU_TOKEN</code> em todas as requisições.
-                  </p>
-                  <p className="text-sm">
-                    <strong>Exemplo:</strong>
-                  </p>
-                  <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
-{`curl -X GET ${baseUrl}/api/clients \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"`}
-                  </pre>
-                </AlertDescription>
-              </Alert>
-
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold mb-3">Endpoints de Clientes</h3>
-                  <div className="space-y-3 text-sm">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <code className="bg-chart-1 text-white px-2 py-1 rounded font-mono text-xs">GET</code>
-                        <span className="font-mono text-muted-foreground">/api/clients</span>
-                      </div>
-                      <p className="text-muted-foreground text-xs ml-14">Listar todos os clientes do tenant</p>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <code className="bg-chart-2 text-white px-2 py-1 rounded font-mono text-xs">POST</code>
-                        <span className="font-mono text-muted-foreground">/api/clients</span>
-                      </div>
-                      <p className="text-muted-foreground text-xs ml-14">Criar novo cliente</p>
-                      <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
-{`curl -X POST ${baseUrl}/api/clients \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer SEU_TOKEN" \\
-  -d '{"name": "João Silva", "email": "joao@example.com", "phone": "(11) 98765-4321"}'`}
-                      </pre>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold mb-3">Endpoints de Serviços</h3>
-                  <div className="space-y-3 text-sm">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <code className="bg-chart-1 text-white px-2 py-1 rounded font-mono text-xs">GET</code>
-                        <span className="font-mono text-muted-foreground">/api/services</span>
-                      </div>
-                      <p className="text-muted-foreground text-xs ml-14">Listar todos os serviços do tenant</p>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <code className="bg-chart-2 text-white px-2 py-1 rounded font-mono text-xs">POST</code>
-                        <span className="font-mono text-muted-foreground">/api/services</span>
-                      </div>
-                      <p className="text-muted-foreground text-xs ml-14">Criar novo serviço</p>
-                      <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
-{`curl -X POST ${baseUrl}/api/services \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer SEU_TOKEN" \\
-  -d '{"name": "Corte de Cabelo", "category": "Cabelo", "value": 50.00}'`}
-                      </pre>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold mb-3">Endpoints de Agendamentos</h3>
-                  <div className="space-y-3 text-sm">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <code className="bg-chart-1 text-white px-2 py-1 rounded font-mono text-xs">GET</code>
-                        <span className="font-mono text-muted-foreground">/api/appointments</span>
-                      </div>
-                      <p className="text-muted-foreground text-xs ml-14">Listar todos os agendamentos do tenant</p>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <code className="bg-chart-2 text-white px-2 py-1 rounded font-mono text-xs">POST</code>
-                        <span className="font-mono text-muted-foreground">/api/appointments</span>
-                      </div>
-                      <p className="text-muted-foreground text-xs ml-14">Criar novo agendamento</p>
-                      <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
-{`curl -X POST ${baseUrl}/api/appointments \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer SEU_TOKEN" \\
-  -d '{"clientId": "1", "date": "2025-11-01", "time": "14:00", "status": "scheduled"}'`}
-                      </pre>
-                    </div>
-                  </div>
-                </div>
-
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    <p className="font-semibold mb-1">Isolamento de Dados</p>
-                    <p className="text-xs">
-                      Cada tenant tem acesso apenas aos seus próprios dados. O token de API identifica automaticamente o tenant e filtra os resultados.
-                    </p>
-                  </AlertDescription>
-                </Alert>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="docs" className="mt-6">
+          <ApiDocumentation />
         </TabsContent>
       </Tabs>
 
