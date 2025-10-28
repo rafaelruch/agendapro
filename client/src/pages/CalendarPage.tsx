@@ -1,39 +1,63 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { CalendarView } from "@/components/CalendarView";
 import { AppointmentDialog } from "@/components/AppointmentDialog";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { Appointment, Client } from "@shared/schema";
 
 export default function CalendarPage() {
   const [showAppointmentDialog, setShowAppointmentDialog] = useState(false);
+  const { toast } = useToast();
 
-  // TODO: remove mock functionality
-  const mockClients = [
-    { id: "1", name: "João Silva" },
-    { id: "2", name: "Maria Santos" },
-    { id: "3", name: "Pedro Oliveira" },
-  ];
+  const { data: clients = [] } = useQuery<Client[]>({
+    queryKey: ["/api/clients"],
+  });
 
-  const mockAppointments = [
-    {
-      id: "1",
-      time: "2025-10-28T14:00:00",
-      clientName: "João Silva",
-      status: "scheduled" as const,
+  const { data: appointments = [], isLoading } = useQuery<Appointment[]>({
+    queryKey: ["/api/appointments"],
+  });
+
+  const createAppointmentMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/appointments", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      setShowAppointmentDialog(false);
+      toast({
+        title: "Agendamento criado",
+        description: "O agendamento foi criado com sucesso.",
+      });
     },
-    {
-      id: "2",
-      time: "2025-10-28T16:00:00",
-      clientName: "Maria Santos",
-      status: "scheduled" as const,
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao criar agendamento",
+        description: error.message,
+        variant: "destructive",
+      });
     },
-    {
-      id: "3",
-      time: "2025-10-29T10:00:00",
-      clientName: "Pedro Oliveira",
-      status: "completed" as const,
-    },
-  ];
+  });
+
+  const formatAppointmentsForCalendar = () => {
+    return appointments.map(apt => {
+      const client = clients.find(c => c.id === apt.clientId);
+      return {
+        id: apt.id,
+        time: `${apt.date}T${apt.time}`,
+        clientName: client?.name || "Cliente desconhecido",
+        status: apt.status as "scheduled" | "completed" | "cancelled",
+      };
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -49,7 +73,7 @@ export default function CalendarPage() {
       </div>
 
       <CalendarView
-        appointments={mockAppointments}
+        appointments={formatAppointmentsForCalendar()}
         onDateClick={(date) => console.log("Data clicada:", date)}
         onAppointmentClick={(id) => console.log("Agendamento clicado:", id)}
       />
@@ -57,8 +81,8 @@ export default function CalendarPage() {
       <AppointmentDialog
         open={showAppointmentDialog}
         onOpenChange={setShowAppointmentDialog}
-        clients={mockClients}
-        onSave={(data) => console.log("Novo agendamento:", data)}
+        clients={clients.map(c => ({ id: c.id, name: c.name }))}
+        onSave={(data) => createAppointmentMutation.mutate(data)}
       />
     </div>
   );

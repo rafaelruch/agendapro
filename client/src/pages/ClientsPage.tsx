@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Plus, Search, MoreVertical } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,43 +18,108 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ClientDialog } from "@/components/ClientDialog";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { Client, Appointment } from "@shared/schema";
 
 export default function ClientsPage() {
   const [showClientDialog, setShowClientDialog] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const { toast } = useToast();
 
-  // TODO: remove mock functionality
-  const mockClients = [
-    {
-      id: "1",
-      name: "João Silva",
-      email: "joao@example.com",
-      phone: "(11) 98765-4321",
-      totalAppointments: 12,
-      lastActivity: "2025-10-27",
-    },
-    {
-      id: "2",
-      name: "Maria Santos",
-      email: "maria@example.com",
-      phone: "(11) 98765-1234",
-      totalAppointments: 8,
-      lastActivity: "2025-10-26",
-    },
-    {
-      id: "3",
-      name: "Pedro Oliveira",
-      email: "pedro@example.com",
-      phone: "(11) 98765-5678",
-      totalAppointments: 15,
-      lastActivity: "2025-10-28",
-    },
-  ];
+  const { data: clients = [], isLoading } = useQuery<Client[]>({
+    queryKey: ["/api/clients"],
+  });
 
-  const filteredClients = mockClients.filter((client) =>
+  const { data: appointments = [] } = useQuery<Appointment[]>({
+    queryKey: ["/api/appointments"],
+  });
+
+  const createClientMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/clients", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      setShowClientDialog(false);
+      setEditingClient(null);
+      toast({
+        title: "Cliente criado",
+        description: "O cliente foi criado com sucesso.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao criar cliente",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateClientMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      apiRequest("PUT", `/api/clients/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      setShowClientDialog(false);
+      setEditingClient(null);
+      toast({
+        title: "Cliente atualizado",
+        description: "O cliente foi atualizado com sucesso.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao atualizar cliente",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteClientMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/clients/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      toast({
+        title: "Cliente excluído",
+        description: "O cliente foi excluído com sucesso.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao excluir cliente",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const filteredClients = clients.filter((client) =>
     client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     client.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const getClientAppointmentCount = (clientId: string) => {
+    return appointments.filter(apt => apt.clientId === clientId).length;
+  };
+
+  const getClientLastActivity = (clientId: string) => {
+    const clientAppointments = appointments
+      .filter(apt => apt.clientId === clientId)
+      .sort((a, b) => b.date.localeCompare(a.date));
+    
+    return clientAppointments[0]?.date || "-";
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -79,61 +145,89 @@ export default function ClientsPage() {
         />
       </div>
 
-      <div className="border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Telefone</TableHead>
-              <TableHead>Total de Agendamentos</TableHead>
-              <TableHead>Última Atividade</TableHead>
-              <TableHead className="w-12"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredClients.map((client) => (
-              <TableRow key={client.id} data-testid={`row-client-${client.id}`}>
-                <TableCell className="font-medium">{client.name}</TableCell>
-                <TableCell>{client.email}</TableCell>
-                <TableCell>{client.phone}</TableCell>
-                <TableCell>{client.totalAppointments}</TableCell>
-                <TableCell>
-                  {new Date(client.lastActivity).toLocaleDateString('pt-BR')}
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button size="icon" variant="ghost" data-testid={`button-client-menu-${client.id}`}>
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => console.log("Editar:", client.id)}>
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => console.log("Ver agendamentos:", client.id)}>
-                        Ver Agendamentos
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => console.log("Excluir:", client.id)}
-                        className="text-destructive"
-                      >
-                        Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+      {filteredClients.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-4">Nenhum cliente encontrado.</p>
+          <Button onClick={() => setShowClientDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Adicionar Primeiro Cliente
+          </Button>
+        </div>
+      ) : (
+        <div className="border rounded-md">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead>Total de Agendamentos</TableHead>
+                <TableHead>Última Atividade</TableHead>
+                <TableHead className="w-12"></TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {filteredClients.map((client) => (
+                <TableRow key={client.id} data-testid={`row-client-${client.id}`}>
+                  <TableCell className="font-medium">{client.name}</TableCell>
+                  <TableCell>{client.email}</TableCell>
+                  <TableCell>{client.phone || "-"}</TableCell>
+                  <TableCell>{getClientAppointmentCount(client.id)}</TableCell>
+                  <TableCell>
+                    {getClientLastActivity(client.id) !== "-"
+                      ? new Date(getClientLastActivity(client.id)).toLocaleDateString('pt-BR')
+                      : "-"}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="ghost" data-testid={`button-client-menu-${client.id}`}>
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setEditingClient(client);
+                            setShowClientDialog(true);
+                          }}
+                        >
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (confirm(`Tem certeza que deseja excluir ${client.name}?`)) {
+                              deleteClientMutation.mutate(client.id);
+                            }
+                          }}
+                          className="text-destructive"
+                        >
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       <ClientDialog
         open={showClientDialog}
-        onOpenChange={setShowClientDialog}
-        onSave={(data) => console.log("Novo cliente:", data)}
+        onOpenChange={(open) => {
+          setShowClientDialog(open);
+          if (!open) setEditingClient(null);
+        }}
+        initialData={editingClient}
+        onSave={(data) => {
+          if (editingClient) {
+            updateClientMutation.mutate({ id: editingClient.id, data });
+          } else {
+            createClientMutation.mutate(data);
+          }
+        }}
       />
     </div>
   );

@@ -1,45 +1,109 @@
 import { useState } from "react";
 import { Calendar, Users, CheckCircle2, Clock, Plus } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { StatsCard } from "@/components/StatsCard";
 import { AppointmentCard } from "@/components/AppointmentCard";
 import { AppointmentDialog } from "@/components/AppointmentDialog";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { Appointment, Client } from "@shared/schema";
 
 export default function Dashboard() {
   const [showAppointmentDialog, setShowAppointmentDialog] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const { toast } = useToast();
 
-  // TODO: remove mock functionality
-  const mockClients = [
-    { id: "1", name: "João Silva" },
-    { id: "2", name: "Maria Santos" },
-    { id: "3", name: "Pedro Oliveira" },
-  ];
+  const { data: clients = [] } = useQuery<Client[]>({
+    queryKey: ["/api/clients"],
+  });
 
-  const mockAppointments = [
-    {
-      id: "1",
-      clientName: "João Silva",
-      time: "14:00",
-      duration: 60,
-      status: "scheduled" as const,
-      notes: "Consulta de acompanhamento mensal",
+  const { data: appointments = [], isLoading } = useQuery<Appointment[]>({
+    queryKey: ["/api/appointments"],
+  });
+
+  const createAppointmentMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/appointments", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      setShowAppointmentDialog(false);
+      setEditingAppointment(null);
+      toast({
+        title: "Agendamento criado",
+        description: "O agendamento foi criado com sucesso.",
+      });
     },
-    {
-      id: "2",
-      clientName: "Maria Santos",
-      time: "16:00",
-      duration: 45,
-      status: "scheduled" as const,
-      notes: "Primeira consulta",
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao criar agendamento",
+        description: error.message,
+        variant: "destructive",
+      });
     },
-    {
-      id: "3",
-      clientName: "Pedro Oliveira",
-      time: "10:00",
-      duration: 30,
-      status: "completed" as const,
+  });
+
+  const updateAppointmentMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      apiRequest("PUT", `/api/appointments/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      setShowAppointmentDialog(false);
+      setEditingAppointment(null);
+      toast({
+        title: "Agendamento atualizado",
+        description: "O agendamento foi atualizado com sucesso.",
+      });
     },
-  ];
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao atualizar agendamento",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteAppointmentMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/appointments/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      toast({
+        title: "Agendamento excluído",
+        description: "O agendamento foi excluído com sucesso.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao excluir agendamento",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const today = new Date().toISOString().split('T')[0];
+  const todayAppointments = appointments.filter(apt => apt.date === today);
+  const completedCount = appointments.filter(apt => apt.status === "completed").length;
+
+  const formatAppointmentForCard = (apt: Appointment) => {
+    const client = clients.find(c => c.id === apt.clientId);
+    return {
+      id: apt.id,
+      clientName: client?.name || "Cliente desconhecido",
+      time: apt.time,
+      duration: apt.duration,
+      status: apt.status as "scheduled" | "completed" | "cancelled",
+      notes: apt.notes || undefined,
+    };
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -57,48 +121,69 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total de Agendamentos"
-          value="124"
+          value={appointments.length}
           icon={Calendar}
-          trend={{ value: "12%", positive: true }}
         />
         <StatsCard
           title="Clientes Ativos"
-          value="48"
+          value={clients.length}
           icon={Users}
-          trend={{ value: "8%", positive: true }}
         />
         <StatsCard
           title="Agendamentos Hoje"
-          value="8"
+          value={todayAppointments.length}
           icon={Clock}
         />
         <StatsCard
           title="Concluídos"
-          value="98"
+          value={completedCount}
           icon={CheckCircle2}
-          trend={{ value: "15%", positive: true }}
         />
       </div>
 
       <div>
         <h2 className="text-xl font-semibold mb-4">Agendamentos de Hoje</h2>
-        <div className="space-y-3">
-          {mockAppointments.map((appointment) => (
-            <AppointmentCard
-              key={appointment.id}
-              appointment={appointment}
-              onEdit={(id) => console.log("Editar:", id)}
-              onDelete={(id) => console.log("Excluir:", id)}
-            />
-          ))}
-        </div>
+        {todayAppointments.length === 0 ? (
+          <p className="text-muted-foreground">Nenhum agendamento para hoje.</p>
+        ) : (
+          <div className="space-y-3">
+            {todayAppointments.map((appointment) => (
+              <AppointmentCard
+                key={appointment.id}
+                appointment={formatAppointmentForCard(appointment)}
+                onEdit={(id) => {
+                  const apt = appointments.find(a => a.id === id);
+                  if (apt) {
+                    setEditingAppointment(apt);
+                    setShowAppointmentDialog(true);
+                  }
+                }}
+                onDelete={(id) => {
+                  if (confirm("Tem certeza que deseja excluir este agendamento?")) {
+                    deleteAppointmentMutation.mutate(id);
+                  }
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <AppointmentDialog
         open={showAppointmentDialog}
-        onOpenChange={setShowAppointmentDialog}
-        clients={mockClients}
-        onSave={(data) => console.log("Novo agendamento:", data)}
+        onOpenChange={(open) => {
+          setShowAppointmentDialog(open);
+          if (!open) setEditingAppointment(null);
+        }}
+        clients={clients.map(c => ({ id: c.id, name: c.name }))}
+        initialData={editingAppointment}
+        onSave={(data) => {
+          if (editingAppointment) {
+            updateAppointmentMutation.mutate({ id: editingAppointment.id, data });
+          } else {
+            createAppointmentMutation.mutate(data);
+          }
+        }}
       />
     </div>
   );

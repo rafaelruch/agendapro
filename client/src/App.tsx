@@ -1,6 +1,6 @@
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -13,6 +13,7 @@ import ClientsPage from "@/pages/ClientsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/not-found";
 import { useState } from "react";
+import type { Client } from "@shared/schema";
 
 function Router() {
   return (
@@ -26,19 +27,12 @@ function Router() {
   );
 }
 
-export default function App() {
-  // TODO: remove mock functionality
-  const [selectedClient, setSelectedClient] = useState({ 
-    id: "1", 
-    name: "João Silva", 
-    email: "joao@example.com" 
-  });
+function AppContent() {
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
-  const mockClients = [
-    { id: "1", name: "João Silva", email: "joao@example.com" },
-    { id: "2", name: "Maria Santos", email: "maria@example.com" },
-    { id: "3", name: "Pedro Oliveira", email: "pedro@example.com" },
-  ];
+  const { data: clients = [] } = useQuery<Client[]>({
+    queryKey: ["/api/clients"],
+  });
 
   const style = {
     "--sidebar-width": "16rem",
@@ -46,30 +40,39 @@ export default function App() {
   };
 
   return (
+    <SidebarProvider style={style as React.CSSProperties}>
+      <div className="flex h-screen w-full">
+        <AppSidebar />
+        <div className="flex flex-col flex-1">
+          <header className="flex items-center justify-between p-4 border-b gap-4">
+            <div className="flex items-center gap-4">
+              <SidebarTrigger data-testid="button-sidebar-toggle" />
+              <ClientSelector
+                clients={clients.map(c => ({ id: c.id, name: c.name, email: c.email }))}
+                selectedClient={selectedClient ? { id: selectedClient.id, name: selectedClient.name, email: selectedClient.email } : null}
+                onSelectClient={(client) => {
+                  const fullClient = clients.find(c => c.id === client.id);
+                  if (fullClient) setSelectedClient(fullClient);
+                }}
+                onAddClient={() => window.location.href = "/clients"}
+              />
+            </div>
+            <ThemeToggle />
+          </header>
+          <main className="flex-1 overflow-auto p-6">
+            <Router />
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+}
+
+export default function App() {
+  return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <SidebarProvider style={style as React.CSSProperties}>
-          <div className="flex h-screen w-full">
-            <AppSidebar />
-            <div className="flex flex-col flex-1">
-              <header className="flex items-center justify-between p-4 border-b gap-4">
-                <div className="flex items-center gap-4">
-                  <SidebarTrigger data-testid="button-sidebar-toggle" />
-                  <ClientSelector
-                    clients={mockClients}
-                    selectedClient={selectedClient}
-                    onSelectClient={setSelectedClient}
-                    onAddClient={() => console.log("Adicionar novo cliente")}
-                  />
-                </div>
-                <ThemeToggle />
-              </header>
-              <main className="flex-1 overflow-auto p-6">
-                <Router />
-              </main>
-            </div>
-          </div>
-        </SidebarProvider>
+        <AppContent />
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
