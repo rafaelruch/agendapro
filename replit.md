@@ -1,10 +1,13 @@
-# AgendaPro - Sistema SaaS de Gerenciamento de Agendas
+# AgendaPro - Sistema SaaS Multi-Tenant de Gerenciamento de Agendas
 
 ## Visão Geral
-AgendaPro é um sistema SaaS moderno para gerenciamento de agendas multi-cliente com integração completa via API REST para N8N e outras ferramentas de automação.
+AgendaPro é um sistema SaaS multi-tenant moderno para gerenciamento de agendas. Múltiplas empresas (tenants) podem usar a mesma plataforma com isolamento completo de dados. Cada tenant gerencia seus próprios clientes, serviços, agendamentos e usuários. Sistema inclui integração completa via API REST para N8N e outras ferramentas de automação.
 
 ## Características Principais
-- **Multi-cliente**: Gerencie agendas separadas para múltiplos clientes
+- **Multi-Tenant**: Múltiplas empresas usam a mesma plataforma com isolamento total de dados
+- **Autenticação Segura**: Sistema de login com senhas criptografadas (bcrypt) e sessões
+- **Admin Master**: Painel administrativo para criar e gerenciar tenants
+- **Gerenciamento de Usuários**: Cada tenant pode ter múltiplos usuários com diferentes permissões
 - **Gerenciamento de Serviços**: Catálogo completo de serviços com nome, categoria e valor
 - **Vinculação Serviço-Agendamento**: Agendamentos podem ser vinculados a serviços específicos
 - **Ações Rápidas**: Checkbox para marcar agendamentos como concluídos rapidamente
@@ -18,11 +21,23 @@ AgendaPro é um sistema SaaS moderno para gerenciamento de agendas multi-cliente
 ### Backend
 - **Database**: PostgreSQL (Neon) com Drizzle ORM
 - **API**: Express.js com rotas REST
+- **Autenticação**: Express-session com bcrypt para hash de senhas
 - **Validação**: Zod para validação de dados
 - **Tabelas**:
-  - `clients`: Armazena informações dos clientes
-  - `services`: Armazena serviços com nome, categoria e valor
-  - `appointments`: Armazena agendamentos com referência ao cliente e serviço (opcional)
+  - `tenants`: Armazena informações das empresas (tenants)
+  - `users`: Usuários do sistema com autenticação por senha (bcrypt)
+  - `clients`: Armazena informações dos clientes (isolados por tenant)
+  - `services`: Armazena serviços com nome, categoria e valor (isolados por tenant)
+  - `appointments`: Armazena agendamentos com referência ao cliente e serviço opcional (isolados por tenant)
+
+### Arquitetura Multi-Tenant
+- **Isolamento de Dados**: Todas as tabelas têm campo `tenantId` para isolar dados
+- **Middleware de Autenticação**: Verifica sessão do usuário antes de acessar rotas protegidas
+- **Middleware de Tenant**: Filtra automaticamente dados pelo tenant do usuário logado
+- **Roles**: 
+  - `master_admin`: Acesso ao painel administrativo para gerenciar tenants
+  - `admin`: Administrador do tenant (acesso total aos dados do tenant)
+  - `user`: Usuário normal do tenant
 
 ### Frontend
 - **Framework**: React com TypeScript
@@ -32,13 +47,41 @@ AgendaPro é um sistema SaaS moderno para gerenciamento de agendas multi-cliente
 - **Tema**: Sistema de tema claro/escuro
 
 ### Páginas
-1. **Dashboard**: Visão geral com estatísticas e agendamentos do dia com checkbox de conclusão
-2. **Calendário**: Visualização em calendário mensal dos agendamentos
-3. **Clientes**: Gerenciamento completo de clientes
-4. **Serviços**: Catálogo de serviços com nome, categoria e valor
-5. **Configurações**: Documentação completa da API com exemplos curl e configurações do sistema
+1. **Login**: Tela de autenticação com usuário e senha
+2. **Admin Master**: Painel para gerenciar tenants e criar usuários (apenas master_admin)
+3. **Dashboard**: Visão geral com estatísticas e agendamentos do dia com checkbox de conclusão
+4. **Calendário**: Visualização em calendário mensal dos agendamentos
+5. **Clientes**: Gerenciamento completo de clientes
+6. **Serviços**: Catálogo de serviços com nome, categoria e valor
+7. **Configurações**: Documentação completa da API com exemplos curl e configurações do sistema
+
+## Autenticação
+
+### Credenciais de Teste
+- **Admin Master**: `admin` / `admin123` (gerenciar tenants)
+- **Tenant 1 (Salão de Beleza Premium)**: `maria` / `senha123`
+- **Tenant 2 (Clínica Dra. Silva)**: `joao` / `senha123`
+
+### Rotas de Autenticação
+
+#### POST /api/auth/login
+Login no sistema
+```json
+{
+  "username": "admin",
+  "password": "admin123"
+}
+```
+
+#### POST /api/auth/logout
+Logout do sistema
+
+#### GET /api/auth/me
+Retorna dados do usuário logado
 
 ## API REST para N8N
+
+**IMPORTANTE**: Todas as rotas de API (exceto login) requerem autenticação via sessão. Os dados retornados são automaticamente filtrados pelo tenant do usuário logado.
 
 A documentação completa com exemplos curl está disponível na página de Configurações do sistema. Abaixo um resumo dos endpoints:
 
@@ -151,6 +194,17 @@ shared/
 
 ## Últimas Alterações (28/10/2025)
 
+### Arquitetura Multi-Tenant Implementada
+- ✅ Tabelas `tenants` e `users` criadas
+- ✅ Todas as tabelas (clients, services, appointments) agora têm `tenantId`
+- ✅ Isolamento completo de dados por tenant
+- ✅ Sistema de autenticação com sessões e bcrypt
+- ✅ Middleware de autenticação e tenant em todas as rotas protegidas
+- ✅ Painel administrativo master para gerenciar tenants
+- ✅ Criação de usuários por tenant com senhas criptografadas
+- ✅ Tela de login com usuário e senha
+- ✅ Dados de teste para 2 tenants diferentes
+
 ### Funcionalidades Implementadas
 - ✅ Vinculação de serviços a agendamentos via campo `serviceId` (opcional)
 - ✅ Seletor de serviço no formulário de agendamento
@@ -160,19 +214,22 @@ shared/
 - ✅ Interface organizada em abas (Clientes, Serviços, Agendamentos)
 - ✅ Exemplos práticos de uso com curl para cada endpoint
 
-### Melhorias de UX
-- Checkbox visual para conclusão rápida de agendamentos
-- Seleção de serviço ao criar/editar agendamentos (com opção "Nenhum" para agendamentos sem serviço)
-- Documentação mais clara e prática na página de Configurações
-- Código de exemplos com URL base dinâmica
+### Segurança
+- ✅ Senhas criptografadas com bcrypt (salt rounds: 10)
+- ✅ Sessões seguras com express-session
+- ✅ Autenticação obrigatória em todas as rotas (exceto login)
+- ✅ Validação de senha no login
+- ✅ Hashes de senha nunca retornados nas respostas da API
+- ✅ Isolamento de dados garantido por tenant via middleware
 
 ### Correções Técnicas
+- Bug corrigido: Autenticação sem senha (vulnerabilidade crítica) - agora requer senha
 - Bug corrigido: Radix Select não aceita `value=""`. Solução implementada usando valor sentinela "none" que é convertido para `undefined` no handleSubmit
 - Validação garantida: agendamentos sem serviço vinculado agora salvam corretamente com `serviceId = null`
 
-### Arquitetura
-- Schema atualizado com relacionamento appointments → services
-- Migrations executadas com sucesso
-- Frontend e backend sincronizados
-- Validação de dados mantida em ambas as camadas
-- Testes end-to-end validados com sucesso
+### Próximos Passos Recomendados
+- 🔄 Externalizar SESSION_SECRET para variável de ambiente antes de produção
+- 🔄 Implementar rate limiting no endpoint de login para prevenir brute-force
+- 🔄 Adicionar account lockout após múltiplas tentativas de login falhadas
+- 🔄 Implementar busca no frontend para seletores de cliente/serviço (API já suporta via ?search=)
+- 🔄 Traduzir toda interface para português (atualmente parcialmente em inglês)
