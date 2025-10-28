@@ -38,6 +38,11 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, user: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: string): Promise<boolean>;
+  
+  // User operations with tenant isolation (for tenant admin management)
+  getUserWithTenantIsolation(id: string, tenantId: string): Promise<User | undefined>;
+  updateUserWithTenantIsolation(id: string, tenantId: string, user: Partial<InsertUser>): Promise<User | undefined>;
+  deleteUserWithTenantIsolation(id: string, tenantId: string): Promise<boolean>;
 
   // Client operations (with tenant isolation)
   getClient(id: string, tenantId: string): Promise<Client | undefined>;
@@ -142,6 +147,33 @@ export class DbStorage implements IStorage {
 
   async deleteUser(id: string): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // User operations with tenant isolation (for tenant admin management)
+  async getUserWithTenantIsolation(id: string, tenantId: string): Promise<User | undefined> {
+    const result = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, id), eq(users.tenantId, tenantId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async updateUserWithTenantIsolation(id: string, tenantId: string, userData: Partial<InsertUser>): Promise<User | undefined> {
+    const result = await db
+      .update(users)
+      .set(userData)
+      .where(and(eq(users.id, id), eq(users.tenantId, tenantId)))
+      .returning();
+    return result[0];
+  }
+
+  async deleteUserWithTenantIsolation(id: string, tenantId: string): Promise<boolean> {
+    const result = await db
+      .delete(users)
+      .where(and(eq(users.id, id), eq(users.tenantId, tenantId)))
+      .returning();
     return result.length > 0;
   }
 

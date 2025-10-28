@@ -13,6 +13,7 @@ import Dashboard from "@/pages/Dashboard";
 import CalendarPage from "@/pages/CalendarPage";
 import ClientsPage from "@/pages/ClientsPage";
 import ServicesPage from "@/pages/ServicesPage";
+import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
 import LoginPage from "@/pages/LoginPage";
 import AdminPage from "@/pages/AdminPage";
@@ -44,6 +45,7 @@ function Router() {
       <Route path="/calendar" component={CalendarPage} />
       <Route path="/clients" component={ClientsPage} />
       <Route path="/services" component={ServicesPage} />
+      <Route path="/users" component={UsersPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />
@@ -107,7 +109,7 @@ function AuthenticatedApp({ authData }: { authData: AuthData }) {
   return (
     <SidebarProvider style={style as React.CSSProperties}>
       <div className="flex h-screen w-full">
-        <AppSidebar />
+        <AppSidebar userRole={authData.user.role} />
         <div className="flex flex-col flex-1">
           <header className="flex items-center justify-between p-4 border-b gap-4">
             <div className="flex items-center gap-4">

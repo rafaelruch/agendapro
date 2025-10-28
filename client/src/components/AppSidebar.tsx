@@ -1,4 +1,4 @@
-import { Calendar, LayoutDashboard, Users, Settings, Briefcase } from "lucide-react";
+import { Calendar, LayoutDashboard, Users, Settings, Briefcase, UserCog } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -16,31 +16,50 @@ const menuItems = [
     title: "Dashboard",
     url: "/",
     icon: LayoutDashboard,
+    adminOnly: false,
   },
   {
     title: "Calendário",
     url: "/calendar",
     icon: Calendar,
+    adminOnly: false,
   },
   {
     title: "Clientes",
     url: "/clients",
     icon: Users,
+    adminOnly: false,
   },
   {
     title: "Serviços",
     url: "/services",
     icon: Briefcase,
+    adminOnly: false,
+  },
+  {
+    title: "Usuários",
+    url: "/users",
+    icon: UserCog,
+    adminOnly: true,
   },
   {
     title: "Configurações",
     url: "/settings",
     icon: Settings,
+    adminOnly: true,
   },
 ];
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  userRole?: string;
+}
+
+export function AppSidebar({ userRole }: AppSidebarProps) {
   const [location] = useLocation();
+
+  const isAdmin = userRole === 'admin' || userRole === 'master_admin';
+
+  const visibleItems = menuItems.filter(item => !item.adminOnly || isAdmin);
 
   return (
     <Sidebar>
@@ -54,7 +73,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent className="mt-4">
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={location === item.url}>
                     <Link href={item.url} data-testid={`link-${item.title.toLowerCase()}`}>

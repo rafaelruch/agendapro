@@ -6,7 +6,8 @@ import {
   insertServiceSchema, 
   insertAppointmentSchema,
   insertTenantSchema,
-  insertUserSchema 
+  insertUserSchema,
+  type InsertUser
 } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
@@ -74,6 +75,17 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
 function requireMasterAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.session.userId || req.session.role !== 'master_admin') {
     return res.status(403).json({ error: "Acesso negado. Apenas administradores master." });
+  }
+  next();
+}
+
+// Middleware para verificar se é admin do tenant (não permite API tokens nesta rota)
+function requireTenantAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.userId || !req.session.tenantId) {
+    return res.status(401).json({ error: "Não autenticado" });
+  }
+  if (req.session.role !== 'admin' && req.session.role !== 'master_admin') {
+    return res.status(403).json({ error: "Acesso negado. Apenas administradores." });
   }
   next();
 }
@@ -274,17 +286,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ===========================================
-  // ROTAS DE USUÁRIOS
+  // ROTAS DE GERENCIAMENTO DE USUÁRIOS (TENANT ADMIN)
   // ===========================================
   
-  // GET /api/users - List users of current tenant
-  app.get("/api/users", requireAuth, async (req, res) => {
+  // GET /api/users - List all users of current tenant (admin only)
+  app.get("/api/users", requireTenantAdmin, async (req, res) => {
     try {
-      const users = await storage.getUsersByTenant(req.session.tenantId!);
-      res.json(users);
+      const tenantId = req.session.tenantId!;
+      const users = await storage.getUsersByTenant(tenantId);
+      const usersWithoutPassword = users.map(({ password, ...user }) => user);
+      res.json(usersWithoutPassword);
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ error: "Erro ao buscar usuários" });
+    }
+  });
+
+  // GET /api/users/:id - Get specific user (admin only)
+  app.get("/api/users/:id", requireTenantAdmin, async (req, res) => {
+    try {
+      const tenantId = req.session.tenantId!;
+      const user = await storage.getUserWithTenantIsolation(req.params.id, tenantId);
+      if (!user) {
+        return res.status(404).json({ error: "Usuário não encontrado" });
+      }
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ error: "Erro ao buscar usuário" });
+    }
+  });
+
+  // POST /api/users - Create new user in current tenant (admin only)
+  app.post("/api/users", requireTenantAdmin, async (req, res) => {
+    try {
+      const tenantId = req.session.tenantId!;
+      const { password, role, ...userData } = req.body;
+      
+      if (!password) {
+        return res.status(400).json({ error: "Senha é obrigatória" });
+      }
+
+      const userRole = role || 'user';
+      if (userRole !== 'user' && userRole !== 'admin') {
+        return res.status(400).json({ error: "Role inválido. Use 'user' ou 'admin'" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      const validatedData = insertUserSchema.parse({
+        ...userData,
+        password: hashedPassword,
+        role: userRole,
+        tenantId
+      });
+      
+      const user = await storage.createUser(validatedData);
+      const { password: _, ...userWithoutPassword } = user;
+      res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Dados inválidos", details: error.errors });
+      }
+      console.error("Error creating user:", error);
+      res.status(500).json({ error: "Erro ao criar usuário" });
+    }
+  });
+
+  // PUT /api/users/:id - Update user (admin only)
+  app.put("/api/users/:id", requireTenantAdmin, async (req, res) => {
+    try {
+      const tenantId = req.session.tenantId!;
+      const { password, role, ...userData } = req.body;
+      
+      let updateData: Partial<InsertUser> = userData;
+
+      if (role) {
+        if (role !== 'user' && role !== 'admin') {
+          return res.status(400).json({ error: "Role inválido. Use 'user' ou 'admin'" });
+        }
+        updateData.role = role;
+      }
+
+      if (password) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        updateData.password = hashedPassword;
+      }
+
+      const validatedData = insertUserSchema.partial().parse(updateData);
+      const user = await storage.updateUserWithTenantIsolation(req.params.id, tenantId, validatedData);
+      
+      if (!user) {
+        return res.status(404).json({ error: "Usuário não encontrado" });
+      }
+      
+      const { password: _, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Dados inválidos", details: error.errors });
+      }
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "Erro ao atualizar usuário" });
+    }
+  });
+
+  // DELETE /api/users/:id - Delete user (admin only)
+  app.delete("/api/users/:id", requireTenantAdmin, async (req, res) => {
+    try {
+      const tenantId = req.session.tenantId!;
+      
+      if (req.params.id === req.session.userId) {
+        return res.status(400).json({ error: "Você não pode deletar seu próprio usuário" });
+      }
+
+      const success = await storage.deleteUserWithTenantIsolation(req.params.id, tenantId);
+      if (!success) {
+        return res.status(404).json({ error: "Usuário não encontrado" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ error: "Erro ao deletar usuário" });
     }
   });
 
