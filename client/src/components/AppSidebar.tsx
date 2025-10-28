@@ -1,4 +1,4 @@
-import { Calendar, LayoutDashboard, Users, Settings } from "lucide-react";
+import { Calendar, LayoutDashboard, Users, Settings, Briefcase } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -26,6 +26,11 @@ const menuItems = [
     title: "Clientes",
     url: "/clients",
     icon: Users,
+  },
+  {
+    title: "Serviços",
+    url: "/services",
+    icon: Briefcase,
   },
   {
     title: "Configurações",

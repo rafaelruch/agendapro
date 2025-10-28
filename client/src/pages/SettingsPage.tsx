@@ -79,6 +79,52 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle>API de Integração - Serviços</CardTitle>
+            <CardDescription>
+              Endpoints para gerenciar serviços via N8N
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Métodos Disponíveis</Label>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <code className="bg-muted px-2 py-1 rounded">GET</code>
+                  <span className="text-muted-foreground">/api/services - Listar todos os serviços</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="bg-muted px-2 py-1 rounded">GET</code>
+                  <span className="text-muted-foreground">/api/services/:id - Buscar serviço específico</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="bg-muted px-2 py-1 rounded">POST</code>
+                  <span className="text-muted-foreground">/api/services - Criar novo serviço</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="bg-muted px-2 py-1 rounded">PUT</code>
+                  <span className="text-muted-foreground">/api/services/:id - Atualizar serviço</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="bg-muted px-2 py-1 rounded">DELETE</code>
+                  <span className="text-muted-foreground">/api/services/:id - Excluir serviço</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Exemplo de Corpo (POST/PUT)</Label>
+              <pre className="bg-muted p-3 rounded text-xs overflow-auto">
+{`{
+  "name": "Corte de Cabelo",
+  "category": "Cabelo",
+  "value": 50.00
+}`}
+              </pre>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>API de Integração - Agendamentos</CardTitle>
             <CardDescription>
               Endpoints para gerenciar agendamentos via N8N

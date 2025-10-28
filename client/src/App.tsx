@@ -10,6 +10,7 @@ import { ClientSelector } from "@/components/ClientSelector";
 import Dashboard from "@/pages/Dashboard";
 import CalendarPage from "@/pages/CalendarPage";
 import ClientsPage from "@/pages/ClientsPage";
+import ServicesPage from "@/pages/ServicesPage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/not-found";
 import { useState } from "react";
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/calendar" component={CalendarPage} />
       <Route path="/clients" component={ClientsPage} />
+      <Route path="/services" component={ServicesPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route component={NotFound} />
     </Switch>
