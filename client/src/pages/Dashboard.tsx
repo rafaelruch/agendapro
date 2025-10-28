@@ -85,6 +85,28 @@ export default function Dashboard() {
     },
   });
 
+  const toggleCompleteMutation = useMutation({
+    mutationFn: ({ id, completed }: { id: string; completed: boolean }) => {
+      const appointment = appointments.find(a => a.id === id);
+      if (!appointment) return Promise.reject(new Error("Agendamento não encontrado"));
+      
+      return apiRequest("PUT", `/api/appointments/${id}`, {
+        ...appointment,
+        status: completed ? "completed" : "scheduled",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao atualizar status",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const today = new Date().toISOString().split('T')[0];
   const todayAppointments = appointments.filter(apt => apt.date === today);
   const completedCount = appointments.filter(apt => apt.status === "completed").length;
@@ -166,6 +188,9 @@ export default function Dashboard() {
                   if (confirm("Tem certeza que deseja excluir este agendamento?")) {
                     deleteAppointmentMutation.mutate(id);
                   }
+                }}
+                onToggleComplete={(id, completed) => {
+                  toggleCompleteMutation.mutate({ id, completed });
                 }}
               />
             ))}
