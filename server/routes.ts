@@ -314,6 +314,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/clients/:id/appointments - Get all appointments for a specific client
+  app.get("/api/clients/:id/appointments", requireAuth, async (req, res) => {
+    try {
+      const client = await storage.getClient(req.params.id, req.session.tenantId!);
+      if (!client) {
+        return res.status(404).json({ error: "Cliente não encontrado" });
+      }
+      
+      const appointments = await storage.getAppointmentsByClient(req.params.id, req.session.tenantId!);
+      res.json(appointments);
+    } catch (error) {
+      console.error("Error fetching client appointments:", error);
+      res.status(500).json({ error: "Erro ao buscar agendamentos do cliente" });
+    }
+  });
+
+  // GET /api/clients/:id/stats - Get statistics for a specific client
+  app.get("/api/clients/:id/stats", requireAuth, async (req, res) => {
+    try {
+      const client = await storage.getClient(req.params.id, req.session.tenantId!);
+      if (!client) {
+        return res.status(404).json({ error: "Cliente não encontrado" });
+      }
+      
+      const stats = await storage.getClientStats(req.params.id, req.session.tenantId!);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching client stats:", error);
+      res.status(500).json({ error: "Erro ao buscar estatísticas do cliente" });
+    }
+  });
+
   // ===========================================
   // ROTAS DE SERVIÇOS (COM ISOLAMENTO TENANT)
   // ===========================================
@@ -401,6 +433,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/services/:id/appointments - Get all appointments for a specific service
+  app.get("/api/services/:id/appointments", requireAuth, async (req, res) => {
+    try {
+      const service = await storage.getService(req.params.id, req.session.tenantId!);
+      if (!service) {
+        return res.status(404).json({ error: "Serviço não encontrado" });
+      }
+      
+      const appointments = await storage.getAppointmentsByService(req.params.id, req.session.tenantId!);
+      res.json(appointments);
+    } catch (error) {
+      console.error("Error fetching service appointments:", error);
+      res.status(500).json({ error: "Erro ao buscar agendamentos do serviço" });
+    }
+  });
+
   // ===========================================
   // ROTAS DE AGENDAMENTOS (COM ISOLAMENTO TENANT)
   // ===========================================
@@ -434,7 +482,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const appointments = await storage.getAllAppointments(
         req.session.tenantId!,
-        clientId as string | undefined
+        clientId as string | undefined,
+        serviceId as string | undefined
       );
       res.json(appointments);
     } catch (error) {

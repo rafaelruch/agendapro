@@ -53,11 +53,21 @@ export interface IStorage {
 
   // Appointment operations (with tenant isolation)
   getAppointment(id: string, tenantId: string): Promise<Appointment | undefined>;
-  getAllAppointments(tenantId: string, clientId?: string): Promise<Appointment[]>;
+  getAllAppointments(tenantId: string, clientId?: string, serviceId?: string): Promise<Appointment[]>;
   getAppointmentsByDateRange(tenantId: string, startDate: string, endDate: string, clientId?: string): Promise<Appointment[]>;
+  getAppointmentsByClient(clientId: string, tenantId: string): Promise<Appointment[]>;
+  getAppointmentsByService(serviceId: string, tenantId: string): Promise<Appointment[]>;
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
   updateAppointment(id: string, tenantId: string, appointment: Partial<InsertAppointment>): Promise<Appointment | undefined>;
   deleteAppointment(id: string, tenantId: string): Promise<boolean>;
+  
+  // Stats operations
+  getClientStats(clientId: string, tenantId: string): Promise<{
+    totalAppointments: number;
+    completedAppointments: number;
+    cancelledAppointments: number;
+    lastAppointment: Appointment | undefined;
+  }>;
 }
 
 export class DbStorage implements IStorage {
@@ -252,18 +262,37 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async getAllAppointments(tenantId: string, clientId?: string): Promise<Appointment[]> {
+  async getAllAppointments(tenantId: string, clientId?: string, serviceId?: string): Promise<Appointment[]> {
+    const conditions = [eq(appointments.tenantId, tenantId)];
+    
     if (clientId) {
-      return await db
-        .select()
-        .from(appointments)
-        .where(and(eq(appointments.tenantId, tenantId), eq(appointments.clientId, clientId)))
-        .orderBy(desc(appointments.date), desc(appointments.time));
+      conditions.push(eq(appointments.clientId, clientId));
     }
+    
+    if (serviceId) {
+      conditions.push(eq(appointments.serviceId, serviceId));
+    }
+    
     return await db
       .select()
       .from(appointments)
-      .where(eq(appointments.tenantId, tenantId))
+      .where(and(...conditions))
+      .orderBy(desc(appointments.date), desc(appointments.time));
+  }
+
+  async getAppointmentsByClient(clientId: string, tenantId: string): Promise<Appointment[]> {
+    return await db
+      .select()
+      .from(appointments)
+      .where(and(eq(appointments.tenantId, tenantId), eq(appointments.clientId, clientId)))
+      .orderBy(desc(appointments.date), desc(appointments.time));
+  }
+
+  async getAppointmentsByService(serviceId: string, tenantId: string): Promise<Appointment[]> {
+    return await db
+      .select()
+      .from(appointments)
+      .where(and(eq(appointments.tenantId, tenantId), eq(appointments.serviceId, serviceId)))
       .orderBy(desc(appointments.date), desc(appointments.time));
   }
 
@@ -314,6 +343,28 @@ export class DbStorage implements IStorage {
       .where(and(eq(appointments.id, id), eq(appointments.tenantId, tenantId)))
       .returning();
     return result.length > 0;
+  }
+
+  // Stats operations
+  async getClientStats(clientId: string, tenantId: string): Promise<{
+    totalAppointments: number;
+    completedAppointments: number;
+    cancelledAppointments: number;
+    lastAppointment: Appointment | undefined;
+  }> {
+    const allAppointments = await this.getAppointmentsByClient(clientId, tenantId);
+    
+    const totalAppointments = allAppointments.length;
+    const completedAppointments = allAppointments.filter(a => a.status === 'completed').length;
+    const cancelledAppointments = allAppointments.filter(a => a.status === 'cancelled').length;
+    const lastAppointment = allAppointments[0];
+    
+    return {
+      totalAppointments,
+      completedAppointments,
+      cancelledAppointments,
+      lastAppointment,
+    };
   }
 }
 

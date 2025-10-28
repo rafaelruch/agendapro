@@ -118,6 +118,42 @@ export default function SettingsPage() {
 {`curl -X DELETE ${baseUrl}/api/clients/{id}`}
                         </pre>
                       </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-1 text-white px-2 py-1 rounded font-mono text-xs">GET</code>
+                          <span className="font-mono text-muted-foreground">/api/clients/{"{id}"}/appointments</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Listar todos os agendamentos de um cliente específico</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X GET ${baseUrl}/api/clients/{id}/appointments`}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-1 text-white px-2 py-1 rounded font-mono text-xs">GET</code>
+                          <span className="font-mono text-muted-foreground">/api/clients/{"{id}"}/stats</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Obter estatísticas de um cliente (total de agendamentos, concluídos, cancelados, último agendamento)</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X GET ${baseUrl}/api/clients/{id}/stats`}
+                        </pre>
+                        <p className="text-muted-foreground text-xs ml-14 mt-2">Resposta exemplo:</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`{
+  "totalAppointments": 15,
+  "completedAppointments": 12,
+  "cancelledAppointments": 1,
+  "lastAppointment": {
+    "id": "...",
+    "date": "2025-10-28",
+    "time": "14:00",
+    "status": "completed"
+  }
+}`}
+                        </pre>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -194,6 +230,17 @@ export default function SettingsPage() {
 {`curl -X DELETE ${baseUrl}/api/services/{id}`}
                         </pre>
                       </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-1 text-white px-2 py-1 rounded font-mono text-xs">GET</code>
+                          <span className="font-mono text-muted-foreground">/api/services/{"{id}"}/appointments</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Listar todos os agendamentos de um serviço específico</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X GET ${baseUrl}/api/services/{id}/appointments`}
+                        </pre>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -216,6 +263,12 @@ curl -X GET ${baseUrl}/api/appointments
 
 # Filtrar por cliente
 curl -X GET "${baseUrl}/api/appointments?clientId={clientId}"
+
+# Filtrar por serviço
+curl -X GET "${baseUrl}/api/appointments?serviceId={serviceId}"
+
+# Filtrar por cliente e serviço
+curl -X GET "${baseUrl}/api/appointments?clientId={clientId}&serviceId={serviceId}"
 
 # Filtrar por intervalo de datas
 curl -X GET "${baseUrl}/api/appointments?startDate=2025-01-01&endDate=2025-01-31"
