@@ -5,9 +5,10 @@ AgendaPro é um sistema SaaS moderno para gerenciamento de agendas multi-cliente
 
 ## Características Principais
 - **Multi-cliente**: Gerencie agendas separadas para múltiplos clientes
+- **Gerenciamento de Serviços**: Catálogo completo de serviços com nome, categoria e valor
 - **API REST completa**: Endpoints para integração com N8N via HTTP Request
 - **Interface moderna**: Design clean e responsivo com tema claro/escuro
-- **CRUD completo**: Operações de criar, ler, atualizar e excluir para clientes e agendamentos
+- **CRUD completo**: Operações de criar, ler, atualizar e excluir para clientes, serviços e agendamentos
 - **Persistência em PostgreSQL**: Dados seguros e confiáveis
 
 ## Estrutura do Projeto
@@ -18,6 +19,7 @@ AgendaPro é um sistema SaaS moderno para gerenciamento de agendas multi-cliente
 - **Validação**: Zod para validação de dados
 - **Tabelas**:
   - `clients`: Armazena informações dos clientes
+  - `services`: Armazena serviços com nome, categoria e valor
   - `appointments`: Armazena agendamentos com referência ao cliente
 
 ### Frontend
@@ -31,7 +33,8 @@ AgendaPro é um sistema SaaS moderno para gerenciamento de agendas multi-cliente
 1. **Dashboard**: Visão geral com estatísticas e agendamentos do dia
 2. **Calendário**: Visualização em calendário mensal dos agendamentos
 3. **Clientes**: Gerenciamento completo de clientes
-4. **Configurações**: Documentação da API e configurações do sistema
+4. **Serviços**: Catálogo de serviços com nome, categoria e valor
+5. **Configurações**: Documentação da API e configurações do sistema
 
 ## API REST para N8N
 
@@ -68,6 +71,40 @@ Atualiza um cliente existente
 
 #### DELETE /api/clients/:id
 Exclui um cliente
+
+### Endpoints de Serviços
+
+#### GET /api/services
+Lista todos os serviços
+```json
+Response: [
+  {
+    "id": "uuid",
+    "name": "Corte de Cabelo",
+    "category": "Cabelo",
+    "value": "50.00"
+  }
+]
+```
+
+#### GET /api/services/:id
+Busca um serviço específico
+
+#### POST /api/services
+Cria um novo serviço
+```json
+Request Body: {
+  "name": "Corte de Cabelo",
+  "category": "Cabelo",
+  "value": 50.00
+}
+```
+
+#### PUT /api/services/:id
+Atualiza um serviço existente
+
+#### DELETE /api/services/:id
+Exclui um serviço
 
 ### Endpoints de Agendamentos
 
@@ -123,9 +160,11 @@ shared/
 ```
 
 ## Últimas Alterações (28/10/2025)
-- Implementado schema completo do banco de dados
-- Criadas todas as rotas API REST
+- Implementado schema completo do banco de dados (clients, services, appointments)
+- Criadas todas as rotas API REST para clientes, serviços e agendamentos
 - Conectado frontend ao backend com TanStack Query
-- Adicionado suporte completo a CRUD para clientes e agendamentos
+- Adicionado suporte completo a CRUD para clientes, serviços e agendamentos
 - Implementadas notificações toast para feedback do usuário
-- Adicionada funcionalidade de edição para clientes e agendamentos
+- Adicionada funcionalidade de edição para clientes, serviços e agendamentos
+- Nova página de Serviços com catálogo completo
+- Documentação da API de Serviços na página de Configurações
