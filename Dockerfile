@@ -35,11 +35,15 @@ COPY drizzle.config.ts ./
 COPY shared ./shared
 COPY server ./server
 
+# Copy startup script
+COPY start.sh ./
+RUN chmod +x start.sh
+
 # Expose port
 EXPOSE 5000
 
 # Set environment to production
 ENV NODE_ENV=production
 
-# Start application
-CMD ["node", "dist/index.js"]
+# Start application (migrations são rodadas automaticamente)
+CMD ["sh", "start.sh"]

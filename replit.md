@@ -63,24 +63,28 @@ The frontend utilizes React with TypeScript, Wouter for routing, and Tailwind CS
 
 ### Deploy com Docker (Easypanel)
 
-1. **Build da Imagem**:
-   ```bash
-   docker build -t agendapro .
-   ```
+No Easypanel, o processo é ainda mais simples:
 
-2. **Configurar Variáveis de Ambiente**:
-   - `DATABASE_URL`: String de conexão do PostgreSQL
+1. **Conecte seu Repositório Git** ao Easypanel
+2. **Configure as Variáveis de Ambiente** no painel:
+   - `DATABASE_URL`: String de conexão do PostgreSQL (use o banco interno do Easypanel ou externo)
    - `SESSION_SECRET`: Chave secreta para sessions (gerar com `openssl rand -base64 32`)
    - `NODE_ENV`: `production`
+3. **Easypanel fará o build e deploy automaticamente** usando o Dockerfile
+4. **Acesse a aplicação** pela URL fornecida pelo Easypanel
 
-3. **Executar Container**:
-   ```bash
-   docker run -p 5000:5000 \
-     -e DATABASE_URL="postgresql://user:pass@host:5432/db" \
-     -e SESSION_SECRET="sua_chave_secreta" \
-     -e NODE_ENV=production \
-     agendapro
-   ```
+**Deploy Manual com Docker** (se não usar Easypanel):
+```bash
+# Build da imagem
+docker build -t agendapro .
+
+# Executar container
+docker run -p 5000:5000 \
+  -e DATABASE_URL="postgresql://user:pass@host:5432/db" \
+  -e SESSION_SECRET="sua_chave_secreta" \
+  -e NODE_ENV=production \
+  agendapro
+```
 
 ### Primeira Instalação
 
@@ -101,21 +105,12 @@ The frontend utilizes React with TypeScript, Wouter for routing, and Tailwind CS
 2. **Primeiro Acesso Rápido**: Execute a instalação imediatamente após o deploy
 3. **Após Instalação**: O endpoint `/api/setup` automaticamente bloqueia novas instalações após criar o primeiro admin
 
-### Migrations de Banco de Dados
-
-O sistema usa Drizzle ORM. Para aplicar mudanças no schema:
-
-```bash
-# Em desenvolvimento
-npm run db:push
-
-# Em produção (se necessário)
-npm run db:push --force
-```
-
 ### Estrutura de Deploy
 
 - **Dockerfile**: Multi-stage build otimizado para produção
+- **Migrations Automáticas**: As tabelas do banco são criadas automaticamente no primeiro startup
 - **Build Assets**: Frontend compilado está em `client/dist`
 - **Backend Compilado**: Server transpilado está em `dist/`
 - **Porta**: Aplicação escuta na porta 5000 por padrão
+
+**Nota**: As migrations do banco de dados são executadas automaticamente pelo script `start.sh` antes da aplicação iniciar. Você não precisa rodar nenhum comando manualmente!
