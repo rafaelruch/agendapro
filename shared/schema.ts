@@ -53,6 +53,17 @@ export const appointments = pgTable("appointments", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const tenantApiTokens = pgTable("tenant_api_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  tokenHash: text("token_hash").notNull().unique(),
+  label: text("label").notNull(),
+  createdBy: varchar("created_by").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp("created_at").defaultNow(),
+  lastUsedAt: timestamp("last_used_at"),
+  revokedAt: timestamp("revoked_at"),
+});
+
 export const insertTenantSchema = createInsertSchema(tenants).omit({
   id: true,
   createdAt: true,
@@ -78,6 +89,13 @@ export const insertAppointmentSchema = createInsertSchema(appointments).omit({
   createdAt: true,
 });
 
+export const insertTenantApiTokenSchema = createInsertSchema(tenantApiTokens).omit({
+  id: true,
+  createdAt: true,
+  lastUsedAt: true,
+  revokedAt: true,
+});
+
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type Tenant = typeof tenants.$inferSelect;
 
@@ -92,3 +110,6 @@ export type Service = typeof services.$inferSelect;
 
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 export type Appointment = typeof appointments.$inferSelect;
+
+export type InsertTenantApiToken = z.infer<typeof insertTenantApiTokenSchema>;
+export type TenantApiToken = typeof tenantApiTokens.$inferSelect;
