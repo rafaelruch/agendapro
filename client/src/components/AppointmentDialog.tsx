@@ -51,7 +51,7 @@ export function AppointmentDialog({
   const [formData, setFormData] = useState(
     initialData || {
       clientId: "",
-      serviceId: "",
+      serviceId: "none",
       date: "",
       time: "",
       duration: "60",
@@ -65,6 +65,7 @@ export function AppointmentDialog({
     const dataToSave = {
       ...formData,
       duration: Number(formData.duration),
+      serviceId: formData.serviceId === "none" ? undefined : formData.serviceId,
     };
     onSave(dataToSave);
     onOpenChange(false);
@@ -109,7 +110,7 @@ export function AppointmentDialog({
                   <SelectValue placeholder="Selecione um serviço" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+                  <SelectItem value="none">Nenhum</SelectItem>
                   {services.map((service) => (
                     <SelectItem key={service.id} value={service.id}>
                       {service.name} - R$ {parseFloat(service.value).toFixed(2).replace('.', ',')}
