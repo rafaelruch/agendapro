@@ -70,6 +70,7 @@ No Easypanel, o processo é ainda mais simples:
    - `DATABASE_URL`: String de conexão do PostgreSQL (use o banco interno do Easypanel ou externo)
    - `SESSION_SECRET`: Chave secreta para sessions (gerar com `openssl rand -base64 32`)
    - `NODE_ENV`: `production`
+   - `HTTPS_ENABLED`: `true` (apenas se sua aplicação estiver com HTTPS configurado. Caso contrário, deixe em branco)
 3. **Easypanel fará o build e deploy automaticamente** usando o Dockerfile
 4. **Acesse a aplicação** pela URL fornecida pelo Easypanel
 

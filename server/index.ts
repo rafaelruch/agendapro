@@ -27,14 +27,24 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
+// Configurar trust proxy para funcionar com proxy reverso (Easypanel, etc)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
+  proxy: process.env.NODE_ENV === 'production',
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 1000 * 60 * 60 * 24 * 7
+    // Só usar secure se HTTPS estiver disponível
+    secure: process.env.NODE_ENV === 'production' && process.env.HTTPS_ENABLED === 'true',
+    sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax',
+    maxAge: 1000 * 60 * 60 * 24 * 7,
+    // Garantir que o cookie funcione em diferentes domínios do Easypanel
+    domain: process.env.COOKIE_DOMAIN || undefined
   }
 }));
 
