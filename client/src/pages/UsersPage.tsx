@@ -165,7 +165,12 @@ export default function UsersPage() {
                   <TableCell>{user.username}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    {user.role === 'admin' ? (
+                    {user.role === 'master_admin' ? (
+                      <Badge variant="default" className="gap-1 bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800">
+                        <Shield className="h-3 w-3" />
+                        Master Admin
+                      </Badge>
+                    ) : user.role === 'admin' ? (
                       <Badge variant="default" className="gap-1">
                         <Shield className="h-3 w-3" />
                         Administrador
@@ -206,13 +211,15 @@ export default function UsersPage() {
                         >
                           Editar
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDeleteUser(user.id)}
-                          className="text-destructive"
-                          data-testid={`button-delete-${user.id}`}
-                        >
-                          Excluir
-                        </DropdownMenuItem>
+                        {user.role !== 'master_admin' && (
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteUser(user.id)}
+                            className="text-destructive"
+                            data-testid={`button-delete-${user.id}`}
+                          >
+                            Excluir
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

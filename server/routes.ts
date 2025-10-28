@@ -285,6 +285,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/admin/tenants/:tenantId/api-tokens - List API tokens for specific tenant (master admin only)
+  app.get("/api/admin/tenants/:tenantId/api-tokens", requireMasterAdmin, async (req, res) => {
+    try {
+      const tokens = await storage.getApiTokensByTenant(req.params.tenantId);
+      const tokensWithoutHashes = tokens.map(({ tokenHash, ...token }) => token);
+      res.json(tokensWithoutHashes);
+    } catch (error) {
+      console.error("Error fetching API tokens:", error);
+      res.status(500).json({ error: "Erro ao buscar tokens" });
+    }
+  });
+
+  // POST /api/admin/tenants/:tenantId/api-tokens - Create API token for specific tenant (master admin only)
+  app.post("/api/admin/tenants/:tenantId/api-tokens", requireMasterAdmin, async (req, res) => {
+    try {
+      const { label } = req.body;
+      const userId = req.session.userId;
+      
+      if (!label || typeof label !== 'string') {
+        return res.status(400).json({ error: "Label é obrigatório" });
+      }
+
+      if (!userId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const { token, tokenRecord } = await storage.createApiToken(req.params.tenantId, label, userId);
+      
+      const { tokenHash, ...tokenWithoutHash } = tokenRecord;
+      res.status(201).json({
+        ...tokenWithoutHash,
+        token,
+      });
+    } catch (error) {
+      console.error("Error creating API token:", error);
+      res.status(500).json({ error: "Erro ao criar token" });
+    }
+  });
+
+  // DELETE /api/admin/api-tokens/:id - Revoke API token (master admin only, any tenant)
+  app.delete("/api/admin/api-tokens/:id", requireMasterAdmin, async (req, res) => {
+    try {
+      const success = await storage.revokeApiTokenAdmin(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Token não encontrado" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error revoking API token:", error);
+      res.status(500).json({ error: "Erro ao revogar token" });
+    }
+  });
+
   // ===========================================
   // ROTAS DE GERENCIAMENTO DE USUÁRIOS (TENANT ADMIN)
   // ===========================================
@@ -399,6 +453,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (req.params.id === req.session.userId) {
         return res.status(400).json({ error: "Você não pode deletar seu próprio usuário" });
+      }
+
+      // Buscar o usuário antes de deletar para verificar se é master_admin
+      const userToDelete = await storage.getUserWithTenantIsolation(req.params.id, tenantId);
+      if (!userToDelete) {
+        return res.status(404).json({ error: "Usuário não encontrado" });
+      }
+
+      // Proteger usuários master_admin contra exclusão
+      if (userToDelete.role === 'master_admin') {
+        return res.status(403).json({ error: "Usuários master admin não podem ser excluídos" });
       }
 
       const success = await storage.deleteUserWithTenantIsolation(req.params.id, tenantId);

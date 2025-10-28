@@ -82,6 +82,7 @@ export interface IStorage {
   createApiToken(tenantId: string, label: string, createdBy: string): Promise<{ token: string; tokenRecord: TenantApiToken }>;
   getApiTokensByTenant(tenantId: string): Promise<TenantApiToken[]>;
   revokeApiToken(id: string, tenantId: string): Promise<boolean>;
+  revokeApiTokenAdmin(id: string): Promise<boolean>;
   validateApiToken(token: string): Promise<{ tenantId: string; tokenId: string } | null>;
   markApiTokenUsed(id: string): Promise<void>;
 }
@@ -446,6 +447,18 @@ export class DbStorage implements IStorage {
       .where(and(
         eq(tenantApiTokens.id, id),
         eq(tenantApiTokens.tenantId, tenantId),
+        isNull(tenantApiTokens.revokedAt)
+      ))
+      .returning();
+    return result.length > 0;
+  }
+
+  async revokeApiTokenAdmin(id: string): Promise<boolean> {
+    const result = await db
+      .update(tenantApiTokens)
+      .set({ revokedAt: new Date() })
+      .where(and(
+        eq(tenantApiTokens.id, id),
         isNull(tenantApiTokens.revokedAt)
       ))
       .returning();
