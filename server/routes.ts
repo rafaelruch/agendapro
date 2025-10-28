@@ -27,15 +27,9 @@ function getTenantId(req: Request): string | undefined {
 }
 
 // Middleware para autenticar request via session ou API token
+// IMPORTANTE: Prioriza Bearer token se presente, para permitir teste de revogação
 async function authenticateRequest(req: Request, res: Response, next: NextFunction) {
-  if (req.session.userId && req.session.tenantId) {
-    req.authContext = {
-      tenantId: req.session.tenantId,
-      userId: req.session.userId,
-    };
-    return next();
-  }
-  
+  // Verificar Authorization header PRIMEIRO (prioridade sobre session)
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
@@ -50,6 +44,18 @@ async function authenticateRequest(req: Request, res: Response, next: NextFuncti
       await storage.markApiTokenUsed(tokenData.tokenId);
       return next();
     }
+    // Se Bearer token foi fornecido mas é inválido, retornar 401
+    // Não fazer fallback para session
+    return res.status(401).json({ error: "Token inválido ou revogado" });
+  }
+  
+  // Se não há Bearer token, tentar autenticação por session
+  if (req.session.userId && req.session.tenantId) {
+    req.authContext = {
+      tenantId: req.session.tenantId,
+      userId: req.session.userId,
+    };
+    return next();
   }
   
   return res.status(401).json({ error: "Não autenticado" });

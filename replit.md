@@ -213,10 +213,20 @@ shared/
 - ✅ Uso de {id} em vez de :id na documentação para melhor clareza
 - ✅ Interface organizada em abas (Clientes, Serviços, Agendamentos)
 - ✅ Exemplos práticos de uso com curl para cada endpoint
+- ✅ **Sistema de Tokens de API para N8N e integrações**:
+  - Tabela `tenantApiTokens` para armazenar tokens criptografados (bcrypt)
+  - Tokens mostrados apenas uma vez na criação (segurança)
+  - Suporte a criação, listagem e revogação de tokens
+  - Metadata completa: label, createdBy, createdAt, lastUsedAt, revokedAt
+  - UI completa na página de Configurações para gerenciar tokens
 
 ### Segurança
 - ✅ Senhas criptografadas com bcrypt (salt rounds: 10)
 - ✅ Sessões seguras com express-session
+- ✅ **Autenticação Dual**: Session-based (web UI) + API Token-based (N8N/integrações)
+- ✅ Tokens de API criptografados com bcrypt antes de armazenar
+- ✅ Tokens revogados não podem ser usados (verificação em tempo real)
+- ✅ Bearer token tem prioridade sobre session quando ambos estão presentes
 - ✅ Autenticação obrigatória em todas as rotas (exceto login)
 - ✅ Validação de senha no login
 - ✅ Hashes de senha nunca retornados nas respostas da API
@@ -226,6 +236,10 @@ shared/
 - Bug corrigido: Autenticação sem senha (vulnerabilidade crítica) - agora requer senha
 - Bug corrigido: Radix Select não aceita `value=""`. Solução implementada usando valor sentinela "none" que é convertido para `undefined` no handleSubmit
 - Validação garantida: agendamentos sem serviço vinculado agora salvam corretamente com `serviceId = null`
+- **Bug crítico corrigido**: Middleware authenticateRequest agora prioriza Bearer token sobre session
+  - Antes: Session tinha prioridade, tokens revogados continuavam funcionando se havia session ativa
+  - Agora: Bearer token sempre tem prioridade quando presente, tokens revogados são rejeitados imediatamente
+  - Testado com E2E: Tokens revogados retornam 401 corretamente
 
 ### Próximos Passos Recomendados
 - 🔄 Externalizar SESSION_SECRET para variável de ambiente antes de produção
