@@ -167,6 +167,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ===========================================
+  // MIDDLEWARE DE AUTENTICAÇÃO DUAL (SESSION + API TOKEN)
+  // ===========================================
+  // Aplicar authenticateRequest em todas as rotas protegidas (exceto login/logout)
+  // Isso permite tanto autenticação via session quanto via Bearer token
+  app.use("/api/clients", authenticateRequest);
+  app.use("/api/services", authenticateRequest);
+  app.use("/api/appointments", authenticateRequest);
+  app.use("/api/settings", authenticateRequest);
+
+  // ===========================================
   // ROTAS MASTER ADMIN - GESTÃO DE TENANTS
   // ===========================================
   
