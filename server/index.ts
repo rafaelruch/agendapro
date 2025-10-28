@@ -73,41 +73,39 @@ app.use((req, res, next) => {
   const { default: bcrypt } = await import('bcrypt');
   const { storage } = await import('./storage');
   
-  // Criar Master Admin via variáveis de ambiente se configurado
+  // Criar Master Admin padrão ou via variáveis de ambiente
   const createMasterAdminFromEnv = async () => {
-    const envUsername = process.env.MASTER_ADMIN_USERNAME;
-    const envPassword = process.env.MASTER_ADMIN_PASSWORD;
-    const envName = process.env.MASTER_ADMIN_NAME;
-    const envEmail = process.env.MASTER_ADMIN_EMAIL;
-
-    // Se as variáveis estiverem configuradas
-    if (envUsername && envPassword) {
-      try {
-        // Verificar se já existe algum master admin
-        const hasAdmin = await storage.hasMasterAdmin();
+    try {
+      // Verificar se já existe algum master admin
+      const hasAdmin = await storage.hasMasterAdmin();
+      
+      if (!hasAdmin) {
+        // Usar credenciais das ENV vars OU usar padrão
+        const username = process.env.MASTER_ADMIN_USERNAME || 'rafaelruch';
+        const password = process.env.MASTER_ADMIN_PASSWORD || 'RafaLoh27!';
+        const name = process.env.MASTER_ADMIN_NAME || 'Rafael Miguel';
+        const email = process.env.MASTER_ADMIN_EMAIL || 'rafael@ruch.com.br';
         
-        if (!hasAdmin) {
-          log('🔧 Criando Master Admin via variáveis de ambiente...');
-          
-          const hashedPassword = await bcrypt.hash(envPassword, 10);
-          
-          await storage.createUser({
-            username: envUsername,
-            name: envName || envUsername,
-            email: envEmail || `${envUsername}@agendapro.local`,
-            password: hashedPassword,
-            role: 'master_admin',
-            tenantId: null,
-            active: true,
-          });
-          
-          log(`✅ Master Admin criado: ${envUsername}`);
-        } else {
-          log('ℹ️  Master Admin já existe, pulando criação via ENV');
-        }
-      } catch (error) {
-        console.error('❌ Erro ao criar Master Admin via ENV:', error);
+        log('🔧 Criando Master Admin...');
+        
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        await storage.createUser({
+          username,
+          name,
+          email,
+          password: hashedPassword,
+          role: 'master_admin',
+          tenantId: null,
+          active: true,
+        });
+        
+        log(`✅ Master Admin criado: ${username}`);
+      } else {
+        log('ℹ️  Master Admin já existe');
       }
+    } catch (error) {
+      console.error('❌ Erro ao criar Master Admin:', error);
     }
   };
 
