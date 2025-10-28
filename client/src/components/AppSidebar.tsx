@@ -47,7 +47,7 @@ export function AppSidebar() {
               <span className="font-semibold text-lg">AgendaPro</span>
             </div>
           </SidebarGroupLabel>
-          <SidebarGroupContent>
+          <SidebarGroupContent className="mt-4">
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>

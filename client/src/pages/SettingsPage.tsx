@@ -33,30 +33,68 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>API de Integração</CardTitle>
+            <CardTitle>API de Integração - Clientes</CardTitle>
             <CardDescription>
-              Configure a integração com N8N para automação
+              Endpoints para gerenciar clientes via N8N
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="api-endpoint">Endpoint da API</Label>
-              <Input
-                id="api-endpoint"
-                value="/api/appointments"
-                readOnly
-                data-testid="input-api-endpoint"
-              />
-              <p className="text-sm text-muted-foreground">
-                Use este endpoint para integrar com N8N via HTTP Request
-              </p>
+              <Label>Métodos Disponíveis</Label>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <code className="bg-muted px-2 py-1 rounded">GET</code>
+                  <span className="text-muted-foreground">/api/clients - Listar todos os clientes</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="bg-muted px-2 py-1 rounded">GET</code>
+                  <span className="text-muted-foreground">/api/clients/:id - Buscar cliente específico</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="bg-muted px-2 py-1 rounded">POST</code>
+                  <span className="text-muted-foreground">/api/clients - Criar novo cliente</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="bg-muted px-2 py-1 rounded">PUT</code>
+                  <span className="text-muted-foreground">/api/clients/:id - Atualizar cliente</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="bg-muted px-2 py-1 rounded">DELETE</code>
+                  <span className="text-muted-foreground">/api/clients/:id - Excluir cliente</span>
+                </div>
+              </div>
             </div>
+            <div className="space-y-2">
+              <Label>Exemplo de Corpo (POST/PUT)</Label>
+              <pre className="bg-muted p-3 rounded text-xs overflow-auto">
+{`{
+  "name": "João Silva",
+  "email": "joao@example.com",
+  "phone": "(11) 98765-4321"
+}`}
+              </pre>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>API de Integração - Agendamentos</CardTitle>
+            <CardDescription>
+              Endpoints para gerenciar agendamentos via N8N
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Métodos Disponíveis</Label>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <code className="bg-muted px-2 py-1 rounded">GET</code>
                   <span className="text-muted-foreground">/api/appointments - Listar agendamentos</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="bg-muted px-2 py-1 rounded">GET</code>
+                  <span className="text-muted-foreground">/api/appointments/:id - Buscar agendamento específico</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <code className="bg-muted px-2 py-1 rounded">POST</code>
@@ -72,9 +110,39 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-            <Button variant="outline" data-testid="button-copy-api-docs">
-              Copiar Documentação
-            </Button>
+            <div className="space-y-2">
+              <Label>Filtros Disponíveis (Query Params)</Label>
+              <div className="space-y-1 text-xs">
+                <p className="text-muted-foreground">
+                  <code className="bg-muted px-1 py-0.5 rounded">?clientId=uuid</code> - Filtrar por cliente
+                </p>
+                <p className="text-muted-foreground">
+                  <code className="bg-muted px-1 py-0.5 rounded">?startDate=2025-01-01&endDate=2025-01-31</code> - Intervalo de datas
+                </p>
+                <p className="text-muted-foreground">
+                  <code className="bg-muted px-1 py-0.5 rounded">?date=2025-01-15</code> - Data específica (verificar disponibilidade)
+                </p>
+                <p className="text-muted-foreground">
+                  <code className="bg-muted px-1 py-0.5 rounded">?time=14:00</code> - Horário específico (verificar disponibilidade)
+                </p>
+                <p className="text-muted-foreground">
+                  <code className="bg-muted px-1 py-0.5 rounded">?date=2025-01-15&time=14:00</code> - Verificar se há agendamento nesse dia/horário
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Exemplo de Corpo (POST/PUT)</Label>
+              <pre className="bg-muted p-3 rounded text-xs overflow-auto">
+{`{
+  "clientId": "uuid-do-cliente",
+  "date": "2025-01-15",
+  "time": "14:00",
+  "duration": 60,
+  "status": "scheduled",
+  "notes": "Consulta inicial"
+}`}
+              </pre>
+            </div>
           </CardContent>
         </Card>
       </div>

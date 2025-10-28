@@ -81,18 +81,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Appointment Routes
 
-  // GET /api/appointments - List all appointments (with optional clientId filter)
+  // GET /api/appointments - List all appointments (with optional filters)
+  // Query params: clientId, startDate, endDate, date, time
   app.get("/api/appointments", async (req, res) => {
     try {
       const clientId = req.query.clientId as string | undefined;
       const startDate = req.query.startDate as string | undefined;
       const endDate = req.query.endDate as string | undefined;
+      const date = req.query.date as string | undefined;
+      const time = req.query.time as string | undefined;
 
       let appointments;
       if (startDate && endDate) {
         appointments = await storage.getAppointmentsByDateRange(startDate, endDate, clientId);
       } else {
         appointments = await storage.getAllAppointments(clientId);
+      }
+      
+      // Filter by specific date and time if provided
+      if (date) {
+        appointments = appointments.filter(apt => apt.date === date);
+      }
+      if (time) {
+        appointments = appointments.filter(apt => apt.time === time);
       }
       
       res.json(appointments);
