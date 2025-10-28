@@ -69,6 +69,51 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Importar dependências para criação de admin via ENV
+  const { default: bcrypt } = await import('bcrypt');
+  const { storage } = await import('./storage');
+  
+  // Criar Master Admin via variáveis de ambiente se configurado
+  const createMasterAdminFromEnv = async () => {
+    const envUsername = process.env.MASTER_ADMIN_USERNAME;
+    const envPassword = process.env.MASTER_ADMIN_PASSWORD;
+    const envName = process.env.MASTER_ADMIN_NAME;
+    const envEmail = process.env.MASTER_ADMIN_EMAIL;
+
+    // Se as variáveis estiverem configuradas
+    if (envUsername && envPassword) {
+      try {
+        // Verificar se já existe algum master admin
+        const hasAdmin = await storage.hasMasterAdmin();
+        
+        if (!hasAdmin) {
+          log('🔧 Criando Master Admin via variáveis de ambiente...');
+          
+          const hashedPassword = await bcrypt.hash(envPassword, 10);
+          
+          await storage.createUser({
+            username: envUsername,
+            name: envName || envUsername,
+            email: envEmail || `${envUsername}@agendapro.local`,
+            password: hashedPassword,
+            role: 'master_admin',
+            tenantId: null,
+            active: true,
+          });
+          
+          log(`✅ Master Admin criado: ${envUsername}`);
+        } else {
+          log('ℹ️  Master Admin já existe, pulando criação via ENV');
+        }
+      } catch (error) {
+        console.error('❌ Erro ao criar Master Admin via ENV:', error);
+      }
+    }
+  };
+
+  // Executar criação de admin antes de registrar rotas
+  await createMasterAdminFromEnv();
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

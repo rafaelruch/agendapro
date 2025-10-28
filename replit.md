@@ -88,6 +88,29 @@ docker run -p 5000:5000 \
 
 ### Primeira Instalação
 
+Existem **duas formas** de criar o primeiro Master Admin:
+
+#### Opção 1: Via Variáveis de Ambiente (Recomendado para Produção)
+
+Configure as seguintes variáveis de ambiente **antes do primeiro deploy**:
+
+```bash
+MASTER_ADMIN_USERNAME=seu_usuario
+MASTER_ADMIN_PASSWORD=sua_senha_segura
+MASTER_ADMIN_NAME=Seu Nome Completo      # (Opcional, usa username se não definido)
+MASTER_ADMIN_EMAIL=seu@email.com         # (Opcional, gera email automático se não definido)
+```
+
+O sistema criará automaticamente o Master Admin no primeiro startup se não existir nenhum admin ainda.
+
+**No Easypanel**:
+1. Vá em **Environment Variables**
+2. Adicione as variáveis acima
+3. Faça o deploy
+4. Acesse a aplicação e faça login com as credenciais definidas
+
+#### Opção 2: Via Tela de Setup (Interface Web)
+
 1. **Acesse a Aplicação**: Ao acessar pela primeira vez, o sistema detecta que não há admin configurado
 2. **Tela de Setup**: Você será redirecionado automaticamente para `/setup`
 3. **Criar Primeiro Admin**:
