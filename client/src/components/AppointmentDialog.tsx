@@ -24,10 +24,18 @@ interface Client {
   name: string;
 }
 
+interface Service {
+  id: string;
+  name: string;
+  category: string;
+  value: string;
+}
+
 interface AppointmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clients: Client[];
+  services: Service[];
   onSave: (appointment: any) => void;
   initialData?: any;
 }
@@ -36,12 +44,14 @@ export function AppointmentDialog({
   open,
   onOpenChange,
   clients,
+  services,
   onSave,
   initialData,
 }: AppointmentDialogProps) {
   const [formData, setFormData] = useState(
     initialData || {
       clientId: "",
+      serviceId: "",
       date: "",
       time: "",
       duration: "60",
@@ -84,6 +94,25 @@ export function AppointmentDialog({
                   {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="service">Serviço (Opcional)</Label>
+              <Select
+                value={formData.serviceId}
+                onValueChange={(value) => setFormData({ ...formData, serviceId: value })}
+              >
+                <SelectTrigger id="service" data-testid="select-service">
+                  <SelectValue placeholder="Selecione um serviço" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Nenhum</SelectItem>
+                  {services.map((service) => (
+                    <SelectItem key={service.id} value={service.id}>
+                      {service.name} - R$ {parseFloat(service.value).toFixed(2).replace('.', ',')}
                     </SelectItem>
                   ))}
                 </SelectContent>

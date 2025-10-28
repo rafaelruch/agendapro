@@ -6,7 +6,7 @@ import { CalendarView } from "@/components/CalendarView";
 import { AppointmentDialog } from "@/components/AppointmentDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Appointment, Client } from "@shared/schema";
+import type { Appointment, Client, Service } from "@shared/schema";
 
 export default function CalendarPage() {
   const [showAppointmentDialog, setShowAppointmentDialog] = useState(false);
@@ -14,6 +14,10 @@ export default function CalendarPage() {
 
   const { data: clients = [] } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
+  });
+
+  const { data: services = [] } = useQuery<Service[]>({
+    queryKey: ["/api/services"],
   });
 
   const { data: appointments = [], isLoading } = useQuery<Appointment[]>({
@@ -82,6 +86,7 @@ export default function CalendarPage() {
         open={showAppointmentDialog}
         onOpenChange={setShowAppointmentDialog}
         clients={clients.map(c => ({ id: c.id, name: c.name }))}
+        services={services}
         onSave={(data) => createAppointmentMutation.mutate(data)}
       />
     </div>

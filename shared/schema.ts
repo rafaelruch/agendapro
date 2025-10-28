@@ -20,6 +20,7 @@ export const services = pgTable("services", {
 export const appointments = pgTable("appointments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   clientId: varchar("client_id").notNull().references(() => clients.id, { onDelete: 'cascade' }),
+  serviceId: varchar("service_id").references(() => services.id, { onDelete: 'set null' }),
   date: text("date").notNull(),
   time: text("time").notNull(),
   duration: integer("duration").notNull(),
