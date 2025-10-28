@@ -90,18 +90,25 @@ docker run -p 5000:5000 \
 
 Existem **duas formas** de criar o primeiro Master Admin:
 
-#### Opção 1: Via Variáveis de Ambiente (Recomendado para Produção)
+#### Opção 1: Via Variáveis de Ambiente (**OBRIGATÓRIO** em Produção)
+
+⚠️ **IMPORTANTE**: Em produção (`NODE_ENV=production`), as variáveis de ambiente são **OBRIGATÓRIAS** por segurança. O sistema NÃO criará admin sem elas.
 
 Configure as seguintes variáveis de ambiente **antes do primeiro deploy**:
 
 ```bash
+# OBRIGATÓRIAS em produção:
 MASTER_ADMIN_USERNAME=seu_usuario
 MASTER_ADMIN_PASSWORD=sua_senha_segura
+
+# OPCIONAIS (usa valores padrão se não definidas):
 MASTER_ADMIN_NAME=Seu Nome Completo      # (Opcional, usa username se não definido)
 MASTER_ADMIN_EMAIL=seu@email.com         # (Opcional, gera email automático se não definido)
 ```
 
 O sistema criará automaticamente o Master Admin no primeiro startup se não existir nenhum admin ainda.
+
+**Nota de Segurança**: Em desenvolvimento local, o sistema usa credenciais padrão para facilitar testes. Mas em produção, variáveis de ambiente são obrigatórias para evitar vazamento de credenciais no repositório Git.
 
 **No Easypanel**:
 1. Vá em **Environment Variables**

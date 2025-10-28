@@ -73,18 +73,38 @@ app.use((req, res, next) => {
   const { default: bcrypt } = await import('bcrypt');
   const { storage } = await import('./storage');
   
-  // Criar Master Admin padrão ou via variáveis de ambiente
+  // Criar Master Admin via variáveis de ambiente
   const createMasterAdminFromEnv = async () => {
     try {
       // Verificar se já existe algum master admin
       const hasAdmin = await storage.hasMasterAdmin();
       
       if (!hasAdmin) {
-        // Usar credenciais das ENV vars OU usar padrão
-        const username = process.env.MASTER_ADMIN_USERNAME || 'rafaelruch';
-        const password = process.env.MASTER_ADMIN_PASSWORD || 'RafaLoh27!';
-        const name = process.env.MASTER_ADMIN_NAME || 'Rafael Miguel';
-        const email = process.env.MASTER_ADMIN_EMAIL || 'rafael@ruch.com.br';
+        const isProduction = process.env.NODE_ENV === 'production';
+        
+        // Em produção: EXIGIR variáveis de ambiente (segurança)
+        // Em desenvolvimento: Usar padrão para facilitar testes
+        let username, password, name, email;
+        
+        if (isProduction) {
+          // PRODUÇÃO: Variáveis de ambiente são OBRIGATÓRIAS
+          username = process.env.MASTER_ADMIN_USERNAME;
+          password = process.env.MASTER_ADMIN_PASSWORD;
+          name = process.env.MASTER_ADMIN_NAME;
+          email = process.env.MASTER_ADMIN_EMAIL;
+          
+          if (!username || !password) {
+            log('⚠️  AVISO: Variáveis MASTER_ADMIN_USERNAME e MASTER_ADMIN_PASSWORD não configuradas!');
+            log('⚠️  Master Admin NÃO foi criado. Configure as variáveis de ambiente.');
+            return;
+          }
+        } else {
+          // DESENVOLVIMENTO: Usar padrão (apenas para facilitar desenvolvimento local)
+          username = process.env.MASTER_ADMIN_USERNAME || 'rafaelruch';
+          password = process.env.MASTER_ADMIN_PASSWORD || 'RafaLoh27!';
+          name = process.env.MASTER_ADMIN_NAME || 'Rafael Miguel';
+          email = process.env.MASTER_ADMIN_EMAIL || 'rafael@ruch.com.br';
+        }
         
         log('🔧 Criando Master Admin...');
         
@@ -92,8 +112,8 @@ app.use((req, res, next) => {
         
         await storage.createUser({
           username,
-          name,
-          email,
+          name: name || username,
+          email: email || `${username}@agendapro.local`,
           password: hashedPassword,
           role: 'master_admin',
           tenantId: null,
