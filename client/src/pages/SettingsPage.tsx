@@ -2,9 +2,99 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { Copy, Trash2, Key, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+type ApiToken = {
+  id: string;
+  label: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  createdBy: string;
+};
 
 export default function SettingsPage() {
   const baseUrl = window.location.origin;
+  const { toast } = useToast();
+  const [tokenLabel, setTokenLabel] = useState("");
+  const [newToken, setNewToken] = useState<string | null>(null);
+
+  const { data: tokens, isLoading } = useQuery<ApiToken[]>({
+    queryKey: ["/api/settings/api-tokens"],
+  });
+
+  const createTokenMutation = useMutation({
+    mutationFn: async (label: string) => {
+      return await apiRequest<ApiToken & { token: string }>("/api/settings/api-tokens", {
+        method: "POST",
+        body: { label },
+      });
+    },
+    onSuccess: (data) => {
+      setNewToken(data.token);
+      setTokenLabel("");
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/api-tokens"] });
+      toast({
+        title: "Token criado",
+        description: "Copie o token agora, ele não será exibido novamente",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Erro ao criar token",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const revokeTokenMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest(`/api/settings/api-tokens/${id}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/api-tokens"] });
+      toast({
+        title: "Token revogado",
+        description: "O token foi revogado com sucesso",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Erro ao revogar token",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copiado",
+      description: "Token copiado para a área de transferência",
+    });
+  };
+
+  const handleCreateToken = () => {
+    if (!tokenLabel.trim()) {
+      toast({
+        title: "Erro",
+        description: "Digite um nome para o token",
+        variant: "destructive",
+      });
+      return;
+    }
+    createTokenMutation.mutate(tokenLabel);
+  };
 
   return (
     <div className="space-y-6">
@@ -28,6 +118,106 @@ export default function SettingsPage() {
                 </p>
               </div>
               <ThemeToggle />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Tokens de API</CardTitle>
+            <CardDescription>
+              Gere tokens para autenticação em integrações N8N, Zapier e outras ferramentas
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Use tokens de API para autenticar requisições sem precisar fazer login. 
+                Cada token identifica automaticamente seu tenant (empresa).
+              </AlertDescription>
+            </Alert>
+
+            {newToken && (
+              <Alert>
+                <Key className="h-4 w-4" />
+                <AlertDescription className="space-y-2">
+                  <p className="font-semibold">Token criado com sucesso! Copie agora:</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 bg-muted p-2 rounded text-xs break-all">
+                      {newToken}
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(newToken)}
+                      data-testid="button-copy-new-token"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Este token não será exibido novamente. Guarde-o em local seguro.
+                  </p>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="token-label">Criar novo token</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="token-label"
+                  placeholder="Ex: N8N Produção"
+                  value={tokenLabel}
+                  onChange={(e) => setTokenLabel(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleCreateToken()}
+                  data-testid="input-token-label"
+                />
+                <Button 
+                  onClick={handleCreateToken}
+                  disabled={createTokenMutation.isPending}
+                  data-testid="button-create-token"
+                >
+                  {createTokenMutation.isPending ? "Criando..." : "Criar Token"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Tokens ativos</Label>
+              {isLoading ? (
+                <p className="text-sm text-muted-foreground">Carregando tokens...</p>
+              ) : tokens && tokens.length > 0 ? (
+                <div className="space-y-2">
+                  {tokens.map((token) => (
+                    <div
+                      key={token.id}
+                      className="flex items-center justify-between p-3 border rounded-md"
+                      data-testid={`token-item-${token.id}`}
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium">{token.label}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Criado em {new Date(token.createdAt).toLocaleDateString('pt-BR')}
+                          {token.lastUsedAt && ` • Último uso: ${new Date(token.lastUsedAt).toLocaleDateString('pt-BR')}`}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => revokeTokenMutation.mutate(token.id)}
+                        disabled={revokeTokenMutation.isPending}
+                        data-testid={`button-revoke-${token.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum token ativo</p>
+              )}
             </div>
           </CardContent>
         </Card>
