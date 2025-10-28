@@ -162,12 +162,17 @@ shared/
 
 ### Melhorias de UX
 - Checkbox visual para conclusão rápida de agendamentos
-- Seleção de serviço ao criar/editar agendamentos
+- Seleção de serviço ao criar/editar agendamentos (com opção "Nenhum" para agendamentos sem serviço)
 - Documentação mais clara e prática na página de Configurações
 - Código de exemplos com URL base dinâmica
+
+### Correções Técnicas
+- Bug corrigido: Radix Select não aceita `value=""`. Solução implementada usando valor sentinela "none" que é convertido para `undefined` no handleSubmit
+- Validação garantida: agendamentos sem serviço vinculado agora salvam corretamente com `serviceId = null`
 
 ### Arquitetura
 - Schema atualizado com relacionamento appointments → services
 - Migrations executadas com sucesso
 - Frontend e backend sincronizados
 - Validação de dados mantida em ambas as camadas
+- Testes end-to-end validados com sucesso
