@@ -31,10 +31,14 @@ export default function SettingsPage() {
 
   const createTokenMutation = useMutation({
     mutationFn: async (label: string) => {
-      return await apiRequest<ApiToken & { token: string }>("/api/settings/api-tokens", {
+      const response = await fetch("/api/settings/api-tokens", {
         method: "POST",
-        body: { label },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ label }),
       });
+      if (!response.ok) throw new Error("Failed to create token");
+      return (await response.json()) as ApiToken & { token: string };
     },
     onSuccess: (data) => {
       setNewToken(data.token);
@@ -56,8 +60,9 @@ export default function SettingsPage() {
 
   const revokeTokenMutation = useMutation({
     mutationFn: async (id: string) => {
-      return await apiRequest(`/api/settings/api-tokens/${id}`, {
+      await fetch(`/api/settings/api-tokens/${id}`, {
         method: "DELETE",
+        credentials: "include",
       });
     },
     onSuccess: () => {
@@ -230,6 +235,24 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <Alert className="mb-4">
+              <Key className="h-4 w-4" />
+              <AlertDescription>
+                <p className="font-semibold mb-2">Autenticação com Token de API</p>
+                <p className="text-sm mb-2">
+                  Use o token de API gerado acima para autenticar suas requisições. 
+                  Adicione o header <code className="bg-muted px-1 rounded">Authorization: Bearer SEU_TOKEN</code> em todas as requisições.
+                </p>
+                <p className="text-sm">
+                  <strong>Exemplo:</strong>
+                </p>
+                <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X GET ${baseUrl}/api/clients \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`}
+                </pre>
+              </AlertDescription>
+            </Alert>
+
             <Tabs defaultValue="clients" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="clients">Clientes</TabsTrigger>
@@ -273,6 +296,7 @@ export default function SettingsPage() {
                         <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
 {`curl -X POST ${baseUrl}/api/clients \\
   -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer SEU_TOKEN" \\
   -d '{
     "name": "João Silva",
     "email": "joao@example.com",
