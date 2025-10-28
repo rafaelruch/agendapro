@@ -26,9 +26,8 @@ COPY package*.json ./
 # Install production dependencies only
 RUN npm ci --only=production
 
-# Copy built files from builder
+# Copy built files from builder (frontend está em dist/public/ e backend em dist/)
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/client/dist ./client/dist
 
 # Copy necessary files
 COPY drizzle.config.ts ./
