@@ -5,47 +5,154 @@ import {
   type InsertService,
   type Appointment,
   type InsertAppointment,
+  type Tenant,
+  type InsertTenant,
+  type User,
+  type InsertUser,
   clients,
   services,
-  appointments
+  appointments,
+  tenants,
+  users
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, gte, lte, desc, or, like } from "drizzle-orm";
 
 export interface IStorage {
-  // Client operations
-  getClient(id: string): Promise<Client | undefined>;
-  getAllClients(): Promise<Client[]>;
+  // Tenant operations
+  getTenant(id: string): Promise<Tenant | undefined>;
+  getAllTenants(): Promise<Tenant[]>;
+  createTenant(tenant: InsertTenant): Promise<Tenant>;
+  updateTenant(id: string, tenant: Partial<InsertTenant>): Promise<Tenant | undefined>;
+  deleteTenant(id: string): Promise<boolean>;
+
+  // User operations
+  getUser(id: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUsersByTenant(tenantId: string): Promise<User[]>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, user: Partial<InsertUser>): Promise<User | undefined>;
+  deleteUser(id: string): Promise<boolean>;
+
+  // Client operations (with tenant isolation)
+  getClient(id: string, tenantId: string): Promise<Client | undefined>;
+  getAllClients(tenantId: string): Promise<Client[]>;
+  searchClients(tenantId: string, searchTerm: string): Promise<Client[]>;
   createClient(client: InsertClient): Promise<Client>;
-  updateClient(id: string, client: Partial<InsertClient>): Promise<Client | undefined>;
-  deleteClient(id: string): Promise<boolean>;
+  updateClient(id: string, tenantId: string, client: Partial<InsertClient>): Promise<Client | undefined>;
+  deleteClient(id: string, tenantId: string): Promise<boolean>;
 
-  // Service operations
-  getService(id: string): Promise<Service | undefined>;
-  getAllServices(): Promise<Service[]>;
+  // Service operations (with tenant isolation)
+  getService(id: string, tenantId: string): Promise<Service | undefined>;
+  getAllServices(tenantId: string): Promise<Service[]>;
+  searchServices(tenantId: string, searchTerm: string): Promise<Service[]>;
   createService(service: InsertService): Promise<Service>;
-  updateService(id: string, service: Partial<InsertService>): Promise<Service | undefined>;
-  deleteService(id: string): Promise<boolean>;
+  updateService(id: string, tenantId: string, service: Partial<InsertService>): Promise<Service | undefined>;
+  deleteService(id: string, tenantId: string): Promise<boolean>;
 
-  // Appointment operations
-  getAppointment(id: string): Promise<Appointment | undefined>;
-  getAllAppointments(clientId?: string): Promise<Appointment[]>;
-  getAppointmentsByDateRange(startDate: string, endDate: string, clientId?: string): Promise<Appointment[]>;
+  // Appointment operations (with tenant isolation)
+  getAppointment(id: string, tenantId: string): Promise<Appointment | undefined>;
+  getAllAppointments(tenantId: string, clientId?: string): Promise<Appointment[]>;
+  getAppointmentsByDateRange(tenantId: string, startDate: string, endDate: string, clientId?: string): Promise<Appointment[]>;
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
-  updateAppointment(id: string, appointment: Partial<InsertAppointment>): Promise<Appointment | undefined>;
-  deleteAppointment(id: string): Promise<boolean>;
+  updateAppointment(id: string, tenantId: string, appointment: Partial<InsertAppointment>): Promise<Appointment | undefined>;
+  deleteAppointment(id: string, tenantId: string): Promise<boolean>;
 }
 
 export class DbStorage implements IStorage {
-  // Client operations
-  async getClient(id: string): Promise<Client | undefined> {
-    const result = await db.select().from(clients).where(eq(clients.id, id)).limit(1);
+  // Tenant operations
+  async getTenant(id: string): Promise<Tenant | undefined> {
+    const result = await db.select().from(tenants).where(eq(tenants.id, id)).limit(1);
     return result[0];
   }
 
-  async getAllClients(): Promise<Client[]> {
-    return await db.select().from(clients);
+  async getAllTenants(): Promise<Tenant[]> {
+    return await db.select().from(tenants);
+  }
+
+  async createTenant(insertTenant: InsertTenant): Promise<Tenant> {
+    const result = await db.insert(tenants).values(insertTenant).returning();
+    return result[0];
+  }
+
+  async updateTenant(id: string, tenantData: Partial<InsertTenant>): Promise<Tenant | undefined> {
+    const result = await db
+      .update(tenants)
+      .set(tenantData)
+      .where(eq(tenants.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteTenant(id: string): Promise<boolean> {
+    const result = await db.delete(tenants).where(eq(tenants.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // User operations
+  async getUser(id: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    return result[0];
+  }
+
+  async getUsersByTenant(tenantId: string): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.tenantId, tenantId));
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
+  }
+
+  async updateUser(id: string, userData: Partial<InsertUser>): Promise<User | undefined> {
+    const result = await db
+      .update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteUser(id: string): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Client operations (with tenant isolation)
+  async getClient(id: string, tenantId: string): Promise<Client | undefined> {
+    const result = await db
+      .select()
+      .from(clients)
+      .where(and(eq(clients.id, id), eq(clients.tenantId, tenantId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getAllClients(tenantId: string): Promise<Client[]> {
+    return await db.select().from(clients).where(eq(clients.tenantId, tenantId));
+  }
+
+  async searchClients(tenantId: string, searchTerm: string): Promise<Client[]> {
+    const searchPattern = `%${searchTerm}%`;
+    return await db
+      .select()
+      .from(clients)
+      .where(
+        and(
+          eq(clients.tenantId, tenantId),
+          or(
+            like(clients.name, searchPattern),
+            like(clients.email, searchPattern),
+            like(clients.phone, searchPattern)
+          )
+        )
+      );
   }
 
   async createClient(insertClient: InsertClient): Promise<Client> {
@@ -53,28 +160,56 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async updateClient(id: string, clientData: Partial<InsertClient>): Promise<Client | undefined> {
+  async updateClient(id: string, tenantId: string, clientData: Partial<InsertClient>): Promise<Client | undefined> {
     const result = await db
       .update(clients)
       .set(clientData)
-      .where(eq(clients.id, id))
+      .where(and(eq(clients.id, id), eq(clients.tenantId, tenantId)))
       .returning();
     return result[0];
   }
 
-  async deleteClient(id: string): Promise<boolean> {
-    const result = await db.delete(clients).where(eq(clients.id, id)).returning();
+  async deleteClient(id: string, tenantId: string): Promise<boolean> {
+    const result = await db
+      .delete(clients)
+      .where(and(eq(clients.id, id), eq(clients.tenantId, tenantId)))
+      .returning();
     return result.length > 0;
   }
 
-  // Service operations
-  async getService(id: string): Promise<Service | undefined> {
-    const result = await db.select().from(services).where(eq(services.id, id)).limit(1);
+  // Service operations (with tenant isolation)
+  async getService(id: string, tenantId: string): Promise<Service | undefined> {
+    const result = await db
+      .select()
+      .from(services)
+      .where(and(eq(services.id, id), eq(services.tenantId, tenantId)))
+      .limit(1);
     return result[0];
   }
 
-  async getAllServices(): Promise<Service[]> {
-    return await db.select().from(services).orderBy(services.category, services.name);
+  async getAllServices(tenantId: string): Promise<Service[]> {
+    return await db
+      .select()
+      .from(services)
+      .where(eq(services.tenantId, tenantId))
+      .orderBy(services.category, services.name);
+  }
+
+  async searchServices(tenantId: string, searchTerm: string): Promise<Service[]> {
+    const searchPattern = `%${searchTerm}%`;
+    return await db
+      .select()
+      .from(services)
+      .where(
+        and(
+          eq(services.tenantId, tenantId),
+          or(
+            like(services.name, searchPattern),
+            like(services.category, searchPattern)
+          )
+        )
+      )
+      .orderBy(services.category, services.name);
   }
 
   async createService(insertService: InsertService): Promise<Service> {
@@ -86,7 +221,7 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async updateService(id: string, serviceData: Partial<InsertService>): Promise<Service | undefined> {
+  async updateService(id: string, tenantId: string, serviceData: Partial<InsertService>): Promise<Service | undefined> {
     const updateData: any = { ...serviceData };
     if (updateData.value !== undefined) {
       updateData.value = updateData.value.toString();
@@ -94,42 +229,52 @@ export class DbStorage implements IStorage {
     const result = await db
       .update(services)
       .set(updateData)
-      .where(eq(services.id, id))
+      .where(and(eq(services.id, id), eq(services.tenantId, tenantId)))
       .returning();
     return result[0];
   }
 
-  async deleteService(id: string): Promise<boolean> {
-    const result = await db.delete(services).where(eq(services.id, id)).returning();
+  async deleteService(id: string, tenantId: string): Promise<boolean> {
+    const result = await db
+      .delete(services)
+      .where(and(eq(services.id, id), eq(services.tenantId, tenantId)))
+      .returning();
     return result.length > 0;
   }
 
-  // Appointment operations
-  async getAppointment(id: string): Promise<Appointment | undefined> {
-    const result = await db.select().from(appointments).where(eq(appointments.id, id)).limit(1);
+  // Appointment operations (with tenant isolation)
+  async getAppointment(id: string, tenantId: string): Promise<Appointment | undefined> {
+    const result = await db
+      .select()
+      .from(appointments)
+      .where(and(eq(appointments.id, id), eq(appointments.tenantId, tenantId)))
+      .limit(1);
     return result[0];
   }
 
-  async getAllAppointments(clientId?: string): Promise<Appointment[]> {
+  async getAllAppointments(tenantId: string, clientId?: string): Promise<Appointment[]> {
     if (clientId) {
       return await db
         .select()
         .from(appointments)
-        .where(eq(appointments.clientId, clientId))
+        .where(and(eq(appointments.tenantId, tenantId), eq(appointments.clientId, clientId)))
         .orderBy(desc(appointments.date), desc(appointments.time));
     }
     return await db
       .select()
       .from(appointments)
+      .where(eq(appointments.tenantId, tenantId))
       .orderBy(desc(appointments.date), desc(appointments.time));
   }
 
   async getAppointmentsByDateRange(
+    tenantId: string,
     startDate: string,
     endDate: string,
     clientId?: string
   ): Promise<Appointment[]> {
     const conditions = [
+      eq(appointments.tenantId, tenantId),
       gte(appointments.date, startDate),
       lte(appointments.date, endDate),
     ];
@@ -152,18 +297,22 @@ export class DbStorage implements IStorage {
 
   async updateAppointment(
     id: string,
+    tenantId: string,
     appointmentData: Partial<InsertAppointment>
   ): Promise<Appointment | undefined> {
     const result = await db
       .update(appointments)
       .set(appointmentData)
-      .where(eq(appointments.id, id))
+      .where(and(eq(appointments.id, id), eq(appointments.tenantId, tenantId)))
       .returning();
     return result[0];
   }
 
-  async deleteAppointment(id: string): Promise<boolean> {
-    const result = await db.delete(appointments).where(eq(appointments.id, id)).returning();
+  async deleteAppointment(id: string, tenantId: string): Promise<boolean> {
+    const result = await db
+      .delete(appointments)
+      .where(and(eq(appointments.id, id), eq(appointments.tenantId, tenantId)))
+      .returning();
     return result.length > 0;
   }
 }
