@@ -21,8 +21,20 @@ The frontend utilizes React with TypeScript, Wouter for routing, and Tailwind CS
 
 ### Feature Specifications
 - **Core Features**: Multi-tenant support, secure authentication, master admin panel, user management (per tenant), service management (with categories and values), appointment scheduling (with optional service linking), quick action checkboxes for appointment completion, and a complete REST API.
-- **API Token System**: Allows tenants to generate and manage API tokens for external integrations, with full metadata and revocation capabilities.
-- **User Role-Based Access Control**: Granular permissions for `master_admin`, `admin`, and `user` roles, affecting both UI access and API endpoint permissions.
+- **API Token System**: 
+  - Tenants can generate and manage their own API tokens through the Settings page
+  - Master admins can create and manage API tokens for any tenant through the Admin panel
+  - Tokens include metadata (label, creation date, last usage) and revocation capabilities
+  - Token shown only once upon creation for security
+- **User Role-Based Access Control**: 
+  - Granular permissions for `master_admin`, `admin`, and `user` roles, affecting both UI access and API endpoint permissions
+  - Master admin users are protected from deletion at both backend (403 error) and frontend (hidden delete button)
+  - Visual differentiation: Master admin users display with purple "Master Admin" badge and crown icon
+- **Master Admin Panel**: 
+  - Tabbed interface for managing tenants, API tokens, and viewing API documentation
+  - Can create API tokens for any tenant from centralized location
+  - Comprehensive API endpoint documentation with curl examples
+  - Cross-tenant API token revocation capability
 
 ### System Design Choices
 - **Backend**: Express.js provides the API layer.
