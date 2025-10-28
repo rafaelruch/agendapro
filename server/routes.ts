@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertClientSchema, insertAppointmentSchema } from "@shared/schema";
+import { insertClientSchema, insertServiceSchema, insertAppointmentSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -76,6 +76,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting client:", error);
       res.status(500).json({ error: "Failed to delete client" });
+    }
+  });
+
+  // Service Routes
+
+  // GET /api/services - List all services
+  app.get("/api/services", async (req, res) => {
+    try {
+      const services = await storage.getAllServices();
+      res.json(services);
+    } catch (error) {
+      console.error("Error fetching services:", error);
+      res.status(500).json({ error: "Failed to fetch services" });
+    }
+  });
+
+  // GET /api/services/:id - Get a specific service
+  app.get("/api/services/:id", async (req, res) => {
+    try {
+      const service = await storage.getService(req.params.id);
+      if (!service) {
+        return res.status(404).json({ error: "Service not found" });
+      }
+      res.json(service);
+    } catch (error) {
+      console.error("Error fetching service:", error);
+      res.status(500).json({ error: "Failed to fetch service" });
+    }
+  });
+
+  // POST /api/services - Create a new service
+  app.post("/api/services", async (req, res) => {
+    try {
+      const validatedData = insertServiceSchema.parse(req.body);
+      const service = await storage.createService(validatedData);
+      res.status(201).json(service);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid service data", details: error.errors });
+      }
+      console.error("Error creating service:", error);
+      res.status(500).json({ error: "Failed to create service" });
+    }
+  });
+
+  // PUT /api/services/:id - Update a service
+  app.put("/api/services/:id", async (req, res) => {
+    try {
+      const validatedData = insertServiceSchema.partial().parse(req.body);
+      const service = await storage.updateService(req.params.id, validatedData);
+      if (!service) {
+        return res.status(404).json({ error: "Service not found" });
+      }
+      res.json(service);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid service data", details: error.errors });
+      }
+      console.error("Error updating service:", error);
+      res.status(500).json({ error: "Failed to update service" });
+    }
+  });
+
+  // DELETE /api/services/:id - Delete a service
+  app.delete("/api/services/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteService(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Service not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting service:", error);
+      res.status(500).json({ error: "Failed to delete service" });
     }
   });
 

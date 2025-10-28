@@ -1,9 +1,12 @@
 import { 
   type Client, 
   type InsertClient,
+  type Service,
+  type InsertService,
   type Appointment,
   type InsertAppointment,
   clients,
+  services,
   appointments
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -17,6 +20,13 @@ export interface IStorage {
   createClient(client: InsertClient): Promise<Client>;
   updateClient(id: string, client: Partial<InsertClient>): Promise<Client | undefined>;
   deleteClient(id: string): Promise<boolean>;
+
+  // Service operations
+  getService(id: string): Promise<Service | undefined>;
+  getAllServices(): Promise<Service[]>;
+  createService(service: InsertService): Promise<Service>;
+  updateService(id: string, service: Partial<InsertService>): Promise<Service | undefined>;
+  deleteService(id: string): Promise<boolean>;
 
   // Appointment operations
   getAppointment(id: string): Promise<Appointment | undefined>;
@@ -54,6 +64,43 @@ export class DbStorage implements IStorage {
 
   async deleteClient(id: string): Promise<boolean> {
     const result = await db.delete(clients).where(eq(clients.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Service operations
+  async getService(id: string): Promise<Service | undefined> {
+    const result = await db.select().from(services).where(eq(services.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getAllServices(): Promise<Service[]> {
+    return await db.select().from(services).orderBy(services.category, services.name);
+  }
+
+  async createService(insertService: InsertService): Promise<Service> {
+    const serviceData = {
+      ...insertService,
+      value: insertService.value.toString(),
+    };
+    const result = await db.insert(services).values(serviceData).returning();
+    return result[0];
+  }
+
+  async updateService(id: string, serviceData: Partial<InsertService>): Promise<Service | undefined> {
+    const updateData: any = { ...serviceData };
+    if (updateData.value !== undefined) {
+      updateData.value = updateData.value.toString();
+    }
+    const result = await db
+      .update(services)
+      .set(updateData)
+      .where(eq(services.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteService(id: string): Promise<boolean> {
+    const result = await db.delete(services).where(eq(services.id, id)).returning();
     return result.length > 0;
   }
 
