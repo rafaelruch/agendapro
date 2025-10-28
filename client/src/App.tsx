@@ -17,6 +17,7 @@ import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
 import LoginPage from "@/pages/LoginPage";
 import AdminPage from "@/pages/AdminPage";
+import SetupPage from "@/pages/SetupPage";
 import NotFound from "@/pages/not-found";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
@@ -150,13 +151,20 @@ function AuthenticatedApp({ authData }: { authData: AuthData }) {
 }
 
 function AppContent() {
+  // Check if system is installed
+  const { data: setupStatus, isLoading: setupLoading } = useQuery<{ installed: boolean }>({
+    queryKey: ["/api/setup/status"],
+    retry: false,
+  });
+
   const { data: authData, isLoading, error } = useQuery<AuthData>({
     queryKey: ["/api/auth/me"],
     queryFn: getQueryFn({ on401: "returnNull" }),
     retry: false,
+    enabled: setupStatus?.installed === true,
   });
 
-  if (isLoading) {
+  if (setupLoading || isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
@@ -164,6 +172,11 @@ function AppContent() {
         </div>
       </div>
     );
+  }
+
+  // Show setup page if not installed
+  if (setupStatus && !setupStatus.installed) {
+    return <SetupPage />;
   }
 
   if (!authData || error) {

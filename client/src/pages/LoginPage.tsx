@@ -101,15 +101,6 @@ export default function LoginPage() {
                 {loginMutation.isPending ? "Entrando..." : "Entrar"}
               </Button>
             </form>
-            
-            <div className="mt-6 p-4 bg-muted rounded-md">
-              <p className="text-sm text-muted-foreground font-semibold mb-2">Credenciais de teste:</p>
-              <ul className="text-sm space-y-1 text-muted-foreground">
-                <li>• Usuário: <strong>admin</strong> / Senha: <strong>admin123</strong></li>
-                <li>• Usuário: <strong>maria</strong> / Senha: <strong>senha123</strong></li>
-                <li>• Usuário: <strong>joao</strong> / Senha: <strong>senha123</strong></li>
-              </ul>
-            </div>
           </CardContent>
         </Card>
       </div>

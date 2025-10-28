@@ -54,3 +54,68 @@ The frontend utilizes React with TypeScript, Wouter for routing, and Tailwind CS
 - **Session Management**: Express-session.
 - **Data Validation**: Zod.
 - **Integration**: N8N (via HTTP Request to the REST API).
+
+## Deploy e Instalação (Produção)
+
+### Pré-requisitos
+- **Banco de Dados PostgreSQL**: Configure um banco PostgreSQL (por exemplo, no Easypanel ou em serviços como Neon, Railway, Supabase)
+- **Variável de Ambiente**: `DATABASE_URL` deve apontar para o banco de dados PostgreSQL
+
+### Deploy com Docker (Easypanel)
+
+1. **Build da Imagem**:
+   ```bash
+   docker build -t agendapro .
+   ```
+
+2. **Configurar Variáveis de Ambiente**:
+   - `DATABASE_URL`: String de conexão do PostgreSQL
+   - `SESSION_SECRET`: Chave secreta para sessions (gerar com `openssl rand -base64 32`)
+   - `NODE_ENV`: `production`
+
+3. **Executar Container**:
+   ```bash
+   docker run -p 5000:5000 \
+     -e DATABASE_URL="postgresql://user:pass@host:5432/db" \
+     -e SESSION_SECRET="sua_chave_secreta" \
+     -e NODE_ENV=production \
+     agendapro
+   ```
+
+### Primeira Instalação
+
+1. **Acesse a Aplicação**: Ao acessar pela primeira vez, o sistema detecta que não há admin configurado
+2. **Tela de Setup**: Você será redirecionado automaticamente para `/setup`
+3. **Criar Primeiro Admin**:
+   - Preencha os dados do primeiro usuário Master Admin
+   - Defina username, nome, email e senha
+   - Clique em "Instalar AgendaPro"
+4. **Login**: Após a instalação, você será redirecionado para a tela de login
+5. **Acesso Master Admin**: Use as credenciais criadas para acessar o painel administrativo
+
+### Segurança de Instalação
+
+**IMPORTANTE**: O endpoint `/api/setup` fica publicamente acessível até que o primeiro admin seja criado. Para aumentar a segurança em produção:
+
+1. **Restricão de Rede**: Configure firewall/security groups para limitar acesso durante a primeira instalação
+2. **Primeiro Acesso Rápido**: Execute a instalação imediatamente após o deploy
+3. **Após Instalação**: O endpoint `/api/setup` automaticamente bloqueia novas instalações após criar o primeiro admin
+
+### Migrations de Banco de Dados
+
+O sistema usa Drizzle ORM. Para aplicar mudanças no schema:
+
+```bash
+# Em desenvolvimento
+npm run db:push
+
+# Em produção (se necessário)
+npm run db:push --force
+```
+
+### Estrutura de Deploy
+
+- **Dockerfile**: Multi-stage build otimizado para produção
+- **Build Assets**: Frontend compilado está em `client/dist`
+- **Backend Compilado**: Server transpilado está em `dist/`
+- **Porta**: Aplicação escuta na porta 5000 por padrão

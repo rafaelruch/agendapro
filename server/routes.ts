@@ -15,7 +15,7 @@ import bcrypt from "bcrypt";
 declare module 'express-serve-static-core' {
   interface Request {
     authContext?: {
-      tenantId: string;
+      tenantId?: string;
       userId?: string;
       apiTokenId?: string;
     };
@@ -51,9 +51,10 @@ async function authenticateRequest(req: Request, res: Response, next: NextFuncti
   }
   
   // Se não há Bearer token, tentar autenticação por session
-  if (req.session.userId && req.session.tenantId) {
+  // Master admin pode ter tenantId null
+  if (req.session.userId) {
     req.authContext = {
-      tenantId: req.session.tenantId,
+      tenantId: req.session.tenantId || undefined,
       userId: req.session.userId,
     };
     return next();
@@ -63,7 +64,16 @@ async function authenticateRequest(req: Request, res: Response, next: NextFuncti
 }
 
 // Middleware para verificar autenticação (aceita session ou token)
+// Permite master_admin sem tenant
 function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Não autenticado" });
+  }
+  // Master admin pode não ter tenant
+  if (req.session.role === 'master_admin') {
+    return next();
+  }
+  // Usuários normais precisam de tenant
   const tenantId = getTenantId(req);
   if (!tenantId) {
     return res.status(401).json({ error: "Não autenticado" });
@@ -93,6 +103,68 @@ function requireTenantAdmin(req: Request, res: Response, next: NextFunction) {
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // ===========================================
+  // ROTAS DE SETUP (SEM AUTENTICAÇÃO)
+  // ===========================================
+  
+  // GET /api/setup/status - Verificar se o sistema já foi instalado
+  app.get("/api/setup/status", async (req, res) => {
+    try {
+      const hasAdmin = await storage.hasMasterAdmin();
+      res.json({ installed: hasAdmin });
+    } catch (error) {
+      console.error("Error checking setup status:", error);
+      res.status(500).json({ error: "Erro ao verificar status da instalação" });
+    }
+  });
+
+  // POST /api/setup - Instalar o sistema (criar primeiro admin master)
+  app.post("/api/setup", async (req, res) => {
+    try {
+      // Verificar se já foi instalado
+      const hasAdmin = await storage.hasMasterAdmin();
+      if (hasAdmin) {
+        return res.status(400).json({ error: "Sistema já foi instalado" });
+      }
+
+      const { username, name, email, password } = req.body;
+
+      if (!username || !name || !email || !password) {
+        return res.status(400).json({ error: "Todos os campos são obrigatórios" });
+      }
+
+      // Validar dados
+      if (password.length < 6) {
+        return res.status(400).json({ error: "Senha deve ter no mínimo 6 caracteres" });
+      }
+
+      // Hash da senha
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Criar primeiro admin master (sem tenantId)
+      const adminData: InsertUser = {
+        username,
+        name,
+        email,
+        password: hashedPassword,
+        role: "master_admin",
+        tenantId: null,
+        active: true,
+      };
+
+      const user = await storage.createUser(adminData);
+      
+      res.status(201).json({ 
+        success: true,
+        message: "Sistema instalado com sucesso",
+        user: { id: user.id, username: user.username, name: user.name }
+      });
+    } catch (error: any) {
+      console.error("Error during setup:", error);
+      res.status(500).json({ error: error.message || "Erro ao instalar sistema" });
+    }
+  });
+  
+  // ===========================================
   // ROTAS DE AUTENTICAÇÃO
   // ===========================================
   
@@ -116,13 +188,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Usuário ou senha inválidos" });
       }
 
-      const tenant = await storage.getTenant(user.tenantId);
-      if (!tenant || !tenant.active) {
-        return res.status(401).json({ error: "Tenant inativo" });
+      // Master admin não precisa de tenant
+      let tenant = null;
+      if (user.role !== 'master_admin') {
+        if (!user.tenantId) {
+          return res.status(401).json({ error: "Usuário sem tenant associado" });
+        }
+        tenant = await storage.getTenant(user.tenantId);
+        if (!tenant || !tenant.active) {
+          return res.status(401).json({ error: "Tenant inativo" });
+        }
       }
 
       req.session.userId = user.id;
-      req.session.tenantId = user.tenantId;
+      req.session.tenantId = user.tenantId ?? undefined;
       req.session.role = user.role;
       req.session.username = user.username;
 
@@ -134,10 +213,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: user.role,
           tenantId: user.tenantId
         },
-        tenant: {
+        tenant: tenant ? {
           id: tenant.id,
           name: tenant.name
-        }
+        } : null
       });
     } catch (error) {
       console.error("Error during login:", error);
@@ -163,7 +242,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Usuário não encontrado" });
       }
 
-      const tenant = await storage.getTenant(user.tenantId);
+      let tenant = null;
+      if (user.tenantId) {
+        tenant = await storage.getTenant(user.tenantId);
+      }
       
       res.json({ 
         user: { 

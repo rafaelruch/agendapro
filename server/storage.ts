@@ -38,6 +38,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, user: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: string): Promise<boolean>;
+  hasMasterAdmin(): Promise<boolean>;
   
   // User operations with tenant isolation (for tenant admin management)
   getUserWithTenantIsolation(id: string, tenantId: string): Promise<User | undefined>;
@@ -148,6 +149,15 @@ export class DbStorage implements IStorage {
 
   async deleteUser(id: string): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async hasMasterAdmin(): Promise<boolean> {
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.role, 'master_admin'))
+      .limit(1);
     return result.length > 0;
   }
 
