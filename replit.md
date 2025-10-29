@@ -48,6 +48,12 @@ The frontend utilizes React with TypeScript, Wouter for routing, and Tailwind CS
   - Detailed import results showing success count and errors
   - File size limit of 5MB for security
   - Empty row detection and skipping
+- **Calendar Appointment Details View**:
+  - Click on appointment name in calendar to view full details
+  - Modal dialog shows complete appointment information
+  - Displays client details (name, phone, email), service information (name, category, value), date, time, duration, status and notes
+  - Loading states for data fetching
+  - Clean UI with icons for better readability
 - **Client Phone Uniqueness Validation**:
   - Unique constraint on phone number per tenant in database schema
   - Backend validation before creating new client (returns 409 if phone already exists)

@@ -4,12 +4,14 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { CalendarView } from "@/components/CalendarView";
 import { AppointmentDialog } from "@/components/AppointmentDialog";
+import { AppointmentDetailsDialog } from "@/components/AppointmentDetailsDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Appointment, Client, Service } from "@shared/schema";
 
 export default function CalendarPage() {
   const [showAppointmentDialog, setShowAppointmentDialog] = useState(false);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { data: clients = [] } = useQuery<Client[]>({
@@ -79,7 +81,7 @@ export default function CalendarPage() {
       <CalendarView
         appointments={formatAppointmentsForCalendar()}
         onDateClick={(date) => console.log("Data clicada:", date)}
-        onAppointmentClick={(id) => console.log("Agendamento clicado:", id)}
+        onAppointmentClick={(id) => setSelectedAppointmentId(id)}
       />
 
       <AppointmentDialog
@@ -88,6 +90,12 @@ export default function CalendarPage() {
         clients={clients.map(c => ({ id: c.id, name: c.name }))}
         services={services}
         onSave={(data) => createAppointmentMutation.mutate(data)}
+      />
+
+      <AppointmentDetailsDialog
+        appointmentId={selectedAppointmentId}
+        open={!!selectedAppointmentId}
+        onOpenChange={(open) => !open && setSelectedAppointmentId(null)}
       />
     </div>
   );
