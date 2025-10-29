@@ -74,7 +74,8 @@ const endpoints: { [key: string]: EndpointExample[] } = {
     "name": "Empresa XYZ",
     "email": "contato@empresaxyz.com",
     "phone": "(11) 99999-9999",
-    "active": true
+    "active": true,
+    "createdAt": "2025-01-15T10:00:00.000Z"
   }
 ]`,
       curlExample: `curl -X GET "https://seudominio.com/api/admin/tenants" \\
@@ -96,7 +97,8 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   "name": "Nova Empresa",
   "email": "contato@novaempresa.com",
   "phone": "(11) 98888-8888",
-  "active": true
+  "active": true,
+  "createdAt": "2025-01-21T09:00:00.000Z"
 }`,
       curlExample: `curl -X POST "https://seudominio.com/api/admin/tenants" \\
   -H "Content-Type: application/json" \\
@@ -125,7 +127,8 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   "name": "Empresa XYZ Atualizada",
   "email": "contato@empresaxyz.com",
   "phone": "(11) 99999-9999",
-  "active": false
+  "active": false,
+  "createdAt": "2025-01-15T10:00:00.000Z"
 }`,
       curlExample: `curl -X PUT "https://seudominio.com/api/admin/tenants/tenant-123" \\
   -H "Content-Type: application/json" \\
@@ -170,7 +173,8 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   "email": "joao@empresaxyz.com",
   "role": "admin",
   "active": true,
-  "tenantId": "tenant-123"
+  "tenantId": "tenant-123",
+  "createdAt": "2025-01-21T09:30:00.000Z"
 }`,
       curlExample: `curl -X POST "https://seudominio.com/api/admin/tenants/tenant-123/users" \\
   -H "Content-Type: application/json" \\
@@ -322,7 +326,8 @@ const endpoints: { [key: string]: EndpointExample[] } = {
     "email": "joao@exemplo.com",
     "role": "admin",
     "active": true,
-    "tenantId": "tenant-123"
+    "tenantId": "tenant-123",
+    "createdAt": "2025-01-15T10:00:00.000Z"
   }
 ]`,
       curlExample: `curl -X GET "https://seudominio.com/api/users" \\
@@ -343,7 +348,8 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   "email": "joao@exemplo.com",
   "role": "admin",
   "active": true,
-  "tenantId": "tenant-123"
+  "tenantId": "tenant-123",
+  "createdAt": "2025-01-15T10:00:00.000Z"
 }`,
       curlExample: `curl -X GET "https://seudominio.com/api/users/user-123" \\
   -H "Cookie: connect.sid=SESSION_ID"`
@@ -368,7 +374,8 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   "email": "maria@exemplo.com",
   "role": "user",
   "active": true,
-  "tenantId": "tenant-123"
+  "tenantId": "tenant-123",
+  "createdAt": "2025-01-21T09:15:00.000Z"
 }`,
       curlExample: `curl -X POST "https://seudominio.com/api/users" \\
   -H "Content-Type: application/json" \\
@@ -401,7 +408,8 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   "email": "maria@exemplo.com",
   "role": "user",
   "active": false,
-  "tenantId": "tenant-123"
+  "tenantId": "tenant-123",
+  "createdAt": "2025-01-21T09:15:00.000Z"
 }`,
       curlExample: `curl -X PUT "https://seudominio.com/api/users/user-456" \\
   -H "Content-Type: application/json" \\
@@ -493,10 +501,8 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   {
     "id": "123e4567-e89b-12d3-a456-426614174000",
     "name": "João Silva",
-    "phone": "11999999999",
     "email": "joao@exemplo.com",
-    "address": "Rua Exemplo, 123",
-    "notes": "Cliente VIP",
+    "phone": "11999999999",
     "tenantId": "tenant-123"
   }
 ]`,
@@ -514,10 +520,8 @@ const endpoints: { [key: string]: EndpointExample[] } = {
       responseExample: `{
   "id": "123e4567-e89b-12d3-a456-426614174000",
   "name": "João Silva",
-  "phone": "11999999999",
   "email": "joao@exemplo.com",
-  "address": "Rua Exemplo, 123",
-  "notes": "Cliente VIP",
+  "phone": "11999999999",
   "tenantId": "tenant-123"
 }`,
       curlExample: `curl -X GET "https://seudominio.com/api/clients/123e4567-e89b-12d3-a456-426614174000" \\
@@ -530,18 +534,14 @@ const endpoints: { [key: string]: EndpointExample[] } = {
       auth: "Bearer Token",
       requestBody: `{
   "name": "Maria Santos",
-  "phone": "11988888888",
   "email": "maria@exemplo.com",
-  "address": "Av. Principal, 456",
-  "notes": "Novo cliente"
+  "phone": "11988888888"
 }`,
       responseExample: `{
   "id": "456e7890-e89b-12d3-a456-426614174111",
   "name": "Maria Santos",
-  "phone": "11988888888",
   "email": "maria@exemplo.com",
-  "address": "Av. Principal, 456",
-  "notes": "Novo cliente",
+  "phone": "11988888888",
   "tenantId": "tenant-123"
 }`,
       curlExample: `curl -X POST "https://seudominio.com/api/clients" \\
@@ -549,10 +549,8 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   -H "Content-Type: application/json" \\
   -d '{
     "name": "Maria Santos",
-    "phone": "11988888888",
     "email": "maria@exemplo.com",
-    "address": "Av. Principal, 456",
-    "notes": "Novo cliente"
+    "phone": "11988888888"
   }'`
     },
     {
@@ -570,10 +568,8 @@ const endpoints: { [key: string]: EndpointExample[] } = {
       responseExample: `{
   "id": "456e7890-e89b-12d3-a456-426614174111",
   "name": "Maria Santos Oliveira",
-  "phone": "11988888888",
   "email": "maria@exemplo.com",
-  "address": "Av. Principal, 456",
-  "notes": "Novo cliente",
+  "phone": "11988888888",
   "tenantId": "tenant-123"
 }`,
       curlExample: `curl -X PUT "https://seudominio.com/api/clients/456e7890-e89b-12d3-a456-426614174111" \\
@@ -608,10 +604,14 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   {
     "id": "apt-123",
     "clientId": "123e4567-e89b-12d3-a456-426614174000",
+    "serviceId": "svc-789",
     "date": "2025-01-15",
     "time": "14:00",
-    "title": "Consulta",
-    "completed": false
+    "duration": 60,
+    "status": "scheduled",
+    "notes": "Consulta marcada",
+    "tenantId": "tenant-123",
+    "createdAt": "2025-01-15T12:00:00.000Z"
   }
 ]`,
       curlExample: `curl -X GET "https://seudominio.com/api/clients/123e4567-e89b-12d3-a456-426614174000/appointments" \\
@@ -747,10 +747,15 @@ const endpoints: { [key: string]: EndpointExample[] } = {
       responseExample: `[
   {
     "id": "apt-789",
+    "clientId": "cli-456",
     "serviceId": "svc-123",
     "date": "2025-01-20",
     "time": "10:00",
-    "title": "Corte agendado"
+    "duration": 45,
+    "status": "scheduled",
+    "notes": "Agendamento para corte",
+    "tenantId": "tenant-123",
+    "createdAt": "2025-01-20T09:00:00.000Z"
   }
 ]`,
       curlExample: `curl -X GET "https://seudominio.com/api/services/svc-123/appointments" \\

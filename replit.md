@@ -48,9 +48,14 @@ The frontend utilizes React with TypeScript, Wouter for routing, and Tailwind CS
   - Detailed import results showing success count and errors
   - File size limit of 5MB for security
   - Empty row detection and skipping
-- **API Endpoint Corrections**:
-  - Client endpoints: Only require nome, email, and telefone (removed address and notes fields from documentation)
-  - Appointment endpoints: Correctly document duration (required), status (scheduled/completed), and notes (optional) - removed incorrect title and completed fields
+- **API Documentation - Complete Schema Alignment**:
+  - **Appointment endpoints**: All examples now correctly show duration (required), status (scheduled/completed), notes (optional), createdAt, and tenantId. Removed non-existent fields: title and completed boolean.
+    - Includes: GET/POST/PUT /api/appointments, GET /api/clients/:id/appointments, GET /api/services/:id/appointments
+  - **Client endpoints**: All examples now only include schema fields (name, email, phone, tenantId). Removed non-existent fields: address and notes.
+    - Includes: GET/POST/PUT /api/clients
+  - **Tenant endpoints**: Added createdAt field to all response examples
+  - **User endpoints**: Added createdAt field to all response examples
+  - **100% schema consistency**: All API documentation examples now perfectly match shared/schema.ts definitions
 
 ### System Design Choices
 - **Backend**: Express.js provides the API layer.
