@@ -48,6 +48,12 @@ The frontend utilizes React with TypeScript, Wouter for routing, and Tailwind CS
   - Detailed import results showing success count and errors
   - File size limit of 5MB for security
   - Empty row detection and skipping
+- **Client Phone Uniqueness Validation**:
+  - Unique constraint on phone number per tenant in database schema
+  - Backend validation before creating new client (returns 409 if phone already exists)
+  - Backend validation when updating client phone (allows self-update, blocks duplicates)
+  - Clear error messages: "Já existe um cliente cadastrado com este número de telefone"
+  - Prevents duplicate client registrations by phone number within the same tenant
 - **API Documentation - Complete Schema Alignment**:
   - **Appointment endpoints**: All examples now correctly show duration (required), status (scheduled/completed), notes (optional), createdAt, and tenantId. Removed non-existent fields: title and completed boolean.
     - Includes: GET/POST/PUT /api/appointments, GET /api/clients/:id/appointments, GET /api/services/:id/appointments

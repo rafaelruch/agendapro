@@ -47,6 +47,7 @@ export interface IStorage {
 
   // Client operations (with tenant isolation)
   getClient(id: string, tenantId: string): Promise<Client | undefined>;
+  getClientByPhone(phone: string, tenantId: string): Promise<Client | undefined>;
   getAllClients(tenantId: string): Promise<Client[]>;
   searchClients(tenantId: string, searchTerm: string): Promise<Client[]>;
   createClient(client: InsertClient): Promise<Client>;
@@ -194,6 +195,15 @@ export class DbStorage implements IStorage {
       .select()
       .from(clients)
       .where(and(eq(clients.id, id), eq(clients.tenantId, tenantId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getClientByPhone(phone: string, tenantId: string): Promise<Client | undefined> {
+    const result = await db
+      .select()
+      .from(clients)
+      .where(and(eq(clients.phone, phone), eq(clients.tenantId, tenantId)))
       .limit(1);
     return result[0];
   }

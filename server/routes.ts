@@ -677,6 +677,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         tenantId
       });
+      
+      // Verificar se já existe um cliente com o mesmo telefone neste tenant
+      const existingClient = await storage.getClientByPhone(validatedData.phone, tenantId);
+      if (existingClient) {
+        return res.status(409).json({ 
+          error: "Já existe um cliente cadastrado com este número de telefone" 
+        });
+      }
+      
       const client = await storage.createClient(validatedData);
       res.status(201).json(client);
     } catch (error) {
@@ -693,6 +702,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const tenantId = getTenantId(req)!;
       const validatedData = insertClientSchema.partial().parse(req.body);
+      
+      // Se está atualizando o telefone, verificar se já existe outro cliente com esse telefone
+      if (validatedData.phone) {
+        const existingClient = await storage.getClientByPhone(validatedData.phone, tenantId);
+        if (existingClient && existingClient.id !== req.params.id) {
+          return res.status(409).json({ 
+            error: "Já existe um cliente cadastrado com este número de telefone" 
+          });
+        }
+      }
+      
       const client = await storage.updateClient(req.params.id, tenantId, validatedData);
       if (!client) {
         return res.status(404).json({ error: "Cliente não encontrado" });
