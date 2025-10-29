@@ -7,13 +7,15 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Building2, Users, Trash2, Key, Copy, AlertCircle } from "lucide-react";
+import { Plus, Building2, Users, Trash2, Key, Copy, AlertCircle, Pencil, Calendar as CalendarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ApiDocumentation } from "@/components/ApiDocumentation";
-import type { Tenant, User } from "@shared/schema";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AppointmentDialog } from "@/components/AppointmentDialog";
+import type { Tenant, User, Appointment, Client, Service } from "@shared/schema";
 
 type ApiToken = {
   id: string;
@@ -34,9 +36,25 @@ export default function AdminPage() {
   const [tokenLabel, setTokenLabel] = useState("");
   const [newToken, setNewToken] = useState<string | null>(null);
   const [tokenTenantId, setTokenTenantId] = useState<string>("");
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
 
   const { data: tenants = [], isLoading } = useQuery<Tenant[]>({
     queryKey: ["/api/admin/tenants"],
+  });
+
+  const { data: allAppointments = [], isLoading: appointmentsLoading } = useQuery<Appointment[]>({
+    queryKey: ["/api/admin/appointments"],
+  });
+
+  const { data: allClients = [] } = useQuery<Client[]>({
+    queryKey: ["/api/clients"],
+    enabled: false, // Not used in master admin context
+  });
+
+  const { data: allServices = [] } = useQuery<Service[]>({
+    queryKey: ["/api/services"],
+    enabled: false, // Not used in master admin context
   });
 
   const { data: tokens, isLoading: tokensLoading } = useQuery<ApiToken[]>({
@@ -140,6 +158,27 @@ export default function AdminPage() {
     },
   });
 
+  const updateAppointmentMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      apiRequest("PUT", `/api/admin/appointments/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/appointments"] });
+      setAppointmentDialogOpen(false);
+      setEditingAppointment(null);
+      toast({
+        title: "Agendamento atualizado",
+        description: "O agendamento foi atualizado com sucesso.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao atualizar agendamento",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateTenant = () => {
     if (!tenantForm.name || !tenantForm.email) {
       toast({ title: "Erro", description: "Nome e email são obrigatórios", variant: "destructive" });
@@ -201,8 +240,9 @@ export default function AdminPage() {
       </div>
 
       <Tabs defaultValue="tenants" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="tenants">Tenants</TabsTrigger>
+          <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
           <TabsTrigger value="tokens">Tokens de API</TabsTrigger>
           <TabsTrigger value="docs">Documentação API</TabsTrigger>
         </TabsList>
@@ -266,6 +306,80 @@ export default function AdminPage() {
               </Card>
             ))}
           </div>
+        </TabsContent>
+
+        <TabsContent value="appointments" className="space-y-6 mt-6">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">Visualize e edite agendamentos de todos os tenants</p>
+          </div>
+
+          {appointmentsLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <p className="text-muted-foreground">Carregando agendamentos...</p>
+            </div>
+          ) : allAppointments.length === 0 ? (
+            <Card>
+              <CardContent className="flex items-center justify-center p-8">
+                <p className="text-muted-foreground">Nenhum agendamento encontrado</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Horário</TableHead>
+                    <TableHead>Cliente ID</TableHead>
+                    <TableHead>Serviço ID</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Tenant ID</TableHead>
+                    <TableHead className="w-[70px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allAppointments.map((appointment) => {
+                    const tenant = tenants.find(t => t.id === appointment.tenantId);
+                    const formatDate = (dateStr: string) => {
+                      const [year, month, day] = dateStr.split('-');
+                      return `${day}/${month}/${year}`;
+                    };
+                    return (
+                      <TableRow key={appointment.id}>
+                        <TableCell>{formatDate(appointment.date)}</TableCell>
+                        <TableCell>{appointment.time}</TableCell>
+                        <TableCell className="font-mono text-xs">{appointment.clientId.substring(0, 8)}...</TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {appointment.serviceId ? `${appointment.serviceId.substring(0, 8)}...` : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={appointment.status === 'completed' ? 'secondary' : 'default'}>
+                            {appointment.status === 'completed' ? 'Concluído' : appointment.status === 'scheduled' ? 'Agendado' : 'Cancelado'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {tenant?.name || appointment.tenantId.substring(0, 8)}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditingAppointment(appointment);
+                              setAppointmentDialogOpen(true);
+                            }}
+                            data-testid={`button-edit-appointment-${appointment.id}`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="tokens" className="space-y-6 mt-6">
@@ -506,6 +620,23 @@ export default function AdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog para editar agendamento */}
+      <AppointmentDialog
+        open={appointmentDialogOpen}
+        onOpenChange={(open) => {
+          setAppointmentDialogOpen(open);
+          if (!open) setEditingAppointment(null);
+        }}
+        clients={[]} // Master admin doesn't need client list for editing
+        services={[]} // Master admin doesn't need service list for editing
+        initialData={editingAppointment}
+        onSave={(data) => {
+          if (editingAppointment) {
+            updateAppointmentMutation.mutate({ id: editingAppointment.id, data });
+          }
+        }}
+      />
     </div>
   );
 }

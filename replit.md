@@ -20,7 +20,8 @@ The frontend utilizes React with TypeScript, Wouter for routing, and Tailwind CS
 - **Data Validation**: Zod is used for robust data validation across the system.
 
 ### Feature Specifications
-- **Core Features**: Multi-tenant support, secure authentication, master admin panel, user management (per tenant), service management (with categories and values), appointment scheduling (with optional service linking), quick action checkboxes for appointment completion, and a complete REST API.
+- **Core Features**: Multi-tenant support, secure authentication, master admin panel, user management (per tenant), service management (with categories and values), appointment scheduling (with optional service linking), appointment editing (including date and time), quick action checkboxes for appointment completion, and a complete REST API.
+- **Appointment Editing**: Full support for editing appointments including date, time, client, service, duration, status, and notes. Available in calendar view (tenant users) and master admin panel (all tenants).
 - **API Token System**: 
   - Tenants can generate and manage their own API tokens through the Settings page
   - Master admins can create and manage API tokens for any tenant through the Admin panel
@@ -31,7 +32,9 @@ The frontend utilizes React with TypeScript, Wouter for routing, and Tailwind CS
   - Master admin users are protected from deletion at both backend (403 error) and frontend (hidden delete button)
   - Visual differentiation: Master admin users display with purple "Master Admin" badge and crown icon
 - **Master Admin Panel**: 
-  - Tabbed interface for managing tenants, API tokens, and viewing API documentation
+  - Tabbed interface for managing tenants, appointments, API tokens, and viewing API documentation
+  - Complete appointment management across all tenants with ability to view and edit any appointment
+  - Can edit appointment details including date, time, status, client, service, duration, and notes
   - Can create API tokens for any tenant from centralized location
   - Comprehensive API endpoint documentation with curl examples and copy-to-clipboard functionality
   - Cross-tenant API token revocation capability

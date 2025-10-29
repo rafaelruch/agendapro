@@ -87,6 +87,11 @@ export interface IStorage {
   revokeApiTokenAdmin(id: string): Promise<boolean>;
   validateApiToken(token: string): Promise<{ tenantId: string; tokenId: string } | null>;
   markApiTokenUsed(id: string): Promise<void>;
+
+  // Admin operations (no tenant isolation)
+  getAllAppointmentsAdmin(): Promise<Appointment[]>;
+  getAppointmentAdmin(id: string): Promise<Appointment | undefined>;
+  updateAppointmentAdmin(id: string, appointment: Partial<InsertAppointment>): Promise<Appointment | undefined>;
 }
 
 export class DbStorage implements IStorage {
@@ -509,6 +514,32 @@ export class DbStorage implements IStorage {
       .update(tenantApiTokens)
       .set({ lastUsedAt: new Date() })
       .where(eq(tenantApiTokens.id, id));
+  }
+
+  // Admin operations (no tenant isolation)
+  async getAllAppointmentsAdmin(): Promise<Appointment[]> {
+    return await db
+      .select()
+      .from(appointments)
+      .orderBy(desc(appointments.date), desc(appointments.time));
+  }
+
+  async getAppointmentAdmin(id: string): Promise<Appointment | undefined> {
+    const result = await db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.id, id))
+      .limit(1);
+    return result[0];
+  }
+
+  async updateAppointmentAdmin(id: string, appointmentData: Partial<InsertAppointment>): Promise<Appointment | undefined> {
+    const result = await db
+      .update(appointments)
+      .set(appointmentData)
+      .where(eq(appointments.id, id))
+      .returning();
+    return result[0];
   }
 }
 

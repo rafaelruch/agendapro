@@ -12,6 +12,7 @@ import type { Appointment, Client, Service } from "@shared/schema";
 export default function CalendarPage() {
   const [showAppointmentDialog, setShowAppointmentDialog] = useState(false);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const { toast } = useToast();
 
   const { data: clients = [] } = useQuery<Client[]>({
@@ -31,6 +32,7 @@ export default function CalendarPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
       setShowAppointmentDialog(false);
+      setEditingAppointment(null);
       toast({
         title: "Agendamento criado",
         description: "O agendamento foi criado com sucesso.",
@@ -39,6 +41,28 @@ export default function CalendarPage() {
     onError: (error: Error) => {
       toast({
         title: "Erro ao criar agendamento",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateAppointmentMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      apiRequest("PUT", `/api/appointments/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      setShowAppointmentDialog(false);
+      setEditingAppointment(null);
+      setSelectedAppointmentId(null);
+      toast({
+        title: "Agendamento atualizado",
+        description: "O agendamento foi atualizado com sucesso.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao atualizar agendamento",
         description: error.message,
         variant: "destructive",
       });
@@ -86,16 +110,34 @@ export default function CalendarPage() {
 
       <AppointmentDialog
         open={showAppointmentDialog}
-        onOpenChange={setShowAppointmentDialog}
+        onOpenChange={(open) => {
+          setShowAppointmentDialog(open);
+          if (!open) setEditingAppointment(null);
+        }}
         clients={clients.map(c => ({ id: c.id, name: c.name }))}
         services={services}
-        onSave={(data) => createAppointmentMutation.mutate(data)}
+        initialData={editingAppointment}
+        onSave={(data) => {
+          if (editingAppointment) {
+            updateAppointmentMutation.mutate({ id: editingAppointment.id, data });
+          } else {
+            createAppointmentMutation.mutate(data);
+          }
+        }}
       />
 
       <AppointmentDetailsDialog
         appointmentId={selectedAppointmentId}
         open={!!selectedAppointmentId}
         onOpenChange={(open) => !open && setSelectedAppointmentId(null)}
+        onEdit={() => {
+          const appointment = appointments.find(a => a.id === selectedAppointmentId);
+          if (appointment) {
+            setEditingAppointment(appointment);
+            setShowAppointmentDialog(true);
+            setSelectedAppointmentId(null);
+          }
+        }}
       />
     </div>
   );

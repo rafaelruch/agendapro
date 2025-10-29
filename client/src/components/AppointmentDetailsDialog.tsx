@@ -4,21 +4,25 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, User, Briefcase, FileText, CheckCircle2, Circle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, Clock, User, Briefcase, FileText, CheckCircle2, Circle, Pencil } from "lucide-react";
 import type { Appointment, Client, Service } from "@shared/schema";
 
 interface AppointmentDetailsDialogProps {
   appointmentId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onEdit?: () => void;
 }
 
 export function AppointmentDetailsDialog({
   appointmentId,
   open,
   onOpenChange,
+  onEdit,
 }: AppointmentDetailsDialogProps) {
   const { data: appointment, isLoading } = useQuery<Appointment>({
     queryKey: ["/api/appointments", appointmentId],
@@ -174,6 +178,15 @@ export function AppointmentDetailsDialog({
             </div>
           )}
         </div>
+
+        {onEdit && (
+          <DialogFooter>
+            <Button onClick={onEdit} data-testid="button-edit-appointment">
+              <Pencil className="h-4 w-4 mr-2" />
+              Editar Agendamento
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -423,6 +423,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/admin/appointments - List all appointments from all tenants (master admin only)
+  app.get("/api/admin/appointments", requireMasterAdmin, async (req, res) => {
+    try {
+      const appointments = await storage.getAllAppointmentsAdmin();
+      res.json(appointments);
+    } catch (error) {
+      console.error("Error fetching all appointments:", error);
+      res.status(500).json({ error: "Erro ao buscar agendamentos" });
+    }
+  });
+
+  // PUT /api/admin/appointments/:id - Update appointment from any tenant (master admin only)
+  app.put("/api/admin/appointments/:id", requireMasterAdmin, async (req, res) => {
+    try {
+      // Validate conflict if date/time are being updated
+      if (req.body.date && req.body.time) {
+        // Get the appointment first to know its tenant
+        const existingAppointment = await storage.getAppointmentAdmin(req.params.id);
+        if (!existingAppointment) {
+          return res.status(404).json({ error: "Agendamento não encontrado" });
+        }
+
+        const existingAppointments = await storage.getAppointmentsByDateRange(
+          existingAppointment.tenantId,
+          req.body.date,
+          req.body.date
+        );
+        const conflict = existingAppointments.find(
+          (apt) =>
+            apt.date === req.body.date &&
+            apt.time === req.body.time &&
+            apt.id !== req.params.id
+        );
+        if (conflict) {
+          return res.status(409).json({ error: "Já existe um agendamento neste horário" });
+        }
+      }
+
+      const validatedData = insertAppointmentSchema.partial().parse(req.body);
+      const appointment = await storage.updateAppointmentAdmin(req.params.id, validatedData);
+      if (!appointment) {
+        return res.status(404).json({ error: "Agendamento não encontrado" });
+      }
+      res.json(appointment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Dados de agendamento inválidos", details: error.errors });
+      }
+      console.error("Error updating appointment:", error);
+      res.status(500).json({ error: "Erro ao atualizar agendamento" });
+    }
+  });
+
   // ===========================================
   // ROTAS DE GERENCIAMENTO DE USUÁRIOS (TENANT ADMIN)
   // ===========================================
