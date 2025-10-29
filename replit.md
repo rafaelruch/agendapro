@@ -21,7 +21,11 @@ The frontend utilizes React with TypeScript, Wouter for routing, and Tailwind CS
 
 ### Feature Specifications
 - **Core Features**: Multi-tenant support, secure authentication, master admin panel, user management (per tenant), service management (with categories and values), appointment scheduling (with optional service linking), appointment editing (including date and time), business hours management, availability checking, quick action checkboxes for appointment completion, and a complete REST API.
-- **Appointment Editing**: Full support for editing appointments including date, time, client, service, duration, status, and notes. Available in calendar view (tenant users) and master admin panel (all tenants).
+- **Appointment Editing**: 
+  - Full support for editing all appointment fields: date, time, client, service, duration, status, and notes
+  - Available in calendar view (tenant users) and master admin panel (all tenants)
+  - API endpoint PUT /api/appointments/:id accepts partial updates (all fields optional)
+  - Automatic conflict detection when changing date/time to prevent double-booking
 - **Business Hours Management**: 
   - Configure operating hours per day of the week (0=Sunday to 6=Saturday)
   - Multiple time periods per day (e.g., morning and afternoon shifts)

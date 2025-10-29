@@ -858,23 +858,29 @@ const endpoints: { [key: string]: EndpointExample[] } = {
     {
       method: "PUT",
       path: "/api/appointments/:id",
-      description: "Atualizar um agendamento",
+      description: "Atualizar um agendamento (todos os campos são opcionais)",
       auth: "Bearer Token",
       parameters: [
         { name: "id", type: "string", required: true, description: "ID do agendamento" }
       ],
       requestBody: `{
-  "status": "completed"
+  "date": "2025-01-25",
+  "time": "16:30",
+  "clientId": "cli-789",
+  "serviceId": "svc-456",
+  "duration": 90,
+  "status": "completed",
+  "notes": "Reagendado para novo horário"
 }`,
       responseExample: `{
   "id": "apt-999",
-  "clientId": "cli-456",
-  "serviceId": "svc-789",
-  "date": "2025-01-20",
-  "time": "15:00",
-  "duration": 60,
+  "clientId": "cli-789",
+  "serviceId": "svc-456",
+  "date": "2025-01-25",
+  "time": "16:30",
+  "duration": 90,
   "status": "completed",
-  "notes": "Observações opcionais",
+  "notes": "Reagendado para novo horário",
   "tenantId": "tenant-123",
   "createdAt": "2025-01-20T12:00:00.000Z"
 }`,
@@ -882,7 +888,13 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "status": "completed"
+    "date": "2025-01-25",
+    "time": "16:30",
+    "clientId": "cli-789",
+    "serviceId": "svc-456",
+    "duration": 90,
+    "status": "completed",
+    "notes": "Reagendado para novo horário"
   }'`
     },
     {
