@@ -30,7 +30,11 @@ The frontend utilizes React with TypeScript, Wouter for routing, and Tailwind CS
   - Admin-only access (requires tenant admin or master admin role)
 - **Availability API**:
   - GET /api/availability endpoint for checking schedule availability
-  - Query parameters: startDate (required), endDate (required), clientId (optional), serviceId (optional)
+  - Query parameters (all optional):
+    - startDate (optional): Data inicial em formato YYYY-MM-DD. Se não fornecida, usa data atual
+    - endDate (optional): Data final em formato YYYY-MM-DD. Se não fornecida, usa 30 dias a partir da data inicial
+    - clientId (optional): Filtrar agendamentos por cliente
+    - serviceId (optional): Filtrar agendamentos por serviço
   - Returns availability per day with business hours and existing appointments
   - Automatically filters days without configured business hours
   - Supports date range queries for integration with external calendar systems

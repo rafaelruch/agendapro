@@ -1299,11 +1299,16 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(401).json({ error: "Não autenticado" });
       }
 
-      const { startDate, endDate, clientId, serviceId } = req.query;
+      let { startDate, endDate, clientId, serviceId } = req.query;
 
-      // Validar parâmetros obrigatórios
-      if (!startDate || !endDate) {
-        return res.status(400).json({ error: "startDate e endDate são obrigatórios" });
+      // Se não fornecidos, usar valores padrão (hoje até 30 dias)
+      if (!startDate) {
+        startDate = new Date().toISOString().split('T')[0];
+      }
+      if (!endDate) {
+        const defaultEndDate = new Date();
+        defaultEndDate.setDate(defaultEndDate.getDate() + 30);
+        endDate = defaultEndDate.toISOString().split('T')[0];
       }
 
       // Validar formato de data
