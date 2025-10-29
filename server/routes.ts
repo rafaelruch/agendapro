@@ -1150,7 +1150,16 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   app.get("/api/appointments", authenticateRequest, async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
-      const { clientId, serviceId, startDate, endDate, date, time } = req.query;
+      const { id, clientId, serviceId, startDate, endDate, date, time } = req.query;
+
+      // Se foi passado um ID específico via query parameter (ideal para N8N)
+      if (id) {
+        const appointment = await storage.getAppointment(id as string, tenantId);
+        if (!appointment) {
+          return res.status(404).json({ error: "Agendamento não encontrado" });
+        }
+        return res.json(appointment);
+      }
 
       if (date && time) {
         const appointments = await storage.getAppointmentsByDateRange(

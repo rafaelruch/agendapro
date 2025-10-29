@@ -769,6 +769,7 @@ const endpoints: { [key: string]: EndpointExample[] } = {
       description: "Listar todos os agendamentos (com filtros opcionais via query parameters)",
       auth: "Bearer Token",
       queryParams: [
+        { name: "id", type: "string", required: false, description: "Buscar agendamento específico por ID (ideal para N8N)" },
         { name: "clientId", type: "string", required: false, description: "Filtrar por ID do cliente" },
         { name: "serviceId", type: "string", required: false, description: "Filtrar por ID do serviço" },
         { name: "startDate", type: "string", required: false, description: "Data inicial (YYYY-MM-DD)" },
@@ -790,7 +791,11 @@ const endpoints: { [key: string]: EndpointExample[] } = {
     "createdAt": "2025-01-15T12:00:00.000Z"
   }
 ]`,
-      curlExample: `# Filtrar por cliente (ideal para N8N)
+      curlExample: `# Buscar agendamento específico por ID via query (IDEAL PARA N8N)
+curl -X GET "https://seudominio.com/api/appointments?id=apt-123" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"
+
+# Filtrar por cliente
 curl -X GET "https://seudominio.com/api/appointments?clientId=cli-456" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"
 
@@ -809,7 +814,7 @@ curl -X GET "https://seudominio.com/api/appointments?clientId=cli-456&startDate=
     {
       method: "GET",
       path: "/api/appointments/:id",
-      description: "Buscar um agendamento específico",
+      description: "Buscar um agendamento específico (alternativa usando path parameter)",
       auth: "Bearer Token",
       parameters: [
         { name: "id", type: "string", required: true, description: "ID do agendamento" }
@@ -826,7 +831,8 @@ curl -X GET "https://seudominio.com/api/appointments?clientId=cli-456&startDate=
   "tenantId": "tenant-123",
   "createdAt": "2025-01-15T12:00:00.000Z"
 }`,
-      curlExample: `curl -X GET "https://seudominio.com/api/appointments/apt-123" \\
+      curlExample: `# Nota: Preferir usar ?id=apt-123 (query param) ao invés de /apt-123 (path param)
+curl -X GET "https://seudominio.com/api/appointments/apt-123" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     },
     {
