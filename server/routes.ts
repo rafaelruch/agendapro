@@ -1457,7 +1457,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       }
 
       const logs: string[] = [];
-      logs.push("🚀 Iniciando migrations...");
+      logs.push("[INFO] Iniciando migrations...");
 
       // Criar conexão temporária com o banco fornecido
       const { Pool } = await import('pg');
@@ -1490,19 +1490,16 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         `);
 
         // Executar SQL
-        logs.push("📊 Criando tabela business_hours...");
+        logs.push("[RUNNING] Criando tabela business_hours...");
         await tempDb.execute(createBusinessHoursTable);
-        logs.push("✅ Tabela business_hours criada/verificada");
+        logs.push("[SUCCESS] Tabela business_hours criada/verificada");
 
-        logs.push("📊 Criando índices...");
+        logs.push("[RUNNING] Criando índices...");
         await tempDb.execute(createIndexTenant);
         await tempDb.execute(createIndexDay);
-        logs.push("✅ Índices criados/verificados");
+        logs.push("[SUCCESS] Índices criados/verificados");
 
-        logs.push("✅ Migrations concluídas com sucesso!");
-
-        // Fechar conexão temporária
-        await tempPool.end();
+        logs.push("[SUCCESS] Migrations concluídas com sucesso!");
 
         res.json({ 
           success: true, 
@@ -1511,10 +1508,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         });
 
       } catch (dbError: any) {
-        // Fechar pool em caso de erro
-        await tempPool.end();
-        
-        logs.push(`❌ Erro ao executar migrations: ${dbError.message}`);
+        logs.push(`[ERROR] Erro ao executar migrations: ${dbError.message}`);
         console.error("Migration error:", dbError);
         
         res.status(500).json({ 
@@ -1522,6 +1516,9 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
           logs,
           error: dbError.message 
         });
+      } finally {
+        // Sempre fechar conexão temporária
+        await tempPool.end();
       }
 
     } catch (error: any) {

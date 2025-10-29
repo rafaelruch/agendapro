@@ -25,22 +25,22 @@ export function MigrationsPanel() {
       const errorLogs = error.logs || [];
       setLogs([
         ...errorLogs,
-        `❌ Erro: ${error.message || 'Erro ao executar migrations'}`
+        `[ERROR] ${error.message || 'Erro ao executar migrations'}`
       ]);
     }
   });
 
   const handleRunMigrations = () => {
     if (!databaseUrl.trim()) {
-      setLogs(["❌ Por favor, insira a DATABASE_URL"]);
+      setLogs(["[ERROR] Por favor, insira a DATABASE_URL"]);
       return;
     }
     setLogs([]);
     runMigrationsMutation.mutate(databaseUrl);
   };
 
-  const hasSuccess = logs.some(log => log.includes("✅ Migrations concluídas com sucesso"));
-  const hasError = logs.some(log => log.includes("❌"));
+  const hasSuccess = logs.some(log => log.includes("[SUCCESS] Migrations concluídas com sucesso"));
+  const hasError = logs.some(log => log.includes("[ERROR]"));
 
   return (
     <div className="space-y-4">
@@ -126,9 +126,9 @@ export function MigrationsPanel() {
                   <div
                     key={index}
                     className={
-                      log.includes("✅") ? "text-green-600" :
-                      log.includes("❌") ? "text-destructive" :
-                      log.includes("📊") ? "text-blue-600" :
+                      log.includes("[SUCCESS]") ? "text-green-600" :
+                      log.includes("[ERROR]") ? "text-destructive" :
+                      log.includes("[RUNNING]") ? "text-blue-600" :
                       "text-muted-foreground"
                     }
                     data-testid={`log-line-${index}`}
