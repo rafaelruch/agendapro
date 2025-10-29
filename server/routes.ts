@@ -1442,6 +1442,17 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   // ROTAS DE MIGRATIONS (MASTER ADMIN)
   // ===========================================
   
+  // GET /api/debug/session - Debug de sessão (temporário)
+  app.get("/api/debug/session", (req, res) => {
+    res.json({
+      hasSession: !!req.session,
+      userId: req.session?.userId,
+      role: req.session?.role,
+      tenantId: req.session?.tenantId,
+      sessionData: req.session
+    });
+  });
+  
   // POST /api/migrations/run - Executar migrations manualmente
   app.post("/api/migrations/run", requireMasterAdmin, async (req, res) => {
     try {
