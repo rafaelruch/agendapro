@@ -20,8 +20,20 @@ The frontend utilizes React with TypeScript, Wouter for routing, and Tailwind CS
 - **Data Validation**: Zod is used for robust data validation across the system.
 
 ### Feature Specifications
-- **Core Features**: Multi-tenant support, secure authentication, master admin panel, user management (per tenant), service management (with categories and values), appointment scheduling (with optional service linking), appointment editing (including date and time), quick action checkboxes for appointment completion, and a complete REST API.
+- **Core Features**: Multi-tenant support, secure authentication, master admin panel, user management (per tenant), service management (with categories and values), appointment scheduling (with optional service linking), appointment editing (including date and time), business hours management, availability checking, quick action checkboxes for appointment completion, and a complete REST API.
 - **Appointment Editing**: Full support for editing appointments including date, time, client, service, duration, status, and notes. Available in calendar view (tenant users) and master admin panel (all tenants).
+- **Business Hours Management**: 
+  - Configure operating hours per day of the week (0=Sunday to 6=Saturday)
+  - Multiple time periods per day (e.g., morning and afternoon shifts)
+  - Enable/disable specific time periods without deletion
+  - CRUD operations: GET /api/business-hours, POST /api/business-hours, PUT /api/business-hours/:id, DELETE /api/business-hours/:id
+  - Admin-only access (requires tenant admin or master admin role)
+- **Availability API**:
+  - GET /api/availability endpoint for checking schedule availability
+  - Query parameters: startDate (required), endDate (required), clientId (optional), serviceId (optional)
+  - Returns availability per day with business hours and existing appointments
+  - Automatically filters days without configured business hours
+  - Supports date range queries for integration with external calendar systems
 - **API Token System**: 
   - Tenants can generate and manage their own API tokens through the Settings page
   - Master admins can create and manage API tokens for any tenant through the Admin panel

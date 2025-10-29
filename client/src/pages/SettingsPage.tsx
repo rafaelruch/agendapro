@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Copy, Trash2, Key, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { BusinessHoursManager } from "@/components/BusinessHoursManager";
 
 type ApiToken = {
   id: string;
@@ -224,6 +225,18 @@ export default function SettingsPage() {
                 <p className="text-sm text-muted-foreground">Nenhum token ativo</p>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Horários de Funcionamento</CardTitle>
+            <CardDescription>
+              Configure os horários em que sua empresa funciona. Esses horários serão usados para verificar disponibilidade de agendamentos.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BusinessHoursManager />
           </CardContent>
         </Card>
 

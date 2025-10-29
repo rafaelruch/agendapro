@@ -66,6 +66,16 @@ export const tenantApiTokens = pgTable("tenant_api_tokens", {
   revokedAt: timestamp("revoked_at"),
 });
 
+export const businessHours = pgTable("business_hours", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  dayOfWeek: integer("day_of_week").notNull(),
+  startTime: text("start_time").notNull(),
+  endTime: text("end_time").notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertTenantSchema = createInsertSchema(tenants).omit({
   id: true,
   createdAt: true,
@@ -98,6 +108,15 @@ export const insertTenantApiTokenSchema = createInsertSchema(tenantApiTokens).om
   revokedAt: true,
 });
 
+export const insertBusinessHoursSchema = createInsertSchema(businessHours).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  dayOfWeek: z.number().min(0).max(6),
+  startTime: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, "Formato inválido. Use HH:MM"),
+  endTime: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, "Formato inválido. Use HH:MM"),
+});
+
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type Tenant = typeof tenants.$inferSelect;
 
@@ -115,3 +134,6 @@ export type Appointment = typeof appointments.$inferSelect;
 
 export type InsertTenantApiToken = z.infer<typeof insertTenantApiTokenSchema>;
 export type TenantApiToken = typeof tenantApiTokens.$inferSelect;
+
+export type InsertBusinessHours = z.infer<typeof insertBusinessHoursSchema>;
+export type BusinessHours = typeof businessHours.$inferSelect;

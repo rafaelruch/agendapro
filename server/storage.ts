@@ -11,12 +11,15 @@ import {
   type InsertUser,
   type TenantApiToken,
   type InsertTenantApiToken,
+  type BusinessHours,
+  type InsertBusinessHours,
   clients,
   services,
   appointments,
   tenants,
   users,
-  tenantApiTokens
+  tenantApiTokens,
+  businessHours
 } from "@shared/schema";
 import { randomBytes } from "crypto";
 import { db } from "./db";
@@ -87,6 +90,12 @@ export interface IStorage {
   revokeApiTokenAdmin(id: string): Promise<boolean>;
   validateApiToken(token: string): Promise<{ tenantId: string; tokenId: string } | null>;
   markApiTokenUsed(id: string): Promise<void>;
+
+  // Business Hours operations (with tenant isolation)
+  getBusinessHours(tenantId: string): Promise<BusinessHours[]>;
+  createBusinessHours(businessHour: InsertBusinessHours): Promise<BusinessHours>;
+  updateBusinessHours(id: string, tenantId: string, businessHour: Partial<InsertBusinessHours>): Promise<BusinessHours | undefined>;
+  deleteBusinessHours(id: string, tenantId: string): Promise<boolean>;
 
   // Admin operations (no tenant isolation)
   getAllAppointmentsAdmin(): Promise<Appointment[]>;
@@ -514,6 +523,37 @@ export class DbStorage implements IStorage {
       .update(tenantApiTokens)
       .set({ lastUsedAt: new Date() })
       .where(eq(tenantApiTokens.id, id));
+  }
+
+  // Business Hours operations
+  async getBusinessHours(tenantId: string): Promise<BusinessHours[]> {
+    return await db
+      .select()
+      .from(businessHours)
+      .where(eq(businessHours.tenantId, tenantId))
+      .orderBy(businessHours.dayOfWeek, businessHours.startTime);
+  }
+
+  async createBusinessHours(businessHour: InsertBusinessHours): Promise<BusinessHours> {
+    const result = await db.insert(businessHours).values(businessHour).returning();
+    return result[0];
+  }
+
+  async updateBusinessHours(id: string, tenantId: string, businessHourData: Partial<InsertBusinessHours>): Promise<BusinessHours | undefined> {
+    const result = await db
+      .update(businessHours)
+      .set(businessHourData)
+      .where(and(eq(businessHours.id, id), eq(businessHours.tenantId, tenantId)))
+      .returning();
+    return result[0];
+  }
+
+  async deleteBusinessHours(id: string, tenantId: string): Promise<boolean> {
+    const result = await db
+      .delete(businessHours)
+      .where(and(eq(businessHours.id, id), eq(businessHours.tenantId, tenantId)))
+      .returning();
+    return result.length > 0;
   }
 
   // Admin operations (no tenant isolation)

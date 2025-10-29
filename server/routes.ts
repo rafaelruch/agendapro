@@ -7,6 +7,7 @@ import {
   insertAppointmentSchema,
   insertTenantSchema,
   insertUserSchema,
+  insertBusinessHoursSchema,
   type InsertUser
 } from "@shared/schema";
 import { z } from "zod";
@@ -684,6 +685,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ===========================================
+  // ROTAS DE HORÁRIOS DE FUNCIONAMENTO (COM ISOLAMENTO TENANT)
+  // ===========================================
+
+  // GET /api/business-hours - List business hours for current tenant
+  app.get("/api/business-hours", authenticateRequest, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+      
+      const businessHours = await storage.getBusinessHours(tenantId);
+      res.json(businessHours);
+    } catch (error) {
+      console.error("Error fetching business hours:", error);
+      res.status(500).json({ error: "Erro ao buscar horários de funcionamento" });
+    }
+  });
+
+  // POST /api/business-hours - Create business hours
+  app.post("/api/business-hours", authenticateRequest, requireTenantAdmin, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const validatedData = insertBusinessHoursSchema.parse({
+        ...req.body,
+        tenantId
+      });
+
+      const businessHour = await storage.createBusinessHours(validatedData);
+      res.status(201).json(businessHour);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Dados inválidos", details: error.errors });
+      }
+      console.error("Error creating business hours:", error);
+      res.status(500).json({ error: "Erro ao criar horário de funcionamento" });
+    }
+  });
+
+  // PUT /api/business-hours/:id - Update business hours
+  app.put("/api/business-hours/:id", authenticateRequest, requireTenantAdmin, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      // Omit tenantId from update to prevent tenant reassignment
+      const validatedData = insertBusinessHoursSchema.omit({ tenantId: true }).partial().parse(req.body);
+      const businessHour = await storage.updateBusinessHours(req.params.id, tenantId, validatedData);
+      
+      if (!businessHour) {
+        return res.status(404).json({ error: "Horário de funcionamento não encontrado" });
+      }
+      
+      res.json(businessHour);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Dados inválidos", details: error.errors });
+      }
+      console.error("Error updating business hours:", error);
+      res.status(500).json({ error: "Erro ao atualizar horário de funcionamento" });
+    }
+  });
+
+  // DELETE /api/business-hours/:id - Delete business hours
+  app.delete("/api/business-hours/:id", authenticateRequest, requireTenantAdmin, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const success = await storage.deleteBusinessHours(req.params.id, tenantId);
+      if (!success) {
+        return res.status(404).json({ error: "Horário de funcionamento não encontrado" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting business hours:", error);
+      res.status(500).json({ error: "Erro ao deletar horário de funcionamento" });
+    }
+  });
+
+  // ===========================================
   // ROTAS DE CLIENTES (COM ISOLAMENTO TENANT)
   // ===========================================
   
@@ -1193,6 +1284,96 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     } catch (error) {
       console.error("Error deleting appointment:", error);
       res.status(500).json({ error: "Erro ao deletar agendamento" });
+    }
+  });
+
+  // ===========================================
+  // ROTA DE DISPONIBILIDADE
+  // ===========================================
+
+  // GET /api/availability - Get available time slots
+  app.get("/api/availability", authenticateRequest, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const { startDate, endDate, clientId, serviceId } = req.query;
+
+      // Validar parâmetros obrigatórios
+      if (!startDate || !endDate) {
+        return res.status(400).json({ error: "startDate e endDate são obrigatórios" });
+      }
+
+      // Validar formato de data
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(startDate as string) || !dateRegex.test(endDate as string)) {
+        return res.status(400).json({ error: "Formato de data inválido. Use YYYY-MM-DD" });
+      }
+
+      // Buscar horários de funcionamento
+      const businessHours = await storage.getBusinessHours(tenantId);
+      
+      // Buscar agendamentos existentes no período
+      const appointments = await storage.getAppointmentsByDateRange(
+        tenantId,
+        startDate as string,
+        endDate as string,
+        clientId as string | undefined
+      );
+
+      // Filtrar por serviceId se fornecido
+      const filteredAppointments = serviceId 
+        ? appointments.filter(apt => apt.serviceId === serviceId)
+        : appointments;
+
+      // Calcular disponibilidade por dia
+      const availability = [];
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
+      
+      for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+        const dateStr = date.toISOString().split('T')[0];
+        const dayOfWeek = date.getDay(); // 0 = Domingo, 6 = Sábado
+
+        // Encontrar horários de funcionamento para este dia
+        const dayBusinessHours = businessHours.filter(
+          bh => bh.dayOfWeek === dayOfWeek && bh.active
+        );
+
+        if (dayBusinessHours.length === 0) {
+          // Dia sem expediente
+          continue;
+        }
+
+        // Agendamentos deste dia
+        const dayAppointments = filteredAppointments.filter(
+          apt => apt.date === dateStr
+        );
+
+        availability.push({
+          date: dateStr,
+          dayOfWeek,
+          businessHours: dayBusinessHours.map(bh => ({
+            startTime: bh.startTime,
+            endTime: bh.endTime
+          })),
+          appointments: dayAppointments.map(apt => ({
+            id: apt.id,
+            time: apt.time,
+            duration: apt.duration,
+            clientId: apt.clientId,
+            serviceId: apt.serviceId,
+            status: apt.status
+          }))
+        });
+      }
+
+      res.json(availability);
+    } catch (error) {
+      console.error("Error fetching availability:", error);
+      res.status(500).json({ error: "Erro ao buscar disponibilidade" });
     }
   });
 
