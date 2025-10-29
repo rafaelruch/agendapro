@@ -1460,7 +1460,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       logs.push("[INFO] Iniciando migrations...");
 
       // Criar conexão temporária com o banco fornecido
-      const { Pool } = await import('pg');
+      const pgPkg = await import('pg');
+      const Pool = pgPkg.default.Pool;
       const { drizzle } = await import('drizzle-orm/node-postgres');
       const { sql: sqlTemplate } = await import('drizzle-orm');
       
