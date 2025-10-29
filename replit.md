@@ -40,6 +40,14 @@ The frontend utilizes React with TypeScript, Wouter for routing, and Tailwind CS
   - Copy-to-clipboard button on all cURL examples with visual feedback
   - Complete authentication guides (Bearer Token and Session Cookie)
   - Client search endpoint supports phone number search (in addition to name and email)
+- **Bulk Service Import**:
+  - CSV template download with example data (GET /api/services/template)
+  - Bulk import functionality for services via CSV upload (POST /api/services/import)
+  - Support for both Portuguese (nome, categoria, valor, descricao) and English (name, category, value, description) column headers
+  - Automatic validation using Zod schemas
+  - Detailed import results showing success count and errors
+  - File size limit of 5MB for security
+  - Empty row detection and skipping
 
 ### System Design Choices
 - **Backend**: Express.js provides the API layer.
