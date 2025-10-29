@@ -487,7 +487,7 @@ const endpoints: { [key: string]: EndpointExample[] } = {
       description: "Listar todos os clientes do tenant",
       auth: "Bearer Token",
       queryParams: [
-        { name: "search", type: "string", required: false, description: "Buscar clientes por nome ou telefone" }
+        { name: "search", type: "string", required: false, description: "Buscar clientes por nome, email ou telefone (ex: ?search=11999999999 ou ?search=João)" }
       ],
       responseExample: `[
   {
@@ -500,7 +500,7 @@ const endpoints: { [key: string]: EndpointExample[] } = {
     "tenantId": "tenant-123"
   }
 ]`,
-      curlExample: `curl -X GET "https://seudominio.com/api/clients" \\
+      curlExample: `curl -X GET "https://seudominio.com/api/clients?search=11999999999" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     },
     {
