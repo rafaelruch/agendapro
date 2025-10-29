@@ -33,8 +33,13 @@ The frontend utilizes React with TypeScript, Wouter for routing, and Tailwind CS
 - **Master Admin Panel**: 
   - Tabbed interface for managing tenants, API tokens, and viewing API documentation
   - Can create API tokens for any tenant from centralized location
-  - Comprehensive API endpoint documentation with curl examples
+  - Comprehensive API endpoint documentation with curl examples and copy-to-clipboard functionality
   - Cross-tenant API token revocation capability
+- **API Documentation Features**:
+  - Dynamic base URL using window.location.origin for environment-agnostic examples
+  - Copy-to-clipboard button on all cURL examples with visual feedback
+  - Complete authentication guides (Bearer Token and Session Cookie)
+  - Client search endpoint supports phone number search (in addition to name and email)
 
 ### System Design Choices
 - **Backend**: Express.js provides the API layer.
