@@ -3,6 +3,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { Copy, Check } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface EndpointExample {
   method: "GET" | "POST" | "PUT" | "DELETE";
@@ -903,8 +907,29 @@ function MethodBadge({ method }: { method: string }) {
 }
 
 function EndpointCard({ endpoint, baseUrl }: { endpoint: EndpointExample; baseUrl: string }) {
+  const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+  
   // Substituir placeholder de URL pelo baseUrl real
   const curlExample = endpoint.curlExample.replace(/https:\/\/seudominio\.com/g, baseUrl);
+  
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(curlExample);
+      setCopied(true);
+      toast({
+        title: "Copiado!",
+        description: "Exemplo cURL copiado para a área de transferência",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível copiar o exemplo",
+        variant: "destructive",
+      });
+    }
+  };
   
   return (
     <Card className="mb-4" data-testid={`card-endpoint-${endpoint.method}-${endpoint.path.replace(/[/:]/g, '-')}`}>
@@ -974,7 +999,18 @@ function EndpointCard({ endpoint, baseUrl }: { endpoint: EndpointExample; baseUr
         )}
 
         <div>
-          <h4 className="text-sm font-semibold mb-2">Exemplo cURL:</h4>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-semibold">Exemplo cURL:</h4>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={copyToClipboard}
+              data-testid="button-copy-curl"
+            >
+              {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
+              {copied ? "Copiado!" : "Copiar"}
+            </Button>
+          </div>
           <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
             <code>{curlExample}</code>
           </pre>
