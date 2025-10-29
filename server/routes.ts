@@ -780,75 +780,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GET /api/services/:id - Get a specific service
-  app.get("/api/services/:id", authenticateRequest, async (req, res) => {
-    try {
-      const tenantId = getTenantId(req)!;
-      const service = await storage.getService(req.params.id, tenantId);
-      if (!service) {
-        return res.status(404).json({ error: "Serviço não encontrado" });
-      }
-      res.json(service);
-    } catch (error) {
-      console.error("Error fetching service:", error);
-      res.status(500).json({ error: "Erro ao buscar serviço" });
-    }
-  });
-
-  // POST /api/services - Create a new service
-  app.post("/api/services", authenticateRequest, async (req, res) => {
-    try {
-      const tenantId = getTenantId(req)!;
-      const validatedData = insertServiceSchema.parse({
-        ...req.body,
-        tenantId
-      });
-      const service = await storage.createService(validatedData);
-      res.status(201).json(service);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Dados de serviço inválidos", details: error.errors });
-      }
-      console.error("Error creating service:", error);
-      res.status(500).json({ error: "Erro ao criar serviço" });
-    }
-  });
-
-  // PUT /api/services/:id - Update a service
-  app.put("/api/services/:id", authenticateRequest, async (req, res) => {
-    try {
-      const tenantId = getTenantId(req)!;
-      const validatedData = insertServiceSchema.partial().parse(req.body);
-      const service = await storage.updateService(req.params.id, tenantId, validatedData);
-      if (!service) {
-        return res.status(404).json({ error: "Serviço não encontrado" });
-      }
-      res.json(service);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Dados de serviço inválidos", details: error.errors });
-      }
-      console.error("Error updating service:", error);
-      res.status(500).json({ error: "Erro ao atualizar serviço" });
-    }
-  });
-
-  // DELETE /api/services/:id - Delete a service
-  app.delete("/api/services/:id", authenticateRequest, async (req, res) => {
-    try {
-      const tenantId = getTenantId(req)!;
-      const success = await storage.deleteService(req.params.id, tenantId);
-      if (!success) {
-        return res.status(404).json({ error: "Serviço não encontrado" });
-      }
-      res.status(204).send();
-    } catch (error) {
-      console.error("Error deleting service:", error);
-      res.status(500).json({ error: "Erro ao deletar serviço" });
-    }
-  });
-
   // GET /api/services/template - Download CSV template for bulk import
+  // IMPORTANTE: Deve vir ANTES de /api/services/:id para não ser capturado como :id
   app.get("/api/services/template", authenticateRequest, async (req, res) => {
     try {
       // CSV template with headers and example row
@@ -869,6 +802,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // POST /api/services/import - Import services from CSV
+  // IMPORTANTE: Deve vir ANTES de /api/services/:id para não ser capturado como :id
   const upload = multer({ 
     storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
@@ -956,6 +890,74 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     } catch (error) {
       console.error("Error importing services:", error);
       res.status(500).json({ error: "Erro ao importar serviços" });
+    }
+  });
+
+  // GET /api/services/:id - Get a specific service
+  app.get("/api/services/:id", authenticateRequest, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req)!;
+      const service = await storage.getService(req.params.id, tenantId);
+      if (!service) {
+        return res.status(404).json({ error: "Serviço não encontrado" });
+      }
+      res.json(service);
+    } catch (error) {
+      console.error("Error fetching service:", error);
+      res.status(500).json({ error: "Erro ao buscar serviço" });
+    }
+  });
+
+  // POST /api/services - Create a new service
+  app.post("/api/services", authenticateRequest, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req)!;
+      const validatedData = insertServiceSchema.parse({
+        ...req.body,
+        tenantId
+      });
+      const service = await storage.createService(validatedData);
+      res.status(201).json(service);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Dados de serviço inválidos", details: error.errors });
+      }
+      console.error("Error creating service:", error);
+      res.status(500).json({ error: "Erro ao criar serviço" });
+    }
+  });
+
+  // PUT /api/services/:id - Update a service
+  app.put("/api/services/:id", authenticateRequest, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req)!;
+      const validatedData = insertServiceSchema.partial().parse(req.body);
+      const service = await storage.updateService(req.params.id, tenantId, validatedData);
+      if (!service) {
+        return res.status(404).json({ error: "Serviço não encontrado" });
+      }
+      res.json(service);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Dados de serviço inválidos", details: error.errors });
+      }
+      console.error("Error updating service:", error);
+      res.status(500).json({ error: "Erro ao atualizar serviço" });
+    }
+  });
+
+  // DELETE /api/services/:id - Delete a service
+  app.delete("/api/services/:id", authenticateRequest, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req)!;
+      const success = await storage.deleteService(req.params.id, tenantId);
+      if (!success) {
+        return res.status(404).json({ error: "Serviço não encontrado" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting service:", error);
+      res.status(500).json({ error: "Erro ao deletar serviço" });
     }
   });
 
