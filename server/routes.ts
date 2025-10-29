@@ -1242,7 +1242,53 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
-  // PUT /api/appointments/:id - Update an appointment
+  // PUT /api/appointments - Update an appointment (via query parameter - IDEAL PARA N8N)
+  app.put("/api/appointments", authenticateRequest, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req)!;
+      const appointmentId = req.query.id as string;
+      
+      if (!appointmentId) {
+        return res.status(400).json({ error: "ID do agendamento é obrigatório (use ?id=apt-xxx)" });
+      }
+
+      if (req.body.date && req.body.time) {
+        const existingAppointments = await storage.getAppointmentsByDateRange(
+          tenantId,
+          req.body.date,
+          req.body.date
+        );
+        const conflict = existingAppointments.find(
+          (apt) =>
+            apt.date === req.body.date &&
+            apt.time === req.body.time &&
+            apt.id !== appointmentId
+        );
+        if (conflict) {
+          return res.status(409).json({ error: "Já existe um agendamento neste horário" });
+        }
+      }
+
+      const validatedData = insertAppointmentSchema.partial().parse(req.body);
+      const appointment = await storage.updateAppointment(
+        appointmentId,
+        tenantId,
+        validatedData
+      );
+      if (!appointment) {
+        return res.status(404).json({ error: "Agendamento não encontrado" });
+      }
+      res.json(appointment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Dados de agendamento inválidos", details: error.errors });
+      }
+      console.error("Error updating appointment:", error);
+      res.status(500).json({ error: "Erro ao atualizar agendamento" });
+    }
+  });
+
+  // PUT /api/appointments/:id - Update an appointment (via path parameter - alternativa)
   app.put("/api/appointments/:id", authenticateRequest, async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;

@@ -885,10 +885,10 @@ curl -X GET "https://seudominio.com/api/appointments/apt-123" \\
     },
     {
       method: "PUT",
-      path: "/api/appointments/:id",
-      description: "Atualizar um agendamento (todos os campos são opcionais)",
+      path: "/api/appointments",
+      description: "Atualizar um agendamento via query parameter (IDEAL PARA N8N)",
       auth: "Bearer Token",
-      parameters: [
+      queryParams: [
         { name: "id", type: "string", required: true, description: "ID do agendamento" }
       ],
       requestBody: `{
@@ -912,7 +912,8 @@ curl -X GET "https://seudominio.com/api/appointments/apt-123" \\
   "tenantId": "tenant-123",
   "createdAt": "2025-01-20T12:00:00.000Z"
 }`,
-      curlExample: `curl -X PUT "https://seudominio.com/api/appointments/apt-999" \\
+      curlExample: `# IDEAL PARA N8N - ID via query parameter
+curl -X PUT "https://seudominio.com/api/appointments?id=apt-999" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -923,6 +924,41 @@ curl -X GET "https://seudominio.com/api/appointments/apt-123" \\
     "duration": 90,
     "status": "completed",
     "notes": "Reagendado para novo horário"
+  }'`
+    },
+    {
+      method: "PUT",
+      path: "/api/appointments/:id",
+      description: "Atualizar um agendamento via path parameter (alternativa)",
+      auth: "Bearer Token",
+      parameters: [
+        { name: "id", type: "string", required: true, description: "ID do agendamento" }
+      ],
+      requestBody: `{
+  "date": "2025-01-25",
+  "time": "16:30",
+  "status": "completed"
+}`,
+      responseExample: `{
+  "id": "apt-999",
+  "clientId": "cli-789",
+  "serviceId": "svc-456",
+  "date": "2025-01-25",
+  "time": "16:30",
+  "duration": 90,
+  "status": "completed",
+  "notes": "Reagendado para novo horário",
+  "tenantId": "tenant-123",
+  "createdAt": "2025-01-20T12:00:00.000Z"
+}`,
+      curlExample: `# Nota: Preferir usar ?id=apt-999 (query param) ao invés de /apt-999 (path param)
+curl -X PUT "https://seudominio.com/api/appointments/apt-999" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "date": "2025-01-25",
+    "time": "16:30",
+    "status": "completed"
   }'`
     },
     {

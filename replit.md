@@ -24,7 +24,8 @@ The frontend utilizes React with TypeScript, Wouter for routing, and Tailwind CS
 - **Appointment Editing**: 
   - Full support for editing all appointment fields: date, time, client, service, duration, status, and notes
   - Available in calendar view (tenant users) and master admin panel (all tenants)
-  - API endpoint PUT /api/appointments/:id accepts partial updates (all fields optional)
+  - API endpoint PUT /api/appointments?id=apt-123 accepts partial updates (all fields optional) via query parameter for easy N8N integration
+  - Alternative endpoint PUT /api/appointments/:id available using path parameter
   - Automatic conflict detection when changing date/time to prevent double-booking
 - **Business Hours Management**: 
   - Configure operating hours per day of the week (0=Sunday to 6=Saturday)
