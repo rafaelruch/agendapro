@@ -1438,6 +1438,101 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
+  // ===========================================
+  // ROTAS DE MIGRATIONS (MASTER ADMIN)
+  // ===========================================
+  
+  // POST /api/migrations/run - Executar migrations manualmente
+  app.post("/api/migrations/run", requireMasterAdmin, async (req, res) => {
+    try {
+      const { databaseUrl } = req.body;
+      
+      if (!databaseUrl || typeof databaseUrl !== 'string') {
+        return res.status(400).json({ error: "DATABASE_URL é obrigatória" });
+      }
+
+      // Validar formato básico da URL
+      if (!databaseUrl.startsWith('postgres://') && !databaseUrl.startsWith('postgresql://')) {
+        return res.status(400).json({ error: "DATABASE_URL deve começar com postgres:// ou postgresql://" });
+      }
+
+      const logs: string[] = [];
+      logs.push("🚀 Iniciando migrations...");
+
+      // Criar conexão temporária com o banco fornecido
+      const { Pool } = await import('pg');
+      const { drizzle } = await import('drizzle-orm/node-postgres');
+      const { sql: sqlTemplate } = await import('drizzle-orm');
+      
+      const tempPool = new Pool({ connectionString: databaseUrl });
+      const tempDb = drizzle(tempPool);
+
+      try {
+        // SQL para criar a tabela business_hours se não existir
+        const createBusinessHoursTable = sqlTemplate.raw(`
+          CREATE TABLE IF NOT EXISTS business_hours (
+            id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+            tenant_id VARCHAR NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+            day_of_week INTEGER NOT NULL,
+            start_time TEXT NOT NULL,
+            end_time TEXT NOT NULL,
+            active BOOLEAN NOT NULL DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+
+        const createIndexTenant = sqlTemplate.raw(`
+          CREATE INDEX IF NOT EXISTS idx_business_hours_tenant ON business_hours(tenant_id);
+        `);
+
+        const createIndexDay = sqlTemplate.raw(`
+          CREATE INDEX IF NOT EXISTS idx_business_hours_day ON business_hours(day_of_week);
+        `);
+
+        // Executar SQL
+        logs.push("📊 Criando tabela business_hours...");
+        await tempDb.execute(createBusinessHoursTable);
+        logs.push("✅ Tabela business_hours criada/verificada");
+
+        logs.push("📊 Criando índices...");
+        await tempDb.execute(createIndexTenant);
+        await tempDb.execute(createIndexDay);
+        logs.push("✅ Índices criados/verificados");
+
+        logs.push("✅ Migrations concluídas com sucesso!");
+
+        // Fechar conexão temporária
+        await tempPool.end();
+
+        res.json({ 
+          success: true, 
+          logs,
+          message: "Migrations executadas com sucesso!"
+        });
+
+      } catch (dbError: any) {
+        // Fechar pool em caso de erro
+        await tempPool.end();
+        
+        logs.push(`❌ Erro ao executar migrations: ${dbError.message}`);
+        console.error("Migration error:", dbError);
+        
+        res.status(500).json({ 
+          success: false, 
+          logs,
+          error: dbError.message 
+        });
+      }
+
+    } catch (error: any) {
+      console.error("Error running migrations:", error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message || "Erro ao executar migrations" 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

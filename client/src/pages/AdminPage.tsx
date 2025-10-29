@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ApiDocumentation } from "@/components/ApiDocumentation";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AppointmentDialog } from "@/components/AppointmentDialog";
+import { MigrationsPanel } from "@/components/MigrationsPanel";
 import type { Tenant, User, Appointment, Client, Service } from "@shared/schema";
 
 type ApiToken = {
@@ -240,10 +241,11 @@ export default function AdminPage() {
       </div>
 
       <Tabs defaultValue="tenants" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="tenants">Tenants</TabsTrigger>
           <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
           <TabsTrigger value="tokens">Tokens de API</TabsTrigger>
+          <TabsTrigger value="migrations">Migrations</TabsTrigger>
           <TabsTrigger value="docs">Documentação API</TabsTrigger>
         </TabsList>
 
@@ -501,6 +503,10 @@ export default function AdminPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="migrations" className="mt-6">
+          <MigrationsPanel />
         </TabsContent>
 
         <TabsContent value="docs" className="mt-6">
