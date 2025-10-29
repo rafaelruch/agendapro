@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,6 +31,19 @@ export function ClientDialog({
       phone: "",
     }
   );
+
+  // Atualizar formData quando initialData ou open mudar
+  useEffect(() => {
+    if (open) {
+      setFormData(
+        initialData || {
+          name: "",
+          email: "",
+          phone: "",
+        }
+      );
+    }
+  }, [initialData, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
