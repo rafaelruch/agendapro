@@ -778,10 +778,11 @@ const endpoints: { [key: string]: EndpointExample[] } = {
     "serviceId": "svc-789",
     "date": "2025-01-15",
     "time": "14:00",
-    "title": "Consulta",
+    "duration": 60,
+    "status": "scheduled",
     "notes": "Cliente novo",
-    "completed": false,
-    "tenantId": "tenant-123"
+    "tenantId": "tenant-123",
+    "createdAt": "2025-01-15T12:00:00.000Z"
   }
 ]`,
       curlExample: `curl -X GET "https://seudominio.com/api/appointments?startDate=2025-01-01&endDate=2025-01-31" \\
@@ -801,10 +802,11 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   "serviceId": "svc-789",
   "date": "2025-01-15",
   "time": "14:00",
-  "title": "Consulta",
+  "duration": 60,
+  "status": "scheduled",
   "notes": "Cliente novo",
-  "completed": false,
-  "tenantId": "tenant-123"
+  "tenantId": "tenant-123",
+  "createdAt": "2025-01-15T12:00:00.000Z"
 }`,
       curlExample: `curl -X GET "https://seudominio.com/api/appointments/apt-123" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
@@ -819,9 +821,9 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   "serviceId": "svc-789",
   "date": "2025-01-20",
   "time": "15:00",
-  "title": "Nova consulta",
-  "notes": "Primeira consulta",
-  "completed": false
+  "duration": 60,
+  "status": "scheduled",
+  "notes": "Observações opcionais"
 }`,
       responseExample: `{
   "id": "apt-999",
@@ -829,10 +831,11 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   "serviceId": "svc-789",
   "date": "2025-01-20",
   "time": "15:00",
-  "title": "Nova consulta",
-  "notes": "Primeira consulta",
-  "completed": false,
-  "tenantId": "tenant-123"
+  "duration": 60,
+  "status": "scheduled",
+  "notes": "Observações opcionais",
+  "tenantId": "tenant-123",
+  "createdAt": "2025-01-20T12:00:00.000Z"
 }`,
       curlExample: `curl -X POST "https://seudominio.com/api/appointments" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
@@ -842,9 +845,9 @@ const endpoints: { [key: string]: EndpointExample[] } = {
     "serviceId": "svc-789",
     "date": "2025-01-20",
     "time": "15:00",
-    "title": "Nova consulta",
-    "notes": "Primeira consulta",
-    "completed": false
+    "duration": 60,
+    "status": "scheduled",
+    "notes": "Observações opcionais"
   }'`
     },
     {
@@ -856,7 +859,7 @@ const endpoints: { [key: string]: EndpointExample[] } = {
         { name: "id", type: "string", required: true, description: "ID do agendamento" }
       ],
       requestBody: `{
-  "completed": true
+  "status": "completed"
 }`,
       responseExample: `{
   "id": "apt-999",
@@ -864,16 +867,17 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   "serviceId": "svc-789",
   "date": "2025-01-20",
   "time": "15:00",
-  "title": "Nova consulta",
-  "notes": "Primeira consulta",
-  "completed": true,
-  "tenantId": "tenant-123"
+  "duration": 60,
+  "status": "completed",
+  "notes": "Observações opcionais",
+  "tenantId": "tenant-123",
+  "createdAt": "2025-01-20T12:00:00.000Z"
 }`,
       curlExample: `curl -X PUT "https://seudominio.com/api/appointments/apt-999" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "completed": true
+    "status": "completed"
   }'`
     },
     {

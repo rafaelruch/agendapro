@@ -48,6 +48,9 @@ The frontend utilizes React with TypeScript, Wouter for routing, and Tailwind CS
   - Detailed import results showing success count and errors
   - File size limit of 5MB for security
   - Empty row detection and skipping
+- **API Endpoint Corrections**:
+  - Client endpoints: Only require nome, email, and telefone (removed address and notes fields from documentation)
+  - Appointment endpoints: Correctly document duration (required), status (scheduled/completed), and notes (optional) - removed incorrect title and completed fields
 
 ### System Design Choices
 - **Backend**: Express.js provides the API layer.
