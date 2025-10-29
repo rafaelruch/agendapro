@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Search, MoreVertical } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, Search, MoreVertical, Download, Upload } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ export default function ServicesPage() {
   const [showServiceDialog, setShowServiceDialog] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const { data: services = [], isLoading } = useQuery<Service[]>({
@@ -91,6 +92,102 @@ export default function ServicesPage() {
     },
   });
 
+  const importServicesMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/services/import', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao importar serviços');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/services"] });
+      
+      const message = data.errors > 0 
+        ? `${data.imported} serviços importados com sucesso. ${data.errors} erros encontrados.`
+        : `${data.imported} serviços importados com sucesso!`;
+      
+      toast({
+        title: "Importação concluída",
+        description: message,
+        variant: data.errors > 0 ? "destructive" : "default",
+      });
+      
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao importar serviços",
+        description: error.message,
+        variant: "destructive",
+      });
+      
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    },
+  });
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await fetch('/api/services/template', {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao baixar modelo');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'modelo-servicos.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Modelo baixado",
+        description: "O modelo CSV foi baixado com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao baixar modelo",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (!file.name.endsWith('.csv')) {
+        toast({
+          title: "Arquivo inválido",
+          description: "Por favor, selecione um arquivo CSV.",
+          variant: "destructive",
+        });
+        return;
+      }
+      importServicesMutation.mutate(file);
+    }
+  };
+
   const filteredServices = services.filter(
     (service) =>
       service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -125,16 +222,43 @@ export default function ServicesPage() {
             data-testid="input-search-services"
           />
         </div>
-        <Button
-          onClick={() => {
-            setEditingService(null);
-            setShowServiceDialog(true);
-          }}
-          data-testid="button-new-service"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Serviço
-        </Button>
+        <div className="flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleFileSelect}
+            className="hidden"
+            data-testid="input-csv-file"
+          />
+          <Button
+            variant="outline"
+            onClick={handleDownloadTemplate}
+            data-testid="button-download-template"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Baixar Modelo
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importServicesMutation.isPending}
+            data-testid="button-import-csv"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            {importServicesMutation.isPending ? "Importando..." : "Importar CSV"}
+          </Button>
+          <Button
+            onClick={() => {
+              setEditingService(null);
+              setShowServiceDialog(true);
+            }}
+            data-testid="button-new-service"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Serviço
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

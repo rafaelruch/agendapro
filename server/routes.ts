@@ -913,12 +913,23 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         const row = rows[i];
         
         try {
+          // Map Portuguese column names to English (papaparse already lowercased headers)
+          const name = row.nome || row.name;
+          const category = row.categoria || row.category;
+          const valueStr = row.valor || row.value;
+          const description = row.descricao || row.description;
+
+          // Skip empty rows
+          if (!name && !category && !valueStr) {
+            continue;
+          }
+
           // Validate and create service
           const validatedData = insertServiceSchema.parse({
-            name: row.nome || row.name,
-            category: row.categoria || row.category,
-            value: parseFloat(row.valor || row.value),
-            description: row.descricao || row.description || null,
+            name: name,
+            category: category,
+            value: parseFloat(valueStr),
+            description: description || null,
             tenantId
           });
 
