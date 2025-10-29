@@ -897,6 +897,148 @@ const endpoints: { [key: string]: EndpointExample[] } = {
       curlExample: `curl -X DELETE "https://seudominio.com/api/appointments/apt-999" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     }
+  ],
+  horarios: [
+    {
+      method: "GET",
+      path: "/api/business-hours",
+      description: "Listar horários de funcionamento do tenant",
+      auth: "Bearer Token",
+      responseExample: `[
+  {
+    "id": "bh-123",
+    "tenantId": "tenant-123",
+    "dayOfWeek": 1,
+    "startTime": "09:00",
+    "endTime": "12:00",
+    "active": true
+  },
+  {
+    "id": "bh-124",
+    "tenantId": "tenant-123",
+    "dayOfWeek": 1,
+    "startTime": "14:00",
+    "endTime": "18:00",
+    "active": true
+  }
+]`,
+      curlExample: `curl -X GET "https://seudominio.com/api/business-hours" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
+    },
+    {
+      method: "POST",
+      path: "/api/business-hours",
+      description: "Criar novo horário de funcionamento (Admin apenas)",
+      auth: "Tenant Admin",
+      requestBody: `{
+  "dayOfWeek": 1,
+  "startTime": "09:00",
+  "endTime": "12:00",
+  "active": true
+}`,
+      responseExample: `{
+  "id": "bh-125",
+  "tenantId": "tenant-123",
+  "dayOfWeek": 1,
+  "startTime": "09:00",
+  "endTime": "12:00",
+  "active": true
+}`,
+      curlExample: `curl -X POST "https://seudominio.com/api/business-hours" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "dayOfWeek": 1,
+    "startTime": "09:00",
+    "endTime": "12:00",
+    "active": true
+  }'`
+    },
+    {
+      method: "PUT",
+      path: "/api/business-hours/:id",
+      description: "Atualizar horário de funcionamento (Admin apenas)",
+      auth: "Tenant Admin",
+      parameters: [
+        { name: "id", type: "string", required: true, description: "ID do horário de funcionamento" }
+      ],
+      requestBody: `{
+  "active": false
+}`,
+      responseExample: `{
+  "id": "bh-125",
+  "tenantId": "tenant-123",
+  "dayOfWeek": 1,
+  "startTime": "09:00",
+  "endTime": "12:00",
+  "active": false
+}`,
+      curlExample: `curl -X PUT "https://seudominio.com/api/business-hours/bh-125" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "active": false
+  }'`
+    },
+    {
+      method: "DELETE",
+      path: "/api/business-hours/:id",
+      description: "Deletar horário de funcionamento (Admin apenas)",
+      auth: "Tenant Admin",
+      parameters: [
+        { name: "id", type: "string", required: true, description: "ID do horário de funcionamento" }
+      ],
+      responseExample: "204 No Content",
+      curlExample: `curl -X DELETE "https://seudominio.com/api/business-hours/bh-125" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
+    }
+  ],
+  disponibilidade: [
+    {
+      method: "GET",
+      path: "/api/availability",
+      description: "Consultar disponibilidade de agendamentos",
+      auth: "Bearer Token",
+      queryParams: [
+        { name: "startDate", type: "string", required: false, description: "Data inicial (YYYY-MM-DD). Padrão: hoje" },
+        { name: "endDate", type: "string", required: false, description: "Data final (YYYY-MM-DD). Padrão: 30 dias após startDate" },
+        { name: "clientId", type: "string", required: false, description: "Filtrar agendamentos por cliente" },
+        { name: "serviceId", type: "string", required: false, description: "Filtrar agendamentos por serviço" }
+      ],
+      responseExample: `[
+  {
+    "date": "2025-01-20",
+    "dayOfWeek": 1,
+    "businessHours": [
+      {
+        "id": "bh-123",
+        "startTime": "09:00",
+        "endTime": "12:00",
+        "active": true
+      },
+      {
+        "id": "bh-124",
+        "startTime": "14:00",
+        "endTime": "18:00",
+        "active": true
+      }
+    ],
+    "appointments": [
+      {
+        "id": "apt-123",
+        "clientId": "cli-456",
+        "serviceId": "svc-789",
+        "date": "2025-01-20",
+        "time": "10:00",
+        "duration": 60,
+        "status": "scheduled"
+      }
+    ]
+  }
+]`,
+      curlExample: `curl -X GET "https://seudominio.com/api/availability?startDate=2025-01-20&endDate=2025-01-27" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
+    }
   ]
 };
 
@@ -1131,6 +1273,10 @@ export function ApiDocumentation() {
             <TabsTrigger value="servicos" data-testid="tab-servicos">Serviços</TabsTrigger>
             <TabsTrigger value="agendamentos" data-testid="tab-agendamentos">Agendamentos</TabsTrigger>
           </TabsList>
+          <TabsList className="grid w-full grid-cols-2" data-testid="tabs-api-categories-3">
+            <TabsTrigger value="horarios" data-testid="tab-horarios">Horários</TabsTrigger>
+            <TabsTrigger value="disponibilidade" data-testid="tab-disponibilidade">Disponibilidade</TabsTrigger>
+          </TabsList>
         </div>
 
         <ScrollArea className="h-[calc(100vh-350px)] mt-4">
@@ -1178,6 +1324,18 @@ export function ApiDocumentation() {
 
           <TabsContent value="agendamentos" className="space-y-4">
             {endpoints.agendamentos.map((endpoint, index) => (
+              <EndpointCard key={index} endpoint={endpoint} baseUrl={baseUrl} />
+            ))}
+          </TabsContent>
+
+          <TabsContent value="horarios" className="space-y-4">
+            {endpoints.horarios.map((endpoint, index) => (
+              <EndpointCard key={index} endpoint={endpoint} baseUrl={baseUrl} />
+            ))}
+          </TabsContent>
+
+          <TabsContent value="disponibilidade" className="space-y-4">
+            {endpoints.disponibilidade.map((endpoint, index) => (
               <EndpointCard key={index} endpoint={endpoint} baseUrl={baseUrl} />
             ))}
           </TabsContent>
