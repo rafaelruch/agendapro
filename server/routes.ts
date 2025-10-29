@@ -11,6 +11,8 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
+import multer from "multer";
+import Papa from "papaparse";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -843,6 +845,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting service:", error);
       res.status(500).json({ error: "Erro ao deletar serviço" });
+    }
+  });
+
+  // GET /api/services/template - Download CSV template for bulk import
+  app.get("/api/services/template", authenticateRequest, async (req, res) => {
+    try {
+      // CSV template with headers and example row
+      const csvContent = `nome,categoria,valor,descricao
+Corte de Cabelo,Beleza,50.00,Corte de cabelo masculino ou feminino
+Manicure,Beleza,35.00,Serviço de manicure completo
+Pedicure,Beleza,40.00,Serviço de pedicure completo
+Massagem Relaxante,Saúde,80.00,Massagem relaxante de 1 hora
+Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename=modelo-servicos.csv');
+      res.send(csvContent);
+    } catch (error) {
+      console.error("Error generating template:", error);
+      res.status(500).json({ error: "Erro ao gerar modelo CSV" });
+    }
+  });
+
+  // POST /api/services/import - Import services from CSV
+  const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Apenas arquivos CSV são permitidos'));
+      }
+    }
+  });
+
+  app.post("/api/services/import", authenticateRequest, upload.single('file'), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req)!;
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "Nenhum arquivo enviado" });
+      }
+
+      // Parse CSV
+      const csvText = req.file.buffer.toString('utf-8');
+      const parseResult = Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header: string) => header.trim().toLowerCase()
+      });
+
+      if (parseResult.errors.length > 0) {
+        return res.status(400).json({ 
+          error: "Erro ao processar CSV", 
+          details: parseResult.errors 
+        });
+      }
+
+      const rows = parseResult.data as any[];
+      const imported: any[] = [];
+      const errors: any[] = [];
+
+      // Process each row
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        
+        try {
+          // Validate and create service
+          const validatedData = insertServiceSchema.parse({
+            name: row.nome || row.name,
+            category: row.categoria || row.category,
+            value: parseFloat(row.valor || row.value),
+            description: row.descricao || row.description || null,
+            tenantId
+          });
+
+          const service = await storage.createService(validatedData);
+          imported.push(service);
+        } catch (error) {
+          errors.push({
+            row: i + 2, // +2 because CSV has header row and is 1-indexed
+            data: row,
+            error: error instanceof z.ZodError ? error.errors : String(error)
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        imported: imported.length,
+        errors: errors.length,
+        details: {
+          services: imported,
+          errors: errors.length > 0 ? errors : undefined
+        }
+      });
+    } catch (error) {
+      console.error("Error importing services:", error);
+      res.status(500).json({ error: "Erro ao importar serviços" });
     }
   });
 
