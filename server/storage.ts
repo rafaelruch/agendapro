@@ -67,7 +67,7 @@ export interface IStorage {
 
   // Appointment operations (with tenant isolation)
   getAppointment(id: string, tenantId: string): Promise<Appointment | undefined>;
-  getAllAppointments(tenantId: string, clientId?: string, serviceId?: string): Promise<Appointment[]>;
+  getAllAppointments(tenantId: string, clientId?: string, serviceId?: string, status?: string): Promise<Appointment[]>;
   getAppointmentsByDateRange(tenantId: string, startDate: string, endDate: string, clientId?: string): Promise<Appointment[]>;
   getAppointmentsByClient(clientId: string, tenantId: string): Promise<Appointment[]>;
   getAppointmentsByService(serviceId: string, tenantId: string): Promise<Appointment[]>;
@@ -340,7 +340,7 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async getAllAppointments(tenantId: string, clientId?: string, serviceId?: string): Promise<Appointment[]> {
+  async getAllAppointments(tenantId: string, clientId?: string, serviceId?: string, status?: string): Promise<Appointment[]> {
     const conditions = [eq(appointments.tenantId, tenantId)];
     
     if (clientId) {
@@ -349,6 +349,10 @@ export class DbStorage implements IStorage {
     
     if (serviceId) {
       conditions.push(eq(appointments.serviceId, serviceId));
+    }
+    
+    if (status) {
+      conditions.push(eq(appointments.status, status));
     }
     
     return await db

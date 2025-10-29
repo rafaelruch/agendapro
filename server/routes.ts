@@ -1150,7 +1150,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   app.get("/api/appointments", authenticateRequest, async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
-      const { id, clientId, serviceId, startDate, endDate, date, time } = req.query;
+      const { id, clientId, serviceId, status, startDate, endDate, date, time } = req.query;
 
       // Se foi passado um ID específico via query parameter (ideal para N8N)
       if (id) {
@@ -1186,7 +1186,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       const appointments = await storage.getAllAppointments(
         tenantId,
         clientId as string | undefined,
-        serviceId as string | undefined
+        serviceId as string | undefined,
+        status as string | undefined
       );
       res.json(appointments);
     } catch (error) {

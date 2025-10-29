@@ -772,6 +772,7 @@ const endpoints: { [key: string]: EndpointExample[] } = {
         { name: "id", type: "string", required: false, description: "Buscar agendamento específico por ID (ideal para N8N)" },
         { name: "clientId", type: "string", required: false, description: "Filtrar por ID do cliente" },
         { name: "serviceId", type: "string", required: false, description: "Filtrar por ID do serviço" },
+        { name: "status", type: "string", required: false, description: "Filtrar por status (scheduled ou completed)" },
         { name: "startDate", type: "string", required: false, description: "Data inicial (YYYY-MM-DD)" },
         { name: "endDate", type: "string", required: false, description: "Data final (YYYY-MM-DD)" },
         { name: "date", type: "string", required: false, description: "Verificar disponibilidade em data específica" },
@@ -795,6 +796,14 @@ const endpoints: { [key: string]: EndpointExample[] } = {
 curl -X GET "https://seudominio.com/api/appointments?id=apt-123" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"
 
+# Filtrar agendamentos de um cliente com status "scheduled" (IDEAL PARA N8N)
+curl -X GET "https://seudominio.com/api/appointments?clientId=cli-456&status=scheduled" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"
+
+# Filtrar apenas agendamentos completados
+curl -X GET "https://seudominio.com/api/appointments?status=completed" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"
+
 # Filtrar por cliente
 curl -X GET "https://seudominio.com/api/appointments?clientId=cli-456" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"
@@ -807,8 +816,8 @@ curl -X GET "https://seudominio.com/api/appointments?serviceId=svc-789" \\
 curl -X GET "https://seudominio.com/api/appointments?startDate=2025-01-01&endDate=2025-01-31" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"
 
-# Combinar filtros
-curl -X GET "https://seudominio.com/api/appointments?clientId=cli-456&startDate=2025-01-01&endDate=2025-01-31" \\
+# Combinar múltiplos filtros
+curl -X GET "https://seudominio.com/api/appointments?clientId=cli-456&status=scheduled&startDate=2025-01-01&endDate=2025-01-31" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     },
     {
