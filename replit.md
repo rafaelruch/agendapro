@@ -16,7 +16,7 @@ The frontend utilizes React with TypeScript, Wouter for routing, and Tailwind CS
 - **Multi-Tenant Architecture**: Data isolation is enforced using a `tenantId` field in all relevant database tables (`clients`, `services`, `appointments`). Authentication middleware verifies user sessions, and a tenant-specific middleware automatically filters data based on the logged-in user's tenant.
 - **Authentication**: Secure login is implemented using `express-session` and `bcrypt` for password hashing. The system supports session-based authentication for the web UI and token-based authentication (Bearer tokens) for API integrations. API tokens are encrypted and managed with creation, listing, and revocation capabilities, with real-time verification.
 - **Hierarchical User Management**: Three roles are defined: `master_admin` (manages tenants), `admin` (manages users and data within a tenant), and `user` (restricted access to operational data within a tenant). Frontend menus and API access are controlled based on these roles.
-- **API Design**: A comprehensive RESTful API is provided, covering CRUD operations for clients, services, and appointments. It includes query parameters for filtering and supports integration with tools like N8N.
+- **API Design**: A comprehensive RESTful API is provided, covering CRUD operations for clients, services, and appointments. All filter operations use query parameters (e.g., `/api/appointments?clientId=xxx&serviceId=yyy`) instead of path parameters for better N8N integration compatibility.
 - **Data Validation**: Zod is used for robust data validation across the system.
 
 ### Feature Specifications

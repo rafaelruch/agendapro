@@ -766,11 +766,11 @@ const endpoints: { [key: string]: EndpointExample[] } = {
     {
       method: "GET",
       path: "/api/appointments",
-      description: "Listar todos os agendamentos",
+      description: "Listar todos os agendamentos (com filtros opcionais via query parameters)",
       auth: "Bearer Token",
       queryParams: [
-        { name: "clientId", type: "string", required: false, description: "Filtrar por cliente" },
-        { name: "serviceId", type: "string", required: false, description: "Filtrar por serviço" },
+        { name: "clientId", type: "string", required: false, description: "Filtrar por ID do cliente" },
+        { name: "serviceId", type: "string", required: false, description: "Filtrar por ID do serviço" },
         { name: "startDate", type: "string", required: false, description: "Data inicial (YYYY-MM-DD)" },
         { name: "endDate", type: "string", required: false, description: "Data final (YYYY-MM-DD)" },
         { name: "date", type: "string", required: false, description: "Verificar disponibilidade em data específica" },
@@ -790,7 +790,20 @@ const endpoints: { [key: string]: EndpointExample[] } = {
     "createdAt": "2025-01-15T12:00:00.000Z"
   }
 ]`,
-      curlExample: `curl -X GET "https://seudominio.com/api/appointments?startDate=2025-01-01&endDate=2025-01-31" \\
+      curlExample: `# Filtrar por cliente (ideal para N8N)
+curl -X GET "https://seudominio.com/api/appointments?clientId=cli-456" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"
+
+# Filtrar por serviço
+curl -X GET "https://seudominio.com/api/appointments?serviceId=svc-789" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"
+
+# Filtrar por período
+curl -X GET "https://seudominio.com/api/appointments?startDate=2025-01-01&endDate=2025-01-31" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"
+
+# Combinar filtros
+curl -X GET "https://seudominio.com/api/appointments?clientId=cli-456&startDate=2025-01-01&endDate=2025-01-31" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     },
     {
