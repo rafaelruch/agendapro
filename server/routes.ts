@@ -1542,7 +1542,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     });
   });
   
-  // POST /api/migrations/run - Executar migrations via drizzle-kit push
+  // POST /api/migrations/run - Executar migrations via SQL direto
   app.post("/api/migrations/run", requireMasterAdmin, async (req, res) => {
     try {
       const { databaseUrl } = req.body;
@@ -1557,100 +1557,175 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       }
 
       const logs: string[] = [];
-      logs.push("[INFO] Iniciando migrations com drizzle-kit push...");
+      logs.push("[INFO] Iniciando migrations...");
       logs.push(`[INFO] Database: ${databaseUrl.replace(/:[^:@]+@/, ':***@')}`); // Ocultar senha no log
 
-      // Executar drizzle-kit push com a DATABASE_URL fornecida
-      const { spawn } = await import('child_process');
+      // Criar conexão temporária com o banco fornecido
+      const pgPkg = await import('pg');
+      const Pool = pgPkg.default.Pool;
       
-      const drizzleProcess = spawn('npx', ['drizzle-kit', 'push'], {
-        env: {
-          ...process.env,
-          DATABASE_URL: databaseUrl,
-        },
-        shell: true,
-      });
+      const tempPool = new Pool({ connectionString: databaseUrl });
 
-      let output = '';
-      let errorOutput = '';
-
-      // Capturar stdout
-      drizzleProcess.stdout?.on('data', (data) => {
-        const text = data.toString();
-        output += text;
-        console.log('[DRIZZLE]', text);
-      });
-
-      // Capturar stderr
-      drizzleProcess.stderr?.on('data', (data) => {
-        const text = data.toString();
-        errorOutput += text;
-        console.error('[DRIZZLE ERROR]', text);
-      });
-
-      // Aguardar conclusão
-      await new Promise<void>((resolve, reject) => {
-        drizzleProcess.on('close', (code) => {
-          if (code === 0) {
-            logs.push("[SUCCESS] Drizzle-kit push executado com sucesso!");
-            logs.push("[INFO] Todas as tabelas foram criadas/atualizadas:");
-            logs.push("  ✓ tenants");
-            logs.push("  ✓ users");
-            logs.push("  ✓ clients");
-            logs.push("  ✓ services");
-            logs.push("  ✓ appointments");
-            logs.push("  ✓ appointment_services");
-            logs.push("  ✓ tenant_api_tokens");
-            logs.push("  ✓ business_hours");
-            logs.push("[SUCCESS] Schema sincronizado com o banco de dados!");
-            
-            if (output) {
-              logs.push("[OUTPUT]");
-              output.split('\n').forEach(line => {
-                if (line.trim()) logs.push(`  ${line}`);
-              });
-            }
-            
-            res.json({ 
-              success: true, 
-              logs,
-              message: "Migrations executadas com sucesso! Todas as tabelas foram criadas/atualizadas."
-            });
-            resolve();
-          } else {
-            logs.push(`[ERROR] Drizzle-kit push falhou com código: ${code}`);
-            if (errorOutput) {
-              logs.push("[ERROR OUTPUT]");
-              errorOutput.split('\n').forEach(line => {
-                if (line.trim()) logs.push(`  ${line}`);
-              });
-            }
-            if (output) {
-              logs.push("[STDOUT OUTPUT]");
-              output.split('\n').forEach(line => {
-                if (line.trim()) logs.push(`  ${line}`);
-              });
-            }
-            
-            res.status(500).json({ 
-              success: false, 
-              logs,
-              error: `Drizzle-kit push falhou. Código de saída: ${code}` 
-            });
-            reject(new Error(`Exit code ${code}`));
+      try {
+        // SQL para criar todas as tabelas baseado no schema.ts
+        const migrations = [
+          {
+            name: "tenants",
+            sql: `
+              CREATE TABLE IF NOT EXISTS tenants (
+                id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT,
+                active BOOLEAN NOT NULL DEFAULT true,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              );
+            `
+          },
+          {
+            name: "users",
+            sql: `
+              CREATE TABLE IF NOT EXISTS users (
+                id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+                tenant_id VARCHAR REFERENCES tenants(id) ON DELETE CASCADE,
+                username TEXT NOT NULL UNIQUE,
+                password TEXT NOT NULL,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'user',
+                active BOOLEAN NOT NULL DEFAULT true,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              );
+            `
+          },
+          {
+            name: "clients",
+            sql: `
+              CREATE TABLE IF NOT EXISTS clients (
+                id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+                tenant_id VARCHAR NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                phone TEXT NOT NULL,
+                birthdate TEXT,
+                CONSTRAINT clients_tenant_id_phone_unique UNIQUE (tenant_id, phone)
+              );
+            `
+          },
+          {
+            name: "services",
+            sql: `
+              CREATE TABLE IF NOT EXISTS services (
+                id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+                tenant_id VARCHAR NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                category TEXT NOT NULL,
+                value NUMERIC(10, 2) NOT NULL,
+                duration INTEGER NOT NULL DEFAULT 60,
+                promotional_value NUMERIC(10, 2),
+                promotion_start_date TEXT,
+                promotion_end_date TEXT
+              );
+            `
+          },
+          {
+            name: "appointments",
+            sql: `
+              CREATE TABLE IF NOT EXISTS appointments (
+                id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+                tenant_id VARCHAR NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                client_id VARCHAR NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+                date TEXT NOT NULL,
+                time TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'scheduled',
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              );
+            `
+          },
+          {
+            name: "appointment_services",
+            sql: `
+              CREATE TABLE IF NOT EXISTS appointment_services (
+                id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+                appointment_id VARCHAR NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
+                service_id VARCHAR NOT NULL REFERENCES services(id) ON DELETE CASCADE
+              );
+            `
+          },
+          {
+            name: "tenant_api_tokens",
+            sql: `
+              CREATE TABLE IF NOT EXISTS tenant_api_tokens (
+                id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+                tenant_id VARCHAR NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                token_hash TEXT NOT NULL UNIQUE,
+                label TEXT NOT NULL,
+                created_by VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_used_at TIMESTAMP,
+                revoked_at TIMESTAMP
+              );
+            `
+          },
+          {
+            name: "business_hours",
+            sql: `
+              CREATE TABLE IF NOT EXISTS business_hours (
+                id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+                tenant_id VARCHAR NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                day_of_week INTEGER NOT NULL,
+                start_time TEXT NOT NULL,
+                end_time TEXT NOT NULL,
+                active BOOLEAN NOT NULL DEFAULT true,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              );
+            `
           }
+        ];
+
+        // Executar cada migration
+        for (const migration of migrations) {
+          logs.push(`[RUNNING] Criando tabela ${migration.name}...`);
+          await tempPool.query(migration.sql);
+          logs.push(`[SUCCESS] Tabela ${migration.name} criada/verificada`);
+        }
+
+        // Criar índices
+        logs.push("[RUNNING] Criando índices...");
+        await tempPool.query(`CREATE INDEX IF NOT EXISTS idx_business_hours_tenant ON business_hours(tenant_id);`);
+        await tempPool.query(`CREATE INDEX IF NOT EXISTS idx_business_hours_day ON business_hours(day_of_week);`);
+        logs.push("[SUCCESS] Índices criados/verificados");
+
+        logs.push("[SUCCESS] Migrations concluídas com sucesso!");
+        logs.push("[INFO] Todas as tabelas foram criadas/verificadas:");
+        logs.push("  ✓ tenants");
+        logs.push("  ✓ users");
+        logs.push("  ✓ clients");
+        logs.push("  ✓ services");
+        logs.push("  ✓ appointments");
+        logs.push("  ✓ appointment_services");
+        logs.push("  ✓ tenant_api_tokens");
+        logs.push("  ✓ business_hours");
+
+        res.json({ 
+          success: true, 
+          logs,
+          message: "Migrations executadas com sucesso! Todas as tabelas foram criadas/atualizadas."
         });
 
-        drizzleProcess.on('error', (error) => {
-          logs.push(`[ERROR] Falha ao executar drizzle-kit: ${error.message}`);
-          res.status(500).json({ 
-            success: false, 
-            logs,
-            error: error.message 
-          });
-          reject(error);
+      } catch (dbError: any) {
+        logs.push(`[ERROR] Erro ao executar migrations: ${dbError.message}`);
+        console.error("Migration error:", dbError);
+        
+        res.status(500).json({ 
+          success: false, 
+          logs,
+          error: dbError.message 
         });
-      });
+      } finally {
+        // Sempre fechar conexão temporária
+        await tempPool.end();
+      }
 
     } catch (error: any) {
       console.error("Error running migrations:", error);
