@@ -244,7 +244,6 @@ export class DbStorage implements IStorage {
           eq(clients.tenantId, tenantId),
           or(
             like(clients.name, searchPattern),
-            like(clients.email, searchPattern),
             like(clients.phone, searchPattern)
           )
         )
@@ -468,11 +467,7 @@ export class DbStorage implements IStorage {
     return hours * 60 + minutes;
   }
 
-  private async calculateAppointmentDuration(appointmentId: string, providedDuration?: number): Promise<number> {
-    if (providedDuration) {
-      return providedDuration;
-    }
-    
+  private async calculateAppointmentDuration(appointmentId: string): Promise<number> {
     const totalDuration = await this.getAppointmentTotalDuration(appointmentId);
     return totalDuration > 0 ? totalDuration : 60;
   }
@@ -517,7 +512,7 @@ export class DbStorage implements IStorage {
       }
 
       const existingStartMinutes = this.timeToMinutes(apt.time);
-      const existingDuration = await this.calculateAppointmentDuration(apt.id, apt.duration);
+      const existingDuration = await this.calculateAppointmentDuration(apt.id);
       const existingEndMinutes = existingStartMinutes + existingDuration;
 
       const hasOverlap = 
@@ -536,7 +531,7 @@ export class DbStorage implements IStorage {
   async createAppointment(insertAppointment: InsertAppointment): Promise<Appointment> {
     const { serviceIds, ...appointmentData } = insertAppointment;
     
-    let totalDuration = appointmentData.duration || 60;
+    let totalDuration = 60;
     
     if (serviceIds && serviceIds.length > 0) {
       let serviceDuration = 0;
@@ -564,7 +559,7 @@ export class DbStorage implements IStorage {
     
     if (conflicts.length > 0) {
       const conflict = conflicts[0];
-      const conflictDuration = await this.calculateAppointmentDuration(conflict.id, conflict.duration);
+      const conflictDuration = await this.calculateAppointmentDuration(conflict.id);
       const conflictStartMinutes = this.timeToMinutes(conflict.time);
       const conflictEndMinutes = conflictStartMinutes + conflictDuration;
       const endHours = Math.floor(conflictEndMinutes / 60);
@@ -617,7 +612,7 @@ export class DbStorage implements IStorage {
       const finalDate = dataToUpdate.date || currentAppointment.date;
       const finalTime = dataToUpdate.time || currentAppointment.time;
       
-      let totalDuration = dataToUpdate.duration || currentAppointment.duration || 60;
+      let totalDuration = 60;
       
       if (servicesChanged && serviceIds && serviceIds.length > 0) {
         let serviceDuration = 0;
@@ -635,7 +630,7 @@ export class DbStorage implements IStorage {
           totalDuration = serviceDuration;
         }
       } else if (!servicesChanged) {
-        const existingDuration = await this.calculateAppointmentDuration(id, currentAppointment.duration);
+        const existingDuration = await this.calculateAppointmentDuration(id);
         totalDuration = existingDuration;
       }
       
@@ -649,7 +644,7 @@ export class DbStorage implements IStorage {
       
       if (conflicts.length > 0) {
         const conflict = conflicts[0];
-        const conflictDuration = await this.calculateAppointmentDuration(conflict.id, conflict.duration);
+        const conflictDuration = await this.calculateAppointmentDuration(conflict.id);
         const conflictStartMinutes = this.timeToMinutes(conflict.time);
         const conflictEndMinutes = conflictStartMinutes + conflictDuration;
         const endHours = Math.floor(conflictEndMinutes / 60);
