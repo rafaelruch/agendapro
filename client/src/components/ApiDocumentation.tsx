@@ -648,7 +648,22 @@ const endpoints: { [key: string]: EndpointExample[] } = {
     "id": "svc-123",
     "name": "Corte de Cabelo",
     "category": "Estética",
-    "value": 50.00,
+    "value": "50.00",
+    "duration": 30,
+    "promotionalValue": null,
+    "promotionStartDate": null,
+    "promotionEndDate": null,
+    "tenantId": "tenant-123"
+  },
+  {
+    "id": "svc-124",
+    "name": "Hidratação Capilar",
+    "category": "Tratamentos",
+    "value": "120.00",
+    "duration": 60,
+    "promotionalValue": "89.90",
+    "promotionStartDate": "2024-01-01",
+    "promotionEndDate": "2025-12-31",
     "tenantId": "tenant-123"
   }
 ]`,
@@ -667,7 +682,11 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   "id": "svc-123",
   "name": "Corte de Cabelo",
   "category": "Estética",
-  "value": 50.00,
+  "value": "50.00",
+  "duration": 30,
+  "promotionalValue": null,
+  "promotionStartDate": null,
+  "promotionEndDate": null,
   "tenantId": "tenant-123"
 }`,
       curlExample: `curl -X GET "https://seudominio.com/api/services/svc-123" \\
@@ -676,52 +695,120 @@ const endpoints: { [key: string]: EndpointExample[] } = {
     {
       method: "POST",
       path: "/api/services",
-      description: "Criar um novo serviço",
+      description: "Criar um novo serviço (com promoção opcional)",
       auth: "Bearer Token",
-      requestBody: `{
+      requestBody: `// Serviço SEM promoção
+{
   "name": "Manicure",
   "category": "Estética",
-  "value": 35.00
+  "value": "35.00",
+  "duration": 30
+}
+
+// Serviço COM promoção (todos os 3 campos obrigatórios)
+{
+  "name": "Pedicure Promocional",
+  "category": "Estética",
+  "value": "50.00",
+  "duration": 45,
+  "promotionalValue": "39.90",
+  "promotionStartDate": "2024-01-01",
+  "promotionEndDate": "2024-12-31"
 }`,
       responseExample: `{
   "id": "svc-456",
-  "name": "Manicure",
+  "name": "Pedicure Promocional",
   "category": "Estética",
-  "value": 35.00,
+  "value": "50.00",
+  "duration": 45,
+  "promotionalValue": "39.90",
+  "promotionStartDate": "2024-01-01",
+  "promotionEndDate": "2024-12-31",
   "tenantId": "tenant-123"
 }`,
-      curlExample: `curl -X POST "https://seudominio.com/api/services" \\
+      curlExample: `# Criar serviço SEM promoção
+curl -X POST "https://seudominio.com/api/services" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
   -H "Content-Type: application/json" \\
   -d '{
     "name": "Manicure",
     "category": "Estética",
-    "value": 35.00
+    "value": "35.00",
+    "duration": 30
+  }'
+
+# Criar serviço COM promoção
+curl -X POST "https://seudominio.com/api/services" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "Pedicure Promocional",
+    "category": "Estética",
+    "value": "50.00",
+    "duration": 45,
+    "promotionalValue": "39.90",
+    "promotionStartDate": "2024-01-01",
+    "promotionEndDate": "2024-12-31"
   }'`
     },
     {
       method: "PUT",
       path: "/api/services/:id",
-      description: "Atualizar um serviço existente",
+      description: "Atualizar um serviço existente (incluindo promoção)",
       auth: "Bearer Token",
       parameters: [
         { name: "id", type: "string", required: true, description: "ID do serviço" }
       ],
-      requestBody: `{
-  "value": 40.00
-}`,
+      requestBody: `// Atualizar apenas valor normal
+{
+  "value": "40.00"
+}
+
+// ADICIONAR promoção (todos os 3 campos obrigatórios)
+{
+  "promotionalValue": "35.00",
+  "promotionStartDate": "2024-06-01",
+  "promotionEndDate": "2024-12-31"
+}
+
+// REMOVER promoção (enviar todos como null)
+{
+  "promotionalValue": null,
+  "promotionStartDate": null,
+  "promotionEndDate": null
+}
+
+// IMPORTANTE: Não envie apenas 1 ou 2 campos promocionais
+// Isso resultará em erro 400. Use todos os 3 ou nenhum.`,
       responseExample: `{
   "id": "svc-456",
   "name": "Manicure",
   "category": "Estética",
-  "value": 40.00,
+  "value": "40.00",
+  "duration": 30,
+  "promotionalValue": "35.00",
+  "promotionStartDate": "2024-06-01",
+  "promotionEndDate": "2024-12-31",
   "tenantId": "tenant-123"
 }`,
-      curlExample: `curl -X PUT "https://seudominio.com/api/services/svc-456" \\
+      curlExample: `# Adicionar promoção a serviço existente
+curl -X PUT "https://seudominio.com/api/services/svc-456" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "value": 40.00
+    "promotionalValue": "35.00",
+    "promotionStartDate": "2024-06-01",
+    "promotionEndDate": "2024-12-31"
+  }'
+
+# Remover promoção
+curl -X PUT "https://seudominio.com/api/services/svc-456" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "promotionalValue": null,
+    "promotionStartDate": null,
+    "promotionEndDate": null
   }'`
     },
     {
