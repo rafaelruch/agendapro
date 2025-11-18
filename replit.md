@@ -233,3 +233,81 @@ postgres://postgres:fd2040ea05b8e182e878@server-geral_agenda-pro-db:5432/server-
 3. Copie a URL completa
 4. Cole nas variáveis de ambiente da aplicação
 5. Use a mesma URL no painel de migrations
+
+## Correção de Dados e Troubleshooting
+
+### Sistema de Correção de Agendamentos Órfãos
+
+**Problema identificado:**
+Em produção, foi detectado que agendamentos foram criados sem associação com serviços (tabela `appointment_services` vazia), tornando-os "órfãos".
+
+**Solução implementada:**
+
+1. **Endpoints Backend:**
+   - `GET /api/admin/orphan-appointments/:tenantId` - Lista agendamentos sem serviços
+   - `POST /api/admin/fix-orphan-appointments/:tenantId` - Corrige órfãos associando serviço padrão
+
+2. **Interface Master Admin:**
+   - Aba "Correção" no painel Master Admin
+   - Permite verificar quantidade de órfãos por tenant
+   - Correção em massa com um clique
+   - Requer ID de serviço padrão para associação
+
+3. **Como usar:**
+   ```
+   1. Acesse o painel Master Admin
+   2. Vá para a aba "Correção"
+   3. Selecione o tenant
+   4. Clique em "Verificar Órfãos"
+   5. Insira o ID de um serviço válido do tenant
+   6. Clique em "Corrigir Órfãos"
+   ```
+
+**Importante:** 
+- A correção é irreversível
+- Certifique-se de usar um ID de serviço válido do tenant
+- Após correção, os agendamentos terão o serviço padrão associado
+
+### Problema: Serviços não aparecem na interface
+
+**Sintomas:**
+- Banco de dados possui serviços cadastrados
+- Interface mostra lista vazia
+- Usuário está logado como admin do tenant
+
+**Causa raiz:**
+A rota `/api/services` estava retornando dados vazios porque:
+1. Usuários admin/user precisam que a rota use o `tenantId` da sessão
+2. Master admins precisam especificar explicitamente qual tenant visualizar
+
+**Solução implementada (Novembro 2025):**
+A rota `/api/services` agora verifica o role do usuário:
+- **Admin/User**: Usa automaticamente o `tenantId` da sessão
+- **Master Admin**: Requer query param `?tenantId=...`
+
+**Como testar:**
+```bash
+# Como admin/user do tenant (automático)
+GET /api/services
+
+# Como master admin (explícito)
+GET /api/services?tenantId=07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c
+```
+
+**Se serviços ainda não aparecem:**
+1. Faça logout completo (limpe cookies do navegador)
+2. Faça login novamente como admin do tenant
+3. Verifique que a sessão possui o `tenantId` correto
+4. Os serviços devem aparecer automaticamente
+
+**Verificação manual via SQL:**
+```sql
+-- Verificar total de serviços
+SELECT COUNT(*) FROM services;
+
+-- Verificar serviços por tenant
+SELECT tenant_id, COUNT(*) FROM services GROUP BY tenant_id;
+
+-- Verificar serviços de um tenant específico
+SELECT * FROM services WHERE tenant_id = '07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c';
+```
