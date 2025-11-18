@@ -15,9 +15,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Client {
   id: string;
@@ -37,6 +52,7 @@ interface AppointmentDialogProps {
   clients: Client[];
   services: Service[];
   onSave: (appointment: any) => void;
+  onClientCreated?: () => void;
   initialData?: any;
 }
 
@@ -46,6 +62,7 @@ export function AppointmentDialog({
   clients,
   services,
   onSave,
+  onClientCreated,
   initialData,
 }: AppointmentDialogProps) {
   const defaultFormData = {
@@ -59,6 +76,8 @@ export function AppointmentDialog({
   };
 
   const [formData, setFormData] = useState(defaultFormData);
+  const [clientComboOpen, setClientComboOpen] = useState(false);
+  const [showQuickClientDialog, setShowQuickClientDialog] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -102,21 +121,62 @@ export function AppointmentDialog({
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="client">Cliente</Label>
-              <Select
-                value={formData.clientId}
-                onValueChange={(value) => setFormData({ ...formData, clientId: value })}
-              >
-                <SelectTrigger id="client" data-testid="select-client">
-                  <SelectValue placeholder="Selecione um cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Popover open={clientComboOpen} onOpenChange={setClientComboOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={clientComboOpen}
+                      className="flex-1 justify-between"
+                      data-testid="button-client-combobox"
+                    >
+                      {formData.clientId
+                        ? clients.find((client) => client.id === formData.clientId)?.name
+                        : "Selecione um cliente..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Buscar cliente..." data-testid="input-search-client" />
+                      <CommandList>
+                        <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                        <CommandGroup>
+                          {clients.map((client) => (
+                            <CommandItem
+                              key={client.id}
+                              value={client.name}
+                              onSelect={() => {
+                                setFormData({ ...formData, clientId: client.id });
+                                setClientComboOpen(false);
+                              }}
+                              data-testid={`option-client-${client.id}`}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  formData.clientId === client.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {client.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowQuickClientDialog(true)}
+                  data-testid="button-add-client"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="service">Serviço (Opcional)</Label>
