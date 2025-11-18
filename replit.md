@@ -6,6 +6,63 @@ AgendaPro is a multi-tenant SaaS system designed for appointment management. It 
 ## User Preferences
 I prefer simple language and clear explanations. I want iterative development with frequent, small updates. Please ask for my approval before making any major architectural changes or significant feature implementations. Ensure all code is well-documented and follows best practices.
 
+## Design System & Component Libraries
+
+### Component Libraries (Already Installed)
+The application uses the following React-native libraries for building the interface:
+- **Radix UI** (https://www.radix-ui.com/) - Headless, accessible UI primitives (base for Shadcn)
+- **Shadcn UI** (https://www.shadcn.io/) - Re-usable components built on Radix UI and Tailwind CSS
+- **Ant Design** (https://ant.design/) - Additional component reference for complex UI patterns
+
+### Dashboard Design Reference
+For the **tenant dashboard** (client-facing interface), use **TailAdmin React** as the primary visual and layout reference:
+- **TailAdmin React**: https://tailadmin.com/react
+- **Live Demo**: https://react-demo.tailadmin.com/
+- **GitHub Repository**: https://github.com/TailAdmin/free-react-tailwind-admin-dashboard
+- **Documentation**: https://tailadmin.com/docs/components/react
+
+### Implementation Guidelines
+
+#### Tenant Dashboard (Client Interface)
+**Use TailAdmin React design patterns for:**
+1. **Login Page**: Implement using TailAdmin's Sign In page design
+   - Clean, centered layout
+   - Professional authentication forms
+   - Light/dark mode support
+   
+2. **Dashboard Layout**: Follow TailAdmin's dashboard structure
+   - Collapsible sidebar navigation
+   - Header with notifications, messages, user dropdown
+   - Breadcrumb navigation
+   - Card-based data display
+   - Charts and data visualization using ApexCharts
+   - Responsive layout for mobile/tablet/desktop
+
+3. **UI Components to Adapt**:
+   - **Layout**: Sidebar, Header, Breadcrumb
+   - **Data Display**: Cards, Tables, Charts, Badges
+   - **Forms**: Input fields, Select dropdowns, Date pickers, Checkboxes
+   - **Feedback**: Alerts, Modals, Toast notifications
+   - **Navigation**: Tabs, Accordion, Pagination
+
+#### Master Admin Panel
+**DO NOT CHANGE** the existing master admin panel - it is working correctly and should remain as is.
+
+### Adaptation Strategy
+While TailAdmin provides a visual reference, we **DO NOT install TailAdmin** as a dependency. Instead:
+1. **Reference the design** from TailAdmin demos and screenshots
+2. **Implement using our existing stack**: Shadcn UI + Radix UI + Tailwind CSS
+3. **Match the visual aesthetic**: Colors, spacing, layouts, component styles
+4. **Adapt patterns**: Convert TailAdmin examples to Shadcn/Radix equivalents
+
+### Key Visual Elements from TailAdmin
+- **Color Scheme**: Professional blues and neutrals with semantic colors (success green, warning yellow, danger red)
+- **Typography**: Clean, readable fonts with clear hierarchy
+- **Spacing**: Consistent padding and margins (4px, 8px, 16px, 24px scale)
+- **Cards**: Subtle shadows and borders with rounded corners
+- **Dark Mode**: Full dark theme support across all components
+- **Responsiveness**: Mobile-first design with collapsible navigation
+
 ## System Architecture
 The system employs a multi-tenant SaaS architecture with a distinct separation between frontend and backend.
 
