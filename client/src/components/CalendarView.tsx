@@ -8,7 +8,7 @@ interface CalendarAppointment {
   id: string;
   time: string;
   clientName: string;
-  status: "scheduled" | "completed" | "cancelled";
+  status: "scheduled" | "completed" | "cancelled" | "retorno";
 }
 
 interface CalendarViewProps {
@@ -23,6 +23,19 @@ const monthNames = [
 ];
 
 const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+const getStatusColor = (status: CalendarAppointment["status"]) => {
+  switch (status) {
+    case "completed":
+      return "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300";
+    case "retorno":
+      return "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300";
+    case "cancelled":
+      return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300";
+    default:
+      return "bg-primary/10 text-primary";
+  }
+};
 
 export function CalendarView({ appointments, onDateClick, onAppointmentClick }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -81,7 +94,7 @@ export function CalendarView({ appointments, onDateClick, onAppointmentClick }: 
           {dayAppointments.slice(0, 2).map((apt) => (
             <div
               key={apt.id}
-              className="text-xs p-1 rounded bg-primary/10 text-primary truncate"
+              className={`text-xs p-1 rounded truncate ${getStatusColor(apt.status)}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onAppointmentClick?.(apt.id);

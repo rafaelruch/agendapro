@@ -28,10 +28,11 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuickClientDialog } from "./QuickClientDialog";
 
@@ -45,6 +46,7 @@ interface Service {
   name: string;
   category: string;
   value: string;
+  duration: number;
 }
 
 interface AppointmentDialogProps {
@@ -68,10 +70,9 @@ export function AppointmentDialog({
 }: AppointmentDialogProps) {
   const defaultFormData = {
     clientId: "",
-    serviceId: "none",
+    serviceIds: [] as string[],
     date: "",
     time: "",
-    duration: "60",
     status: "scheduled",
     notes: "",
   };
@@ -86,10 +87,9 @@ export function AppointmentDialog({
       if (initialData) {
         setFormData({
           clientId: initialData.clientId || "",
-          serviceId: initialData.serviceId || "none",
+          serviceIds: initialData.serviceIds || [],
           date: initialData.date || "",
           time: initialData.time || "",
-          duration: String(initialData.duration || "60"),
           status: initialData.status || "scheduled",
           notes: initialData.notes || "",
         });
@@ -103,12 +103,24 @@ export function AppointmentDialog({
     e.preventDefault();
     const dataToSave = {
       ...formData,
-      duration: Number(formData.duration),
-      serviceId: formData.serviceId === "none" ? undefined : formData.serviceId,
+      serviceIds: formData.serviceIds,
     };
     onSave(dataToSave);
     onOpenChange(false);
   };
+
+  const toggleService = (serviceId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      serviceIds: prev.serviceIds.includes(serviceId)
+        ? prev.serviceIds.filter(id => id !== serviceId)
+        : [...prev.serviceIds, serviceId]
+    }));
+  };
+
+  const selectedServices = services.filter(s => formData.serviceIds.includes(s.id));
+  const totalDuration = selectedServices.reduce((sum, service) => sum + (service.duration || 60), 0);
+  const totalValue = selectedServices.reduce((sum, service) => sum + parseFloat(service.value), 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -181,7 +193,7 @@ export function AppointmentDialog({
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="service">Serviço (Opcional)</Label>
+              <Label htmlFor="service">Serviços (Opcional)</Label>
               <Popover open={serviceComboOpen} onOpenChange={setServiceComboOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -191,11 +203,11 @@ export function AppointmentDialog({
                     className="w-full justify-between"
                     data-testid="button-service-combobox"
                   >
-                    {formData.serviceId === "none" || !formData.serviceId
-                      ? "Nenhum serviço selecionado"
-                      : services.find((service) => service.id === formData.serviceId)
-                        ? `${services.find((service) => service.id === formData.serviceId)?.name} - R$ ${parseFloat(services.find((service) => service.id === formData.serviceId)?.value || "0").toFixed(2).replace('.', ',')}`
-                        : "Selecione um serviço..."}
+                    <span className="truncate">
+                      {formData.serviceIds.length === 0
+                        ? "Selecione serviços..."
+                        : `${formData.serviceIds.length} serviço(s) selecionado(s)`}
+                    </span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -205,42 +217,21 @@ export function AppointmentDialog({
                     <CommandList>
                       <CommandEmpty>Nenhum serviço encontrado.</CommandEmpty>
                       <CommandGroup>
-                        <CommandItem
-                          value="none"
-                          onSelect={() => {
-                            setFormData({ ...formData, serviceId: "none" });
-                            setServiceComboOpen(false);
-                          }}
-                          data-testid="option-service-none"
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              formData.serviceId === "none" || !formData.serviceId ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          Nenhum
-                        </CommandItem>
                         {services.map((service) => (
                           <CommandItem
                             key={service.id}
                             value={`${service.name} ${service.category}`}
-                            onSelect={() => {
-                              setFormData({ ...formData, serviceId: service.id });
-                              setServiceComboOpen(false);
-                            }}
+                            onSelect={() => toggleService(service.id)}
                             data-testid={`option-service-${service.id}`}
                           >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                formData.serviceId === service.id ? "opacity-100" : "opacity-0"
-                              )}
+                            <Checkbox
+                              checked={formData.serviceIds.includes(service.id)}
+                              className="mr-2"
                             />
-                            <div className="flex flex-col">
+                            <div className="flex flex-col flex-1">
                               <span className="font-medium">{service.name}</span>
                               <span className="text-xs text-muted-foreground">
-                                {service.category} • R$ {parseFloat(service.value).toFixed(2).replace('.', ',')}
+                                {service.category} • R$ {parseFloat(service.value).toFixed(2).replace('.', ',')} • {service.duration} min
                               </span>
                             </div>
                           </CommandItem>
@@ -250,6 +241,12 @@ export function AppointmentDialog({
                   </Command>
                 </PopoverContent>
               </Popover>
+              {formData.serviceIds.length > 0 && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span>Duração total: {totalDuration} min • Valor total: R$ {totalValue.toFixed(2).replace('.', ',')}</span>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
@@ -275,34 +272,22 @@ export function AppointmentDialog({
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="duration">Duração (min)</Label>
-                <Input
-                  id="duration"
-                  type="number"
-                  value={formData.duration}
-                  onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                  data-testid="input-duration"
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) => setFormData({ ...formData, status: value })}
-                >
-                  <SelectTrigger id="status" data-testid="select-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="scheduled">Agendado</SelectItem>
-                    <SelectItem value="completed">Concluído</SelectItem>
-                    <SelectItem value="cancelled">Cancelado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid gap-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData({ ...formData, status: value })}
+              >
+                <SelectTrigger id="status" data-testid="select-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="scheduled">Agendado</SelectItem>
+                  <SelectItem value="completed">Concluído</SelectItem>
+                  <SelectItem value="retorno">Retorno</SelectItem>
+                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="notes">Observações</Label>

@@ -95,7 +95,7 @@ export default function CalendarPage() {
         id: apt.id,
         time: `${apt.date}T${apt.time}`,
         clientName: client?.name || "Cliente desconhecido",
-        status: apt.status as "scheduled" | "completed" | "cancelled",
+        status: apt.status as "scheduled" | "completed" | "cancelled" | "retorno",
       };
     });
   };

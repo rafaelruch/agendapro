@@ -349,6 +349,8 @@ export class DbStorage implements IStorage {
   }
 
   async getAllAppointments(tenantId: string, clientId?: string, serviceId?: string, status?: string): Promise<Appointment[]> {
+    let appointmentResults: Appointment[];
+    
     if (serviceId) {
       const appointmentIds = await db
         .select({ appointmentId: appointmentServices.appointmentId })
@@ -371,28 +373,44 @@ export class DbStorage implements IStorage {
         conditions.push(eq(appointments.status, status));
       }
       
-      return await db
+      appointmentResults = await db
+        .select()
+        .from(appointments)
+        .where(and(...conditions))
+        .orderBy(desc(appointments.date), desc(appointments.time));
+    } else {
+      const conditions = [eq(appointments.tenantId, tenantId)];
+      
+      if (clientId) {
+        conditions.push(eq(appointments.clientId, clientId));
+      }
+      
+      if (status) {
+        conditions.push(eq(appointments.status, status));
+      }
+      
+      appointmentResults = await db
         .select()
         .from(appointments)
         .where(and(...conditions))
         .orderBy(desc(appointments.date), desc(appointments.time));
     }
     
-    const conditions = [eq(appointments.tenantId, tenantId)];
+    const enrichedAppointments = await Promise.all(
+      appointmentResults.map(async (apt) => {
+        const servicesRelations = await db
+          .select({ serviceId: appointmentServices.serviceId })
+          .from(appointmentServices)
+          .where(eq(appointmentServices.appointmentId, apt.id));
+        
+        return {
+          ...apt,
+          serviceIds: servicesRelations.map(s => s.serviceId),
+        };
+      })
+    );
     
-    if (clientId) {
-      conditions.push(eq(appointments.clientId, clientId));
-    }
-    
-    if (status) {
-      conditions.push(eq(appointments.status, status));
-    }
-    
-    return await db
-      .select()
-      .from(appointments)
-      .where(and(...conditions))
-      .orderBy(desc(appointments.date), desc(appointments.time));
+    return enrichedAppointments;
   }
 
   async getAppointmentsByClient(clientId: string, tenantId: string): Promise<Appointment[]> {
