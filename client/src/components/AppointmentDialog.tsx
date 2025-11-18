@@ -78,6 +78,7 @@ export function AppointmentDialog({
 
   const [formData, setFormData] = useState(defaultFormData);
   const [clientComboOpen, setClientComboOpen] = useState(false);
+  const [serviceComboOpen, setServiceComboOpen] = useState(false);
   const [showQuickClientDialog, setShowQuickClientDialog] = useState(false);
 
   useEffect(() => {
@@ -181,22 +182,74 @@ export function AppointmentDialog({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="service">Serviço (Opcional)</Label>
-              <Select
-                value={formData.serviceId}
-                onValueChange={(value) => setFormData({ ...formData, serviceId: value })}
-              >
-                <SelectTrigger id="service" data-testid="select-service">
-                  <SelectValue placeholder="Selecione um serviço" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {services.map((service) => (
-                    <SelectItem key={service.id} value={service.id}>
-                      {service.name} - R$ {parseFloat(service.value).toFixed(2).replace('.', ',')}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={serviceComboOpen} onOpenChange={setServiceComboOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={serviceComboOpen}
+                    className="w-full justify-between"
+                    data-testid="button-service-combobox"
+                  >
+                    {formData.serviceId === "none" || !formData.serviceId
+                      ? "Nenhum serviço selecionado"
+                      : services.find((service) => service.id === formData.serviceId)
+                        ? `${services.find((service) => service.id === formData.serviceId)?.name} - R$ ${parseFloat(services.find((service) => service.id === formData.serviceId)?.value || "0").toFixed(2).replace('.', ',')}`
+                        : "Selecione um serviço..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0">
+                  <Command>
+                    <CommandInput placeholder="Buscar serviço..." data-testid="input-search-service" />
+                    <CommandList>
+                      <CommandEmpty>Nenhum serviço encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="none"
+                          onSelect={() => {
+                            setFormData({ ...formData, serviceId: "none" });
+                            setServiceComboOpen(false);
+                          }}
+                          data-testid="option-service-none"
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              formData.serviceId === "none" || !formData.serviceId ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          Nenhum
+                        </CommandItem>
+                        {services.map((service) => (
+                          <CommandItem
+                            key={service.id}
+                            value={`${service.name} ${service.category}`}
+                            onSelect={() => {
+                              setFormData({ ...formData, serviceId: service.id });
+                              setServiceComboOpen(false);
+                            }}
+                            data-testid={`option-service-${service.id}`}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                formData.serviceId === service.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <div className="flex flex-col">
+                              <span className="font-medium">{service.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {service.category} • R$ {parseFloat(service.value).toFixed(2).replace('.', ',')}
+                              </span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
