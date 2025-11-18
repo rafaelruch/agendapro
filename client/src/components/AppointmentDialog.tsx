@@ -28,13 +28,13 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, ChevronsUpDown, Plus, Clock } from "lucide-react";
+import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuickClientDialog } from "./QuickClientDialog";
+import { ServiceMultiSelect } from "./ServiceMultiSelect";
 
 interface Client {
   id: string;
@@ -79,7 +79,6 @@ export function AppointmentDialog({
 
   const [formData, setFormData] = useState(defaultFormData);
   const [clientComboOpen, setClientComboOpen] = useState(false);
-  const [serviceComboOpen, setServiceComboOpen] = useState(false);
   const [showQuickClientDialog, setShowQuickClientDialog] = useState(false);
 
   useEffect(() => {
@@ -109,18 +108,6 @@ export function AppointmentDialog({
     onOpenChange(false);
   };
 
-  const toggleService = (serviceId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      serviceIds: prev.serviceIds.includes(serviceId)
-        ? prev.serviceIds.filter(id => id !== serviceId)
-        : [...prev.serviceIds, serviceId]
-    }));
-  };
-
-  const selectedServices = services.filter(s => formData.serviceIds.includes(s.id));
-  const totalDuration = selectedServices.reduce((sum, service) => sum + (service.duration || 60), 0);
-  const totalValue = selectedServices.reduce((sum, service) => sum + parseFloat(service.value), 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -192,62 +179,11 @@ export function AppointmentDialog({
                 </Button>
               </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="service">Serviços (Opcional)</Label>
-              <Popover open={serviceComboOpen} onOpenChange={setServiceComboOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={serviceComboOpen}
-                    className="w-full justify-between"
-                    data-testid="button-service-combobox"
-                  >
-                    <span className="truncate">
-                      {formData.serviceIds.length === 0
-                        ? "Selecione serviços..."
-                        : `${formData.serviceIds.length} serviço(s) selecionado(s)`}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0">
-                  <Command>
-                    <CommandInput placeholder="Buscar serviço..." data-testid="input-search-service" />
-                    <CommandList>
-                      <CommandEmpty>Nenhum serviço encontrado.</CommandEmpty>
-                      <CommandGroup>
-                        {services.map((service) => (
-                          <CommandItem
-                            key={service.id}
-                            value={`${service.name} ${service.category}`}
-                            onSelect={() => toggleService(service.id)}
-                            data-testid={`option-service-${service.id}`}
-                          >
-                            <Checkbox
-                              checked={formData.serviceIds.includes(service.id)}
-                              className="mr-2"
-                            />
-                            <div className="flex flex-col flex-1">
-                              <span className="font-medium">{service.name}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {service.category} • R$ {parseFloat(service.value).toFixed(2).replace('.', ',')} • {service.duration} min
-                              </span>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              {formData.serviceIds.length > 0 && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <span>Duração total: {totalDuration} min • Valor total: R$ {totalValue.toFixed(2).replace('.', ',')}</span>
-                </div>
-              )}
-            </div>
+            <ServiceMultiSelect
+              services={services}
+              selectedServiceIds={formData.serviceIds}
+              onChange={(serviceIds) => setFormData({ ...formData, serviceIds })}
+            />
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="date">Data</Label>

@@ -98,7 +98,7 @@ export default function ClientsPage() {
 
   const filteredClients = clients.filter((client) =>
     client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    client.email.toLowerCase().includes(searchQuery.toLowerCase())
+    client.phone.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const getClientAppointmentCount = (clientId: string) => {
@@ -159,8 +159,8 @@ export default function ClientsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>Email</TableHead>
                 <TableHead>Telefone</TableHead>
+                <TableHead>Data de Nascimento</TableHead>
                 <TableHead>Total de Agendamentos</TableHead>
                 <TableHead>Última Atividade</TableHead>
                 <TableHead className="w-12"></TableHead>
@@ -170,8 +170,12 @@ export default function ClientsPage() {
               {filteredClients.map((client) => (
                 <TableRow key={client.id} data-testid={`row-client-${client.id}`}>
                   <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell>{client.email}</TableCell>
                   <TableCell>{client.phone || "-"}</TableCell>
+                  <TableCell>
+                    {client.birthdate 
+                      ? new Date(client.birthdate).toLocaleDateString('pt-BR')
+                      : "-"}
+                  </TableCell>
                   <TableCell>{getClientAppointmentCount(client.id)}</TableCell>
                   <TableCell>
                     {getClientLastActivity(client.id) !== "-"

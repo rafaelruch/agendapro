@@ -28,8 +28,8 @@ export const clients = pgTable("clients", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   name: text("name").notNull(),
-  email: text("email").notNull(),
   phone: text("phone").notNull(),
+  birthdate: text("birthdate"),
 }, (table) => ({
   uniquePhonePerTenant: unique().on(table.tenantId, table.phone)
 }));

@@ -27,8 +27,8 @@ export function ClientDialog({
   const [formData, setFormData] = useState(
     initialData || {
       name: "",
-      email: "",
       phone: "",
+      birthdate: "",
     }
   );
 
@@ -38,8 +38,8 @@ export function ClientDialog({
       setFormData(
         initialData || {
           name: "",
-          email: "",
           phone: "",
+          birthdate: "",
         }
       );
     }
@@ -74,18 +74,6 @@ export function ClientDialog({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="email@exemplo.com"
-                data-testid="input-client-email"
-                required
-              />
-            </div>
-            <div className="grid gap-2">
               <Label htmlFor="phone">Telefone</Label>
               <Input
                 id="phone"
@@ -94,6 +82,17 @@ export function ClientDialog({
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="(00) 00000-0000"
                 data-testid="input-client-phone"
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="birthdate">Data de Nascimento (Opcional)</Label>
+              <Input
+                id="birthdate"
+                type="date"
+                value={formData.birthdate || ""}
+                onChange={(e) => setFormData({ ...formData, birthdate: e.target.value })}
+                data-testid="input-client-birthdate"
               />
             </div>
           </div>

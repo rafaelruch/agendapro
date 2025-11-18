@@ -29,6 +29,7 @@ export function ServiceDialog({
     name: "",
     category: "",
     value: "",
+    duration: "60",
   });
 
   useEffect(() => {
@@ -37,12 +38,14 @@ export function ServiceDialog({
         name: initialData.name,
         category: initialData.category,
         value: initialData.value,
+        duration: String(initialData.duration || 60),
       });
     } else {
       setFormData({
         name: "",
         category: "",
         value: "",
+        duration: "60",
       });
     }
   }, [initialData, open]);
@@ -53,6 +56,7 @@ export function ServiceDialog({
       name: formData.name,
       category: formData.category,
       value: parseFloat(formData.value),
+      duration: parseInt(formData.duration),
     });
   };
 
@@ -108,6 +112,22 @@ export function ServiceDialog({
                 }
                 placeholder="0.00"
                 data-testid="input-service-value"
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="duration">Duração (minutos)</Label>
+              <Input
+                id="duration"
+                type="number"
+                min="1"
+                step="1"
+                value={formData.duration}
+                onChange={(e) =>
+                  setFormData({ ...formData, duration: e.target.value })
+                }
+                placeholder="60"
+                data-testid="input-service-duration"
                 required
               />
             </div>

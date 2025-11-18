@@ -27,8 +27,8 @@ export function QuickClientDialog({
 }: QuickClientDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
     phone: "",
+    birthdate: "",
   });
   const { toast } = useToast();
 
@@ -40,7 +40,7 @@ export function QuickClientDialog({
         title: "Cliente criado",
         description: "Cliente adicionado com sucesso.",
       });
-      setFormData({ name: "", email: "", phone: "" });
+      setFormData({ name: "", phone: "", birthdate: "" });
       onOpenChange(false);
       if (onClientCreated) {
         onClientCreated(newClient.id);
@@ -83,18 +83,6 @@ export function QuickClientDialog({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="quick-email">Email</Label>
-              <Input
-                id="quick-email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="email@exemplo.com"
-                data-testid="input-quick-client-email"
-                required
-              />
-            </div>
-            <div className="grid gap-2">
               <Label htmlFor="quick-phone">Telefone</Label>
               <Input
                 id="quick-phone"
@@ -103,6 +91,16 @@ export function QuickClientDialog({
                 placeholder="(11) 99999-9999"
                 data-testid="input-quick-client-phone"
                 required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="quick-birthdate">Data de Nascimento (Opcional)</Label>
+              <Input
+                id="quick-birthdate"
+                type="date"
+                value={formData.birthdate}
+                onChange={(e) => setFormData({ ...formData, birthdate: e.target.value })}
+                data-testid="input-quick-client-birthdate"
               />
             </div>
           </div>
