@@ -1283,24 +1283,12 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   app.post("/api/appointments", authenticateRequest, async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
-      const existingAppointments = await storage.getAppointmentsByDateRange(
-        tenantId,
-        req.body.date,
-        req.body.date
-      );
-      const conflict = existingAppointments.find(
-        (apt) => apt.date === req.body.date && apt.time === req.body.time
-      );
-      if (conflict) {
-        return res.status(409).json({ error: "Já existe um agendamento neste horário" });
-      }
 
       const validatedData = insertAppointmentSchema.parse({
         ...req.body,
         tenantId
       });
       const appointment = await storage.createAppointment(validatedData);
-      // Adicionar serviceIds
       const services = await storage.getAppointmentServices(appointment.id);
       res.status(201).json({
         ...appointment,
@@ -1310,6 +1298,17 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Dados de agendamento inválidos", details: error.errors });
       }
+      
+      if (error instanceof Error) {
+        try {
+          const errorData = JSON.parse(error.message);
+          if (errorData.code === 'APPOINTMENT_CONFLICT') {
+            return res.status(409).json(errorData);
+          }
+        } catch {
+        }
+      }
+      
       console.error("Error creating appointment:", error);
       res.status(500).json({ error: "Erro ao criar agendamento" });
     }
@@ -1323,23 +1322,6 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       
       if (!appointmentId) {
         return res.status(400).json({ error: "ID do agendamento é obrigatório (use ?id=apt-xxx)" });
-      }
-
-      if (req.body.date && req.body.time) {
-        const existingAppointments = await storage.getAppointmentsByDateRange(
-          tenantId,
-          req.body.date,
-          req.body.date
-        );
-        const conflict = existingAppointments.find(
-          (apt) =>
-            apt.date === req.body.date &&
-            apt.time === req.body.time &&
-            apt.id !== appointmentId
-        );
-        if (conflict) {
-          return res.status(409).json({ error: "Já existe um agendamento neste horário" });
-        }
       }
 
       const validatedData = insertAppointmentSchema.partial().parse(req.body);
@@ -1361,6 +1343,17 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Dados de agendamento inválidos", details: error.errors });
       }
+      
+      if (error instanceof Error) {
+        try {
+          const errorData = JSON.parse(error.message);
+          if (errorData.code === 'APPOINTMENT_CONFLICT') {
+            return res.status(409).json(errorData);
+          }
+        } catch {
+        }
+      }
+      
       console.error("Error updating appointment:", error);
       res.status(500).json({ error: "Erro ao atualizar agendamento" });
     }
@@ -1370,22 +1363,6 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   app.put("/api/appointments/:id", authenticateRequest, async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
-      if (req.body.date && req.body.time) {
-        const existingAppointments = await storage.getAppointmentsByDateRange(
-          tenantId,
-          req.body.date,
-          req.body.date
-        );
-        const conflict = existingAppointments.find(
-          (apt) =>
-            apt.date === req.body.date &&
-            apt.time === req.body.time &&
-            apt.id !== req.params.id
-        );
-        if (conflict) {
-          return res.status(409).json({ error: "Já existe um agendamento neste horário" });
-        }
-      }
 
       const validatedData = insertAppointmentSchema.partial().parse(req.body);
       const appointment = await storage.updateAppointment(
@@ -1406,6 +1383,17 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Dados de agendamento inválidos", details: error.errors });
       }
+      
+      if (error instanceof Error) {
+        try {
+          const errorData = JSON.parse(error.message);
+          if (errorData.code === 'APPOINTMENT_CONFLICT') {
+            return res.status(409).json(errorData);
+          }
+        } catch {
+        }
+      }
+      
       console.error("Error updating appointment:", error);
       res.status(500).json({ error: "Erro ao atualizar agendamento" });
     }
