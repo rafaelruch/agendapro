@@ -1231,7 +1231,12 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       if (!appointment) {
         return res.status(404).json({ error: "Agendamento não encontrado" });
       }
-      res.json(appointment);
+      // Adicionar serviceIds
+      const services = await storage.getAppointmentServices(appointment.id);
+      res.json({
+        ...appointment,
+        serviceIds: services.map(s => s.id),
+      });
     } catch (error) {
       console.error("Error fetching appointment:", error);
       res.status(500).json({ error: "Erro ao buscar agendamento" });
@@ -1259,7 +1264,12 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         tenantId
       });
       const appointment = await storage.createAppointment(validatedData);
-      res.status(201).json(appointment);
+      // Adicionar serviceIds
+      const services = await storage.getAppointmentServices(appointment.id);
+      res.status(201).json({
+        ...appointment,
+        serviceIds: services.map(s => s.id),
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Dados de agendamento inválidos", details: error.errors });
@@ -1305,7 +1315,12 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       if (!appointment) {
         return res.status(404).json({ error: "Agendamento não encontrado" });
       }
-      res.json(appointment);
+      // Adicionar serviceIds
+      const services = await storage.getAppointmentServices(appointment.id);
+      res.json({
+        ...appointment,
+        serviceIds: services.map(s => s.id),
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Dados de agendamento inválidos", details: error.errors });
@@ -1345,7 +1360,12 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       if (!appointment) {
         return res.status(404).json({ error: "Agendamento não encontrado" });
       }
-      res.json(appointment);
+      // Adicionar serviceIds
+      const services = await storage.getAppointmentServices(appointment.id);
+      res.json({
+        ...appointment,
+        serviceIds: services.map(s => s.id),
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Dados de agendamento inválidos", details: error.errors });
