@@ -69,6 +69,25 @@ export default function CalendarPage() {
     },
   });
 
+  const deleteAppointmentMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/appointments/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      setSelectedAppointmentId(null);
+      toast({
+        title: "Agendamento excluído",
+        description: "O agendamento foi excluído com sucesso.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao excluir agendamento",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const formatAppointmentsForCalendar = () => {
     return appointments.map(apt => {
       const client = clients.find(c => c.id === apt.clientId);
@@ -138,6 +157,7 @@ export default function CalendarPage() {
             setSelectedAppointmentId(null);
           }
         }}
+        onDelete={(id) => deleteAppointmentMutation.mutate(id)}
       />
     </div>
   );

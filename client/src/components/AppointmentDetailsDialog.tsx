@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -6,9 +7,19 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, User, Briefcase, FileText, CheckCircle2, Circle, Pencil } from "lucide-react";
+import { Calendar, Clock, User, Briefcase, FileText, CheckCircle2, Circle, Pencil, Trash2 } from "lucide-react";
 import type { Appointment, Client, Service } from "@shared/schema";
 
 interface AppointmentDetailsDialogProps {
@@ -16,6 +27,7 @@ interface AppointmentDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit?: () => void;
+  onDelete?: (appointmentId: string) => void;
 }
 
 export function AppointmentDetailsDialog({
@@ -23,7 +35,10 @@ export function AppointmentDetailsDialog({
   open,
   onOpenChange,
   onEdit,
+  onDelete,
 }: AppointmentDetailsDialogProps) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const { data: appointment, isLoading } = useQuery<Appointment>({
     queryKey: ["/api/appointments", appointmentId],
     enabled: !!appointmentId && open,
@@ -38,6 +53,14 @@ export function AppointmentDetailsDialog({
     queryKey: ["/api/services", appointment?.serviceId],
     enabled: !!appointment?.serviceId,
   });
+
+  const handleDeleteConfirm = () => {
+    if (appointmentId && onDelete) {
+      onDelete(appointmentId);
+      setShowDeleteConfirm(false);
+      onOpenChange(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -179,15 +202,58 @@ export function AppointmentDetailsDialog({
           )}
         </div>
 
-        {onEdit && (
-          <DialogFooter>
-            <Button onClick={onEdit} data-testid="button-edit-appointment">
-              <Pencil className="h-4 w-4 mr-2" />
-              Editar Agendamento
-            </Button>
+        {(onEdit || onDelete) && (
+          <DialogFooter className="flex-row gap-2 justify-end">
+            {onDelete && (
+              <Button 
+                variant="destructive" 
+                onClick={() => setShowDeleteConfirm(true)} 
+                data-testid="button-delete-appointment"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Excluir
+              </Button>
+            )}
+            {onEdit && (
+              <Button onClick={onEdit} data-testid="button-edit-appointment">
+                <Pencil className="h-4 w-4 mr-2" />
+                Editar
+              </Button>
+            )}
           </DialogFooter>
         )}
       </DialogContent>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent data-testid="dialog-delete-confirm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.
+              {client && (
+                <div className="mt-4 p-3 bg-muted rounded-md">
+                  <p className="text-sm font-medium text-foreground">Cliente: {client.name}</p>
+                  {appointment && (
+                    <p className="text-sm text-muted-foreground">
+                      {formatDate(appointment.date)} às {appointment.time}
+                    </p>
+                  )}
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              Excluir Agendamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
