@@ -39,12 +39,11 @@ app.use(session({
   proxy: process.env.NODE_ENV === 'production',
   cookie: {
     httpOnly: true,
-    // Só usar secure se HTTPS estiver disponível
-    secure: process.env.NODE_ENV === 'production' && process.env.HTTPS_ENABLED === 'true',
-    sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax',
+    // Desabilitar secure cookie em produção por padrão (EasyPanel geralmente usa proxy HTTPS)
+    // Se quiser forçar HTTPS, configure FORCE_SECURE_COOKIE=true
+    secure: process.env.FORCE_SECURE_COOKIE === 'true',
+    sameSite: 'lax',
     maxAge: 1000 * 60 * 60 * 24 * 7,
-    // Garantir que o cookie funcione em diferentes domínios do Easypanel
-    domain: process.env.COOKIE_DOMAIN || undefined
   }
 }));
 
