@@ -37,18 +37,19 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
       </SidebarHeader>
 
       <SidebarContent className="px-4 py-4">
-        {/* Menu Group - Visão Geral */}
+        {/* MENU Section - TailAdmin Style */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold text-bodydark uppercase mb-2">
+          <SidebarGroupLabel className="px-4 text-xs font-semibold text-bodydark uppercase mb-4">
             MENU
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
+            <SidebarMenu className="space-y-0.5">
+              {/* Dashboard */}
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   onClick={() => setLocation("/")}
                   isActive={location === "/"}
-                  className={`relative w-full rounded-sm py-2 px-4 font-medium duration-300 ease-in-out hover:bg-graydark/10 dark:hover:bg-meta-4/10 ${
+                  className={`relative w-full rounded-sm py-2 px-4 font-medium text-sm duration-300 ease-in-out hover:bg-graydark/10 dark:hover:bg-meta-4/10 ${
                     location === "/" ? "bg-graydark dark:bg-meta-4 before:content-[''] before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:rounded-r before:bg-primary" : ""
                   }`}
                   data-testid="link-dashboard"
@@ -59,11 +60,12 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
+              {/* Calendar */}
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   onClick={() => setLocation("/calendar")}
                   isActive={location === "/calendar"}
-                  className={`relative w-full rounded-sm py-2 px-4 font-medium duration-300 ease-in-out hover:bg-graydark/10 dark:hover:bg-meta-4/10 ${
+                  className={`relative w-full rounded-sm py-2 px-4 font-medium text-sm duration-300 ease-in-out hover:bg-graydark/10 dark:hover:bg-meta-4/10 ${
                     location === "/calendar" ? "bg-graydark dark:bg-meta-4 before:content-[''] before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:rounded-r before:bg-primary" : ""
                   }`}
                   data-testid="link-calendário"
@@ -73,22 +75,13 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
                   <span>Calendário</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
 
-        {/* Menu Group - Gestão */}
-        <SidebarGroup className="mt-5">
-          <SidebarGroupLabel className="text-xs font-semibold text-bodydark uppercase mb-2">
-            GESTÃO
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
+              {/* Clientes */}
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   onClick={() => setLocation("/clients")}
                   isActive={location === "/clients"}
-                  className={`relative w-full rounded-sm py-2 px-4 font-medium duration-300 ease-in-out hover:bg-graydark/10 dark:hover:bg-meta-4/10 ${
+                  className={`relative w-full rounded-sm py-2 px-4 font-medium text-sm duration-300 ease-in-out hover:bg-graydark/10 dark:hover:bg-meta-4/10 ${
                     location === "/clients" ? "bg-graydark dark:bg-meta-4 before:content-[''] before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:rounded-r before:bg-primary" : ""
                   }`}
                   data-testid="link-clientes"
@@ -99,11 +92,12 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
+              {/* Serviços */}
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   onClick={() => setLocation("/services")}
                   isActive={location === "/services"}
-                  className={`relative w-full rounded-sm py-2 px-4 font-medium duration-300 ease-in-out hover:bg-graydark/10 dark:hover:bg-meta-4/10 ${
+                  className={`relative w-full rounded-sm py-2 px-4 font-medium text-sm duration-300 ease-in-out hover:bg-graydark/10 dark:hover:bg-meta-4/10 ${
                     location === "/services" ? "bg-graydark dark:bg-meta-4 before:content-[''] before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:rounded-r before:bg-primary" : ""
                   }`}
                   data-testid="link-serviços"
@@ -113,23 +107,14 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
                   <span>Serviços</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
 
-        {/* Menu Group - Administração (apenas para admin) */}
-        {isAdmin && (
-          <SidebarGroup className="mt-5">
-            <SidebarGroupLabel className="text-xs font-semibold text-bodydark uppercase mb-2">
-              ADMINISTRAÇÃO
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="space-y-1">
+              {/* Usuários (apenas admin) */}
+              {isAdmin && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     onClick={() => setLocation("/users")}
                     isActive={location === "/users"}
-                    className={`relative w-full rounded-sm py-2 px-4 font-medium duration-300 ease-in-out hover:bg-graydark/10 dark:hover:bg-meta-4/10 ${
+                    className={`relative w-full rounded-sm py-2 px-4 font-medium text-sm duration-300 ease-in-out hover:bg-graydark/10 dark:hover:bg-meta-4/10 ${
                       location === "/users" ? "bg-graydark dark:bg-meta-4 before:content-[''] before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:rounded-r before:bg-primary" : ""
                     }`}
                     data-testid="link-usuários"
@@ -139,12 +124,15 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
                     <span>Usuários</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+              )}
 
+              {/* Configurações (apenas admin) */}
+              {isAdmin && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     onClick={() => setLocation("/settings")}
                     isActive={location === "/settings"}
-                    className={`relative w-full rounded-sm py-2 px-4 font-medium duration-300 ease-in-out hover:bg-graydark/10 dark:hover:bg-meta-4/10 ${
+                    className={`relative w-full rounded-sm py-2 px-4 font-medium text-sm duration-300 ease-in-out hover:bg-graydark/10 dark:hover:bg-meta-4/10 ${
                       location === "/settings" ? "bg-graydark dark:bg-meta-4 before:content-[''] before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:rounded-r before:bg-primary" : ""
                     }`}
                     data-testid="link-configurações"
@@ -154,10 +142,10 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
                     <span>Configurações</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+              )}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   );
