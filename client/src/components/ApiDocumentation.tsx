@@ -934,7 +934,7 @@ curl -X GET "https://seudominio.com/api/appointments/apt-123" \\
     {
       method: "POST",
       path: "/api/appointments",
-      description: "Criar um novo agendamento. IMPORTANTE: O sistema valida automaticamente conflitos de horário. Se houver sobreposição com outro agendamento no mesmo dia e horário, retorna erro 409. Agendamentos adjacentes (ex: 10:00-11:00 seguido de 11:00-12:00) são permitidos.",
+      description: "Criar um novo agendamento. IMPORTANTE: (1) serviceIds é obrigatório - pelo menos 1 serviço deve ser informado; (2) O sistema valida automaticamente conflitos de horário. Se houver sobreposição com outro agendamento no mesmo dia, retorna erro 409. Agendamentos adjacentes (ex: 10:00-11:00 seguido de 11:00-12:00) são permitidos; (3) A duração total é calculada automaticamente somando as durações de todos os serviços.",
       auth: "Bearer Token",
       requestBody: `{
   "clientId": "cli-456",

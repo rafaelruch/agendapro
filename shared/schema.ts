@@ -166,7 +166,7 @@ export const insertAppointmentSchema = createInsertSchema(appointments).omit({
   id: true,
   createdAt: true,
 }).extend({
-  serviceIds: z.array(z.string()).optional(),
+  serviceIds: z.array(z.string()).min(1, "Pelo menos um serviço deve ser selecionado"),
 });
 
 export const insertAppointmentServiceSchema = createInsertSchema(appointmentServices).omit({

@@ -531,23 +531,23 @@ export class DbStorage implements IStorage {
   async createAppointment(insertAppointment: InsertAppointment): Promise<Appointment> {
     const { serviceIds, ...appointmentData } = insertAppointment;
     
-    let totalDuration = 60;
+    let totalDuration = 0;
+    for (const serviceId of serviceIds) {
+      const service = await db
+        .select()
+        .from(services)
+        .where(and(eq(services.id, serviceId), eq(services.tenantId, appointmentData.tenantId)))
+        .limit(1);
+      if (!service[0]) {
+        throw new Error(`Serviço ${serviceId} não encontrado`);
+      }
+      if (service[0].duration) {
+        totalDuration += service[0].duration;
+      }
+    }
     
-    if (serviceIds && serviceIds.length > 0) {
-      let serviceDuration = 0;
-      for (const serviceId of serviceIds) {
-        const service = await db
-          .select()
-          .from(services)
-          .where(eq(services.id, serviceId))
-          .limit(1);
-        if (service[0]?.duration) {
-          serviceDuration += service[0].duration;
-        }
-      }
-      if (serviceDuration > 0) {
-        totalDuration = serviceDuration;
-      }
+    if (totalDuration === 0) {
+      totalDuration = 60;
     }
     
     const conflicts = await this.findOverlappingAppointments(
@@ -582,13 +582,11 @@ export class DbStorage implements IStorage {
       const result = await tx.insert(appointments).values(appointmentData).returning();
       const appointment = result[0];
       
-      if (serviceIds && serviceIds.length > 0) {
-        const values = serviceIds.map(serviceId => ({
-          appointmentId: appointment.id,
-          serviceId,
-        }));
-        await tx.insert(appointmentServices).values(values);
-      }
+      const values = serviceIds.map(serviceId => ({
+        appointmentId: appointment.id,
+        serviceId,
+      }));
+      await tx.insert(appointmentServices).values(values);
       
       return appointment;
     });
@@ -604,6 +602,10 @@ export class DbStorage implements IStorage {
     const currentAppointment = await this.getAppointment(id, tenantId);
     if (!currentAppointment) return undefined;
     
+    if (serviceIds !== undefined && serviceIds.length === 0) {
+      throw new Error('Pelo menos um serviço deve ser selecionado');
+    }
+    
     const dateChanged = dataToUpdate.date !== undefined;
     const timeChanged = dataToUpdate.time !== undefined;
     const servicesChanged = serviceIds !== undefined;
@@ -612,22 +614,24 @@ export class DbStorage implements IStorage {
       const finalDate = dataToUpdate.date || currentAppointment.date;
       const finalTime = dataToUpdate.time || currentAppointment.time;
       
-      let totalDuration = 60;
+      let totalDuration = 0;
       
-      if (servicesChanged && serviceIds && serviceIds.length > 0) {
-        let serviceDuration = 0;
+      if (servicesChanged && serviceIds) {
         for (const serviceId of serviceIds) {
           const service = await db
             .select()
             .from(services)
-            .where(eq(services.id, serviceId))
+            .where(and(eq(services.id, serviceId), eq(services.tenantId, tenantId)))
             .limit(1);
-          if (service[0]?.duration) {
-            serviceDuration += service[0].duration;
+          if (!service[0]) {
+            throw new Error(`Serviço ${serviceId} não encontrado`);
+          }
+          if (service[0].duration) {
+            totalDuration += service[0].duration;
           }
         }
-        if (serviceDuration > 0) {
-          totalDuration = serviceDuration;
+        if (totalDuration === 0) {
+          totalDuration = 60;
         }
       } else if (!servicesChanged) {
         const existingDuration = await this.calculateAppointmentDuration(id);
@@ -664,7 +668,7 @@ export class DbStorage implements IStorage {
       }
     }
     
-    return await db.transaction(async (tx) => {
+    const updatedAppointment = await db.transaction(async (tx) => {
       let appointment;
       
       if (Object.keys(dataToUpdate).length > 0) {
@@ -690,17 +694,28 @@ export class DbStorage implements IStorage {
       if (serviceIds !== undefined) {
         await tx.delete(appointmentServices).where(eq(appointmentServices.appointmentId, id));
         
-        if (serviceIds.length > 0) {
-          const values = serviceIds.map(serviceId => ({
-            appointmentId: id,
-            serviceId,
-          }));
-          await tx.insert(appointmentServices).values(values);
-        }
+        const values = serviceIds.map(serviceId => ({
+          appointmentId: id,
+          serviceId,
+        }));
+        await tx.insert(appointmentServices).values(values);
       }
       
       return appointment;
     });
+    
+    if (!updatedAppointment) return undefined;
+    
+    const finalServices = await db
+      .select()
+      .from(appointmentServices)
+      .where(eq(appointmentServices.appointmentId, id));
+    
+    if (finalServices.length === 0) {
+      throw new Error('Agendamento deve ter pelo menos um serviço associado');
+    }
+    
+    return updatedAppointment;
   }
 
   async deleteAppointment(id: string, tenantId: string): Promise<boolean> {
@@ -730,15 +745,17 @@ export class DbStorage implements IStorage {
   }
 
   async setAppointmentServices(appointmentId: string, serviceIds: string[]): Promise<void> {
+    if (serviceIds.length === 0) {
+      throw new Error('Pelo menos um serviço deve ser associado ao agendamento');
+    }
+    
     await db.delete(appointmentServices).where(eq(appointmentServices.appointmentId, appointmentId));
     
-    if (serviceIds.length > 0) {
-      const values = serviceIds.map(serviceId => ({
-        appointmentId,
-        serviceId,
-      }));
-      await db.insert(appointmentServices).values(values);
-    }
+    const values = serviceIds.map(serviceId => ({
+      appointmentId,
+      serviceId,
+    }));
+    await db.insert(appointmentServices).values(values);
   }
 
   async getAppointmentTotalDuration(appointmentId: string): Promise<number> {
