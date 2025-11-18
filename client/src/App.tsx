@@ -115,8 +115,8 @@ function AuthenticatedApp({ authData }: { authData: AuthData }) {
       <div className="flex h-screen w-full">
         <AppSidebar userRole={authData.user.role} />
         <div className="flex flex-col flex-1">
-          {/* Header EXATAMENTE como TailAdmin */}
-          <header className="sticky top-0 z-999 flex w-full bg-white drop-shadow-1 dark:bg-boxdark dark:drop-shadow-none border-b border-stroke dark:border-strokedark">
+          {/* Header EXATAMENTE como TailAdmin (SEM border-b, apenas drop-shadow) */}
+          <header className="sticky top-0 z-999 flex w-full bg-white drop-shadow-1 dark:bg-boxdark dark:drop-shadow-none">
             <div className="flex flex-grow items-center justify-between px-4 py-4 shadow-2 md:px-6 2xl:px-11 gap-4">
               {/* Lado Esquerdo - Busca */}
               <div className="flex items-center gap-3 sm:gap-4 lg:hidden">
@@ -131,7 +131,8 @@ function AuthenticatedApp({ authData }: { authData: AuthData }) {
                   <input
                     type="text"
                     placeholder="Buscar..."
-                    className="w-full bg-transparent pl-9 pr-4 font-medium focus:outline-none xl:w-125 border border-stroke dark:border-strokedark rounded-md py-2.5 px-4"
+                    className="w-full bg-transparent pl-9 pr-4 font-medium focus:outline-none xl:w-125 border border-stroke dark:border-strokedark rounded-lg py-2.5 px-4 shadow-inner"
+                    data-testid="input-search"
                   />
                 </div>
               </div>
