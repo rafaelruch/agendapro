@@ -8,7 +8,10 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ClientSelector } from "@/components/ClientSelector";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, Search } from "lucide-react";
+import { HeaderDropdownNotification } from "@/components/HeaderDropdownNotification";
+import { HeaderDropdownMessage } from "@/components/HeaderDropdownMessage";
+import { HeaderDropdownProfile } from "@/components/HeaderDropdownProfile";
 import Dashboard from "@/pages/Dashboard";
 import CalendarPage from "@/pages/CalendarPage";
 import ClientsPage from "@/pages/ClientsPage";
@@ -112,33 +115,53 @@ function AuthenticatedApp({ authData }: { authData: AuthData }) {
       <div className="flex h-screen w-full">
         <AppSidebar userRole={authData.user.role} />
         <div className="flex flex-col flex-1">
-          <header className="flex items-center justify-between p-4 border-b gap-4">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger data-testid="button-sidebar-toggle" />
-              <ClientSelector
-                clients={clients.map(c => ({ id: c.id, name: c.name, email: c.email }))}
-                selectedClient={selectedClient ? { id: selectedClient.id, name: selectedClient.name, email: selectedClient.email } : null}
-                onSelectClient={(client) => {
-                  const fullClient = clients.find(c => c.id === client.id);
-                  if (fullClient) setSelectedClient(fullClient);
-                }}
-                onAddClient={() => window.location.href = "/clients"}
-              />
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-muted-foreground">
-                <strong>{authData.tenant?.name}</strong> - {authData.user.name}
+          {/* Header EXATAMENTE como TailAdmin */}
+          <header className="sticky top-0 z-999 flex w-full bg-white drop-shadow-1 dark:bg-boxdark dark:drop-shadow-none border-b border-stroke dark:border-strokedark">
+            <div className="flex flex-grow items-center justify-between px-4 py-4 shadow-2 md:px-6 2xl:px-11 gap-4">
+              {/* Lado Esquerdo - Busca */}
+              <div className="flex items-center gap-3 sm:gap-4 lg:hidden">
+                <SidebarTrigger data-testid="button-sidebar-toggle" />
               </div>
-              <ThemeToggle />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => logoutMutation.mutate()}
-                data-testid="button-logout"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sair
-              </Button>
+              
+              <div className="hidden sm:block">
+                <div className="relative">
+                  <button className="absolute left-0 top-1/2 -translate-y-1/2 pl-3">
+                    <Search className="h-4 w-4 text-bodydark2" />
+                  </button>
+                  <input
+                    type="text"
+                    placeholder="Buscar..."
+                    className="w-full bg-transparent pl-9 pr-4 font-medium focus:outline-none xl:w-125 border border-stroke dark:border-strokedark rounded-md py-2.5 px-4"
+                  />
+                </div>
+              </div>
+
+              {/* Lado Direito - Notificações, Mensagens, Theme, Perfil */}
+              <div className="flex items-center gap-3 2xsm:gap-7">
+                <ul className="flex items-center gap-2 2xsm:gap-4">
+                  {/* Dark Mode Toggle */}
+                  <li>
+                    <ThemeToggle />
+                  </li>
+
+                  {/* Notificações */}
+                  <li>
+                    <HeaderDropdownNotification />
+                  </li>
+
+                  {/* Mensagens */}
+                  <li>
+                    <HeaderDropdownMessage />
+                  </li>
+                </ul>
+
+                {/* Perfil */}
+                <HeaderDropdownProfile
+                  userName={authData.user.name}
+                  userRole={authData.user.role}
+                  onLogout={() => logoutMutation.mutate()}
+                />
+              </div>
             </div>
           </header>
           <main className="flex-1 overflow-auto p-6">

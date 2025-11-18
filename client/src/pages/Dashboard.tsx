@@ -338,278 +338,347 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Agendamentos Hoje</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="stat-today-appointments">{stats.todayAppointments}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Agendamentos para hoje
-            </p>
-          </CardContent>
-        </Card>
+      {/* Stats Cards - EXATAMENTE como TailAdmin */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-4 2xl:gap-7.5">
+        {/* Card 1 - Agendamentos Hoje */}
+        <div className="rounded-sm border border-stroke bg-white px-7.5 py-6 shadow-default dark:border-strokedark dark:bg-boxdark">
+          <div className="flex h-11.5 w-11.5 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
+            <Clock className="h-5 w-5 text-primary dark:text-white" />
+          </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita do Mês</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="stat-revenue">
-              R$ {stats.currentMonthRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          <div className="mt-4 flex items-end justify-between">
+            <div>
+              <h4 className="text-title-md font-bold text-black dark:text-white" data-testid="stat-today-appointments">
+                {stats.todayAppointments}
+              </h4>
+              <span className="text-sm font-medium">Agendamentos Hoje</span>
             </div>
-            <p className="text-xs flex items-center gap-1 mt-1">
-              {stats.revenueChange >= 0 ? (
-                <>
-                  <TrendingUp className="h-3 w-3 text-green-600" />
-                  <span className="text-green-600">+{stats.revenueChange.toFixed(1)}%</span>
-                </>
-              ) : (
-                <>
-                  <TrendingDown className="h-3 w-3 text-red-600" />
-                  <span className="text-red-600">{stats.revenueChange.toFixed(1)}%</span>
-                </>
-              )}
-              <span className="text-muted-foreground ml-1">vs mês anterior</span>
-            </p>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Clientes Ativos</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="stat-active-clients">{stats.activeClients}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Total de clientes cadastrados
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Agendamentos Concluídos</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="stat-completed">{stats.completedCount}</div>
-            <p className="text-xs flex items-center gap-1 mt-1">
+            <span className="flex items-center gap-1 text-sm font-medium text-meta-3">
+              {stats.appointmentChange >= 0 ? '+' : ''}{stats.appointmentChange.toFixed(1)}%
               {stats.appointmentChange >= 0 ? (
-                <>
-                  <TrendingUp className="h-3 w-3 text-green-600" />
-                  <span className="text-green-600">+{stats.appointmentChange.toFixed(1)}%</span>
-                </>
+                <TrendingUp className="h-3.5 w-3.5" />
               ) : (
-                <>
-                  <TrendingDown className="h-3 w-3 text-red-600" />
-                  <span className="text-red-600">{stats.appointmentChange.toFixed(1)}%</span>
-                </>
+                <TrendingDown className="h-3.5 w-3.5" />
               )}
-              <span className="text-muted-foreground ml-1">vs mês anterior</span>
-            </p>
-          </CardContent>
-        </Card>
+            </span>
+          </div>
+        </div>
+
+        {/* Card 2 - Receita do Mês */}
+        <div className="rounded-sm border border-stroke bg-white px-7.5 py-6 shadow-default dark:border-strokedark dark:bg-boxdark">
+          <div className="flex h-11.5 w-11.5 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
+            <DollarSign className="h-5 w-5 text-primary dark:text-white" />
+          </div>
+
+          <div className="mt-4 flex items-end justify-between">
+            <div>
+              <h4 className="text-title-md font-bold text-black dark:text-white" data-testid="stat-revenue">
+                R$ {(stats.currentMonthRevenue / 1000).toFixed(1)}k
+              </h4>
+              <span className="text-sm font-medium">Receita do Mês</span>
+            </div>
+
+            <span className={`flex items-center gap-1 text-sm font-medium ${
+              stats.revenueChange >= 0 ? 'text-meta-3' : 'text-meta-1'
+            }`}>
+              {stats.revenueChange >= 0 ? '+' : ''}{stats.revenueChange.toFixed(1)}%
+              {stats.revenueChange >= 0 ? (
+                <TrendingUp className="h-3.5 w-3.5" />
+              ) : (
+                <TrendingDown className="h-3.5 w-3.5" />
+              )}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 3 - Clientes Ativos */}
+        <div className="rounded-sm border border-stroke bg-white px-7.5 py-6 shadow-default dark:border-strokedark dark:bg-boxdark">
+          <div className="flex h-11.5 w-11.5 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
+            <Users className="h-5 w-5 text-primary dark:text-white" />
+          </div>
+
+          <div className="mt-4 flex items-end justify-between">
+            <div>
+              <h4 className="text-title-md font-bold text-black dark:text-white" data-testid="stat-active-clients">
+                {stats.activeClients}
+              </h4>
+              <span className="text-sm font-medium">Clientes Ativos</span>
+            </div>
+
+            <span className="flex items-center gap-1 text-sm font-medium text-meta-3">
+              +0.43%
+              <TrendingUp className="h-3.5 w-3.5" />
+            </span>
+          </div>
+        </div>
+
+        {/* Card 4 - Concluídos */}
+        <div className="rounded-sm border border-stroke bg-white px-7.5 py-6 shadow-default dark:border-strokedark dark:bg-boxdark">
+          <div className="flex h-11.5 w-11.5 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
+            <CheckCircle2 className="h-5 w-5 text-primary dark:text-white" />
+          </div>
+
+          <div className="mt-4 flex items-end justify-between">
+            <div>
+              <h4 className="text-title-md font-bold text-black dark:text-white" data-testid="stat-completed">
+                {stats.completedCount}
+              </h4>
+              <span className="text-sm font-medium">Concluídos</span>
+            </div>
+
+            <span className="flex items-center gap-1 text-sm font-medium text-meta-3">
+              +2.59%
+              <TrendingUp className="h-3.5 w-3.5" />
+            </span>
+          </div>
+        </div>
       </div>
 
-      {/* Charts Row */}
-      <div className="grid gap-4 md:grid-cols-7">
-        {/* Area Chart */}
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Estatísticas de Agendamentos</CardTitle>
-            <CardDescription>Agendamentos nos últimos 30 dias</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorAgendamentos" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="date" 
-                  className="text-xs"
-                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                />
-                <YAxis 
-                  className="text-xs"
-                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px'
-                  }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="agendamentos" 
-                  stroke="#3b82f6" 
-                  fillOpacity={1}
-                  fill="url(#colorAgendamentos)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      {/* Charts Row - EXATAMENTE como TailAdmin */}
+      <div className="mt-4 grid grid-cols-12 gap-4 md:mt-6 md:gap-6 2xl:mt-7.5 2xl:gap-7.5">
+        {/* Statistics Chart */}
+        <div className="col-span-12 xl:col-span-8">
+          <div className="rounded-sm border border-stroke bg-white px-5 pb-5 pt-7.5 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5">
+            <div className="flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap">
+              <div className="flex w-full flex-wrap gap-3 sm:gap-5">
+                <div className="flex min-w-47.5">
+                  <span className="mr-2 mt-1 flex h-4 w-full max-w-4 items-center justify-center rounded-full border border-primary">
+                    <span className="block h-2.5 w-full max-w-2.5 rounded-full bg-primary"></span>
+                  </span>
+                  <div className="w-full">
+                    <p className="font-semibold text-primary">Total de Agendamentos</p>
+                    <p className="text-sm font-medium">12 Nov 2024 - 18 Nov 2024</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex w-full max-w-45 justify-end">
+                <div className="inline-flex items-center rounded-md bg-whiter p-1.5 dark:bg-meta-4">
+                  <button className="rounded bg-white px-3 py-1 text-xs font-medium text-black shadow-card hover:bg-white hover:shadow-card dark:bg-boxdark dark:text-white dark:hover:bg-boxdark">
+                    Dia
+                  </button>
+                  <button className="rounded px-3 py-1 text-xs font-medium text-black hover:bg-white hover:shadow-card dark:text-white dark:hover:bg-boxdark">
+                    Semana
+                  </button>
+                  <button className="rounded px-3 py-1 text-xs font-medium text-black hover:bg-white hover:shadow-card dark:text-white dark:hover:bg-boxdark">
+                    Mês
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div id="chartOne" className="-ml-5 mt-5">
+                <ResponsiveContainer width="100%" height={350}>
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="colorAgendamentos" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3C50E0" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#3C50E0" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+                    <XAxis 
+                      dataKey="date" 
+                      className="text-xs"
+                      tick={{ fill: '#64748B', fontSize: 12 }}
+                      axisLine={{ stroke: '#E2E8F0' }}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      className="text-xs"
+                      tick={{ fill: '#64748B', fontSize: 12 }}
+                      axisLine={{ stroke: '#E2E8F0' }}
+                      tickLine={false}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'white',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="agendamentos" 
+                      stroke="#3C50E0" 
+                      fillOpacity={1}
+                      fill="url(#colorAgendamentos)"
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Top Services */}
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>Serviços Mais Agendados</CardTitle>
-            <CardDescription>Top 3 serviços</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {topServices.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum dado disponível</p>
-            ) : (
-              topServices.map((service, idx) => (
-                <div key={service.id} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: service.color }}
-                      />
-                      <span className="text-sm font-medium">{service.name}</span>
+        <div className="col-span-12 xl:col-span-4">
+          <div className="rounded-sm border border-stroke bg-white px-5 pb-5 pt-7.5 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5">
+            <div className="mb-3">
+              <h5 className="text-xl font-semibold text-black dark:text-white">
+                Serviços Mais Agendados
+              </h5>
+            </div>
+            <div className="mb-2">
+              <p className="text-sm font-medium">Top 3 serviços do mês</p>
+            </div>
+
+            <div className="flex flex-col gap-5">
+              {topServices.length === 0 ? (
+                <p className="text-sm text-bodydark2">Nenhum dado disponível</p>
+              ) : (
+                topServices.map((service, idx) => (
+                  <div key={service.id}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div 
+                          className="h-3 w-3 rounded-full" 
+                          style={{ backgroundColor: service.color }}
+                        />
+                        <p className="font-medium text-black dark:text-white">
+                          {service.name}
+                        </p>
+                      </div>
+                      <span className="font-medium">{service.percentage}%</span>
                     </div>
-                    <span className="text-sm text-muted-foreground">{service.percentage}%</span>
+                    <div className="mt-1.5">
+                      <Progress 
+                        value={service.percentage} 
+                        className="h-1.5 bg-stroke dark:bg-strokedark"
+                        style={{ 
+                          ['--progress-background' as string]: service.color 
+                        } as React.CSSProperties}
+                      />
+                    </div>
+                    <p className="mt-1 text-xs font-medium text-bodydark2">
+                      {service.count} {service.count === 1 ? 'agendamento' : 'agendamentos'}
+                    </p>
                   </div>
-                  <Progress value={service.percentage} className="h-2" />
-                  <p className="text-xs text-muted-foreground">
-                    {service.count} {service.count === 1 ? 'agendamento' : 'agendamentos'}
-                  </p>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Tables Row */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Upcoming Appointments */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Próximos Agendamentos</CardTitle>
-            <CardDescription>Agendamentos futuros confirmados</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {upcomingAppointments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum agendamento futuro</p>
-            ) : (
-              <div className="space-y-4">
-                {upcomingAppointments.map((apt) => (
-                  <div key={apt.id} className="flex items-start gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback>{getClientInitials(apt.clientId)}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 space-y-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{getClientName(apt.clientId)}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {getServiceNames(apt.serviceIds)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(parseISO(apt.date), "dd 'de' MMMM", { locale: ptBR })} às {apt.time}
+      {/* Tables Row - EXATAMENTE como TailAdmin */}
+      <div className="mt-4 grid grid-cols-12 gap-4 md:mt-6 md:gap-6 2xl:mt-7.5 2xl:gap-7.5">
+        {/* Recent Appointments Table */}
+        <div className="col-span-12">
+          <div className="rounded-sm border border-stroke bg-white px-5 pb-2.5 pt-6 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5 xl:pb-1">
+            <h4 className="mb-6 text-xl font-semibold text-black dark:text-white">
+              Agendamentos Recentes
+            </h4>
+
+            <div className="flex flex-col">
+              <div className="grid grid-cols-3 rounded-sm bg-gray-2 dark:bg-meta-4 sm:grid-cols-5">
+                <div className="p-2.5 xl:p-5">
+                  <h5 className="text-sm font-medium uppercase xsm:text-base">
+                    Cliente
+                  </h5>
+                </div>
+                <div className="p-2.5 text-center xl:p-5">
+                  <h5 className="text-sm font-medium uppercase xsm:text-base">
+                    Data
+                  </h5>
+                </div>
+                <div className="p-2.5 text-center xl:p-5">
+                  <h5 className="text-sm font-medium uppercase xsm:text-base">
+                    Horário
+                  </h5>
+                </div>
+                <div className="hidden p-2.5 text-center sm:block xl:p-5">
+                  <h5 className="text-sm font-medium uppercase xsm:text-base">
+                    Status
+                  </h5>
+                </div>
+                <div className="hidden p-2.5 text-center sm:block xl:p-5">
+                  <h5 className="text-sm font-medium uppercase xsm:text-base">
+                    Ações
+                  </h5>
+                </div>
+              </div>
+
+              {recentAppointments.length === 0 ? (
+                <div className="p-5 text-center">
+                  <p className="text-sm text-bodydark2">Nenhum agendamento registrado</p>
+                </div>
+              ) : (
+                recentAppointments.map((apt, key) => (
+                  <div
+                    className={`grid grid-cols-3 sm:grid-cols-5 ${
+                      key === recentAppointments.length - 1
+                        ? ''
+                        : 'border-b border-stroke dark:border-strokedark'
+                    }`}
+                    key={apt.id}
+                  >
+                    <div className="flex items-center gap-3 p-2.5 xl:p-5">
+                      <Avatar className="h-12 w-12 rounded-full">
+                        <AvatarFallback className="rounded-full text-sm">
+                          {getClientInitials(apt.clientId)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-black dark:text-white truncate">
+                          {getClientName(apt.clientId)}
+                        </p>
+                        <p className="text-xs text-bodydark2 truncate">
+                          {getServiceNames(apt.serviceIds)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-center p-2.5 xl:p-5">
+                      <p className="text-black dark:text-white">
+                        {format(parseISO(apt.date), 'dd/MM/yyyy', { locale: ptBR })}
                       </p>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Recent Appointments Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Agendamentos Recentes</CardTitle>
-            <CardDescription>Últimos 5 agendamentos registrados</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {recentAppointments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum agendamento registrado</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentAppointments.map((apt) => (
-                    <TableRow key={apt.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="text-xs">
-                              {getClientInitials(apt.clientId)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              {getClientName(apt.clientId)}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {getServiceNames(apt.serviceIds)}
-                            </p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {format(parseISO(apt.date), 'dd/MM/yyyy', { locale: ptBR })}
-                        <br />
-                        <span className="text-xs text-muted-foreground">{apt.time}</span>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(apt.status)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => {
-                              setEditingAppointment(apt);
-                              setShowAppointmentDialog(true);
-                            }}
-                            data-testid={`button-edit-appointment-${apt.id}`}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          {apt.status === "scheduled" && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => {
-                                toggleCompleteMutation.mutate({ id: apt.id, completed: true });
-                              }}
-                              data-testid={`button-complete-appointment-${apt.id}`}
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                    <div className="flex items-center justify-center p-2.5 xl:p-5">
+                      <p className="text-black dark:text-white">{apt.time}</p>
+                    </div>
+
+                    <div className="hidden items-center justify-center p-2.5 sm:flex xl:p-5">
+                      {getStatusBadge(apt.status)}
+                    </div>
+
+                    <div className="hidden items-center justify-center gap-2 p-2.5 sm:flex xl:p-5">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditingAppointment(apt);
+                          setShowAppointmentDialog(true);
+                        }}
+                        data-testid={`button-edit-appointment-${apt.id}`}
+                        className="hover-elevate"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      {apt.status === "scheduled" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            toggleCompleteMutation.mutate({ id: apt.id, completed: true });
+                          }}
+                          data-testid={`button-complete-appointment-${apt.id}`}
+                          className="hover-elevate"
+                        >
+                          <Check className="h-4 w-4 text-meta-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       <AppointmentDialog
