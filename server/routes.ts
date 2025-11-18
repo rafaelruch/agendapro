@@ -1775,6 +1775,83 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
+  // POST /api/migrations/execute-sql - Executar SQL customizado
+  app.post("/api/migrations/execute-sql", requireMasterAdmin, async (req, res) => {
+    try {
+      const { databaseUrl, sql } = req.body;
+      
+      if (!databaseUrl || typeof databaseUrl !== 'string') {
+        return res.status(400).json({ error: "DATABASE_URL é obrigatória" });
+      }
+
+      if (!sql || typeof sql !== 'string' || sql.trim().length === 0) {
+        return res.status(400).json({ error: "SQL é obrigatório" });
+      }
+
+      // Validar formato básico da URL
+      if (!databaseUrl.startsWith('postgres://') && !databaseUrl.startsWith('postgresql://')) {
+        return res.status(400).json({ error: "DATABASE_URL deve começar com postgres:// ou postgresql://" });
+      }
+
+      const logs: string[] = [];
+      logs.push("[INFO] Executando SQL customizado...");
+      logs.push(`[INFO] Database: ${databaseUrl.replace(/:[^:@]+@/, ':***@')}`); // Ocultar senha no log
+      logs.push(`[INFO] SQL: ${sql.length > 200 ? sql.substring(0, 200) + '...' : sql}`);
+
+      // Criar conexão temporária com o banco fornecido
+      const pgPkg = await import('pg');
+      const Pool = pgPkg.default.Pool;
+      
+      const tempPool = new Pool({ connectionString: databaseUrl });
+
+      try {
+        logs.push("[RUNNING] Executando SQL...");
+        const result = await tempPool.query(sql);
+        
+        logs.push(`[SUCCESS] SQL executado com sucesso!`);
+        
+        // Se houver rows retornados, mostrar
+        if (result.rows && result.rows.length > 0) {
+          logs.push(`[INFO] ${result.rows.length} linha(s) retornada(s)`);
+          logs.push("[INFO] Resultado:");
+          result.rows.forEach((row, idx) => {
+            logs.push(`  ${idx + 1}. ${JSON.stringify(row)}`);
+          });
+        } else if (result.rowCount !== null && result.rowCount !== undefined) {
+          logs.push(`[INFO] ${result.rowCount} linha(s) afetada(s)`);
+        }
+
+        res.json({ 
+          success: true, 
+          logs,
+          rowCount: result.rowCount,
+          rows: result.rows,
+          message: "SQL executado com sucesso!"
+        });
+
+      } catch (dbError: any) {
+        logs.push(`[ERROR] Erro ao executar SQL: ${dbError.message}`);
+        console.error("SQL execution error:", dbError);
+        
+        res.status(500).json({ 
+          success: false, 
+          logs,
+          error: dbError.message 
+        });
+      } finally {
+        // Sempre fechar conexão temporária
+        await tempPool.end();
+      }
+
+    } catch (error: any) {
+      console.error("Error executing custom SQL:", error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message || "Erro ao executar SQL customizado" 
+      });
+    }
+  });
+
   // ===========================================
   // ROTAS DE CORREÇÃO DE DADOS (MASTER ADMIN)
   // ===========================================
