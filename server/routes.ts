@@ -1775,7 +1775,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
-  // POST /api/migrations/execute-sql - Executar SQL customizado
+  // POST /api/migrations/execute-sql - Executar SQL customizado (APENAS MASTER ADMIN)
   app.post("/api/migrations/execute-sql", requireMasterAdmin, async (req, res) => {
     try {
       const { databaseUrl, sql } = req.body;
