@@ -794,7 +794,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/clients - List all clients of current tenant
   app.get("/api/clients", authenticateRequest, async (req, res) => {
     try {
-      const tenantId = getTenantId(req)!;
+      const userRole = req.session.role;
+      let tenantId: string | null;
+
+      if (userRole === 'master_admin') {
+        tenantId = req.query.tenantId as string || null;
+        if (!tenantId) {
+          return res.status(400).json({ 
+            error: "Master admin deve especificar tenantId via query param: ?tenantId=..." 
+          });
+        }
+      } else {
+        tenantId = getTenantId(req)!;
+      }
+
       const search = req.query.search as string;
       let clients;
       
@@ -1210,7 +1223,20 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   // GET /api/appointments - List all appointments of current tenant
   app.get("/api/appointments", authenticateRequest, async (req, res) => {
     try {
-      const tenantId = getTenantId(req)!;
+      const userRole = req.session.role;
+      let tenantId: string | null;
+
+      if (userRole === 'master_admin') {
+        tenantId = req.query.tenantId as string || null;
+        if (!tenantId) {
+          return res.status(400).json({ 
+            error: "Master admin deve especificar tenantId via query param: ?tenantId=..." 
+          });
+        }
+      } else {
+        tenantId = getTenantId(req)!;
+      }
+
       const { id, clientId, serviceId, status, startDate, endDate, date, time } = req.query;
 
       // Se foi passado um ID específico via query parameter (ideal para N8N)

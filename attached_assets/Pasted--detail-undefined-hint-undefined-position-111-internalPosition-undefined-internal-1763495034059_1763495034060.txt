@@ -1,0 +1,108 @@
+  detail: undefined,
+  hint: undefined,
+  position: '111',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+7:40:02 PM [express] GET /api/appointments 500 in 265ms :: {"error":"Erro ao buscar agendamentos"}
+Error fetching services: error: column "duration" does not exist
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.getAllServices (file:///app/dist/index.js:351:16)
+    at async file:///app/dist/index.js:1517:21 {
+  length: 108,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '56',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+7:40:02 PM [express] GET /api/services 500 in 35ms :: {"error":"Erro ao buscar serviços"}
+Error fetching clients: error: column "birthdate" does not exist
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.getAllClients (file:///app/dist/index.js:319:16)
+    at async file:///app/dist/index.js:1388:20 {
+  length: 109,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '44',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+7:40:04 PM [express] GET /api/clients 500 in 32ms :: {"error":"Erro ao buscar clientes"}
+Error fetching services: error: column "duration" does not exist
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.getAllServices (file:///app/dist/index.js:351:16)
+    at async file:///app/dist/index.js:1517:21 {
+  length: 108,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '56',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+7:40:04 PM [express] GET /api/services 500 in 31ms :: {"error":"Erro ao buscar serviços"}
+Error fetching appointments: error: column services.duration does not exist
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.getAppointmentServices (file:///app/dist/index.js:631:24)
+    at async file:///app/dist/index.js:1761:29
+    at async Promise.all (index 0)
+    at async file:///app/dist/index.js:1759:40 {
+  length: 116,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '111',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
