@@ -3,7 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
   insertClientSchema, 
-  insertServiceSchema, 
+  insertServiceSchema,
+  updateServiceSchema,
   insertAppointmentSchema,
   insertTenantSchema,
   insertUserSchema,
@@ -1095,7 +1096,42 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   app.put("/api/services/:id", authenticateRequest, async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
-      const validatedData = insertServiceSchema.partial().parse(req.body);
+      
+      // Normalizar ANTES da validação: se qualquer campo promocional está presente,
+      // garantir que todos estejam presentes (como null se ausentes) para validação funcionar
+      const hasAnyPromoField = 
+        'promotionalValue' in req.body || 
+        'promotionStartDate' in req.body || 
+        'promotionEndDate' in req.body;
+      
+      if (hasAnyPromoField) {
+        // Normalizar strings vazias e undefined para null
+        if (!('promotionalValue' in req.body)) req.body.promotionalValue = null;
+        if (!('promotionStartDate' in req.body)) req.body.promotionStartDate = null;
+        if (!('promotionEndDate' in req.body)) req.body.promotionEndDate = null;
+        
+        // Converter strings vazias em null
+        if (req.body.promotionalValue === '' || req.body.promotionalValue === undefined) {
+          req.body.promotionalValue = null;
+        }
+        if (req.body.promotionStartDate === '' || req.body.promotionStartDate === undefined) {
+          req.body.promotionStartDate = null;
+        }
+        if (req.body.promotionEndDate === '' || req.body.promotionEndDate === undefined) {
+          req.body.promotionEndDate = null;
+        }
+      }
+      
+      // VALIDAR para detectar erros de validação (ex: valor sem datas)
+      const validatedData = updateServiceSchema.parse(req.body);
+      
+      // DEPOIS da validação, se promotionalValue é explicitamente null, limpar todos os campos
+      // Isso permite remoção intencional sem mascarar erros de validação
+      if ('promotionalValue' in validatedData && validatedData.promotionalValue === null) {
+        validatedData.promotionStartDate = null;
+        validatedData.promotionEndDate = null;
+      }
+      
       const service = await storage.updateService(req.params.id, tenantId, validatedData);
       if (!service) {
         return res.status(404).json({ error: "Serviço não encontrado" });

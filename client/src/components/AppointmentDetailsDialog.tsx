@@ -19,8 +19,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, User, Briefcase, FileText, CheckCircle2, Circle, Pencil, Trash2 } from "lucide-react";
+import { Calendar, Clock, User, Briefcase, FileText, CheckCircle2, Circle, Pencil, Trash2, Tag } from "lucide-react";
 import type { AppointmentWithServices, Client, Service } from "@shared/schema";
+import { getServiceEffectiveValue, isServiceInPromotion } from "@shared/schema";
 
 interface AppointmentDetailsDialogProps {
   appointmentId: string | null;
@@ -91,7 +92,11 @@ export function AppointmentDetailsDialog({
     appointment?.serviceIds?.includes(s.id)
   );
   const totalDuration = selectedServices.reduce((sum, service) => sum + (service.duration || 60), 0);
-  const totalValue = selectedServices.reduce((sum, service) => sum + parseFloat(service.value), 0);
+  // Usar valor promocional quando aplicável
+  const totalValue = selectedServices.reduce((sum, service) => {
+    const effectiveValue = getServiceEffectiveValue(service);
+    return sum + effectiveValue;
+  }, 0);
 
   // Calcular horário de término apenas se houver duração válida
   const calculateEndTime = (startTime: string, durationMinutes: number): string | null => {
@@ -172,21 +177,40 @@ export function AppointmentDetailsDialog({
               <div className="flex-1">
                 <p className="text-sm font-medium">Serviços</p>
                 <div className="space-y-2 mt-1">
-                  {selectedServices.map((service) => (
-                    <div key={service.id} className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <p className="text-sm text-muted-foreground" data-testid={`text-service-${service.id}`}>
-                          {service.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {service.category} • {service.duration} min
-                        </p>
+                  {selectedServices.map((service) => {
+                    const inPromotion = isServiceInPromotion(service);
+                    const effectiveValue = getServiceEffectiveValue(service);
+                    return (
+                      <div key={service.id} className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm text-muted-foreground" data-testid={`text-service-${service.id}`}>
+                              {service.name}
+                            </p>
+                            {inPromotion && (
+                              <Badge variant="secondary" className="text-xs px-1.5 py-0 h-4">
+                                <Tag className="h-3 w-3 mr-0.5" />
+                                Promoção
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {service.category} • {service.duration} min
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          {inPromotion && (
+                            <p className="text-xs text-muted-foreground line-through">
+                              R$ {Number(service.value).toFixed(2).replace('.', ',')}
+                            </p>
+                          )}
+                          <p className={`text-sm font-medium ${inPromotion ? 'text-green-600 dark:text-green-400' : ''}`}>
+                            R$ {effectiveValue.toFixed(2).replace('.', ',')}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-sm font-medium">
-                        R$ {Number(service.value).toFixed(2).replace('.', ',')}
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <div className="border-t pt-2 flex items-center justify-between">
                     <p className="text-sm font-semibold">Total</p>
                     <p className="text-sm font-semibold" data-testid="text-total-value">

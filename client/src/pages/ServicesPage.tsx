@@ -21,6 +21,7 @@ import { ServiceDialog } from "@/components/ServiceDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Service } from "@shared/schema";
+import { getServiceEffectiveValue, isServiceInPromotion } from "@shared/schema";
 
 export default function ServicesPage() {
   const [showServiceDialog, setShowServiceDialog] = useState(false);
@@ -285,11 +286,34 @@ export default function ServicesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredServices.map((service) => (
-                <TableRow key={service.id} data-testid={`row-service-${service.id}`}>
-                  <TableCell className="font-medium">{service.name}</TableCell>
-                  <TableCell>{service.category}</TableCell>
-                  <TableCell>{formatCurrency(service.value)}</TableCell>
+              {filteredServices.map((service) => {
+                const inPromotion = isServiceInPromotion(service);
+                const effectiveValue = getServiceEffectiveValue(service);
+                return (
+                  <TableRow key={service.id} data-testid={`row-service-${service.id}`}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {service.name}
+                        {inPromotion && (
+                          <span className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-0.5 rounded">
+                            Promoção
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{service.category}</TableCell>
+                    <TableCell>
+                      <div>
+                        {inPromotion && (
+                          <span className="text-xs text-muted-foreground line-through block">
+                            {formatCurrency(service.value)}
+                          </span>
+                        )}
+                        <span className={inPromotion ? 'text-green-600 dark:text-green-400 font-semibold' : ''}>
+                          {formatCurrency(String(effectiveValue))}
+                        </span>
+                      </div>
+                    </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -328,7 +352,8 @@ export default function ServicesPage() {
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </div>
