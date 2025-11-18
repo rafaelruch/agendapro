@@ -1542,7 +1542,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     });
   });
   
-  // POST /api/migrations/run - Executar migrations manualmente
+  // POST /api/migrations/run - Executar migrations via drizzle-kit push
   app.post("/api/migrations/run", requireMasterAdmin, async (req, res) => {
     try {
       const { databaseUrl } = req.body;
@@ -1557,70 +1557,100 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       }
 
       const logs: string[] = [];
-      logs.push("[INFO] Iniciando migrations...");
+      logs.push("[INFO] Iniciando migrations com drizzle-kit push...");
+      logs.push(`[INFO] Database: ${databaseUrl.replace(/:[^:@]+@/, ':***@')}`); // Ocultar senha no log
 
-      // Criar conexão temporária com o banco fornecido
-      const pgPkg = await import('pg');
-      const Pool = pgPkg.default.Pool;
-      const { drizzle } = await import('drizzle-orm/node-postgres');
-      const { sql: sqlTemplate } = await import('drizzle-orm');
+      // Executar drizzle-kit push com a DATABASE_URL fornecida
+      const { spawn } = await import('child_process');
       
-      const tempPool = new Pool({ connectionString: databaseUrl });
-      const tempDb = drizzle(tempPool);
+      const drizzleProcess = spawn('npx', ['drizzle-kit', 'push'], {
+        env: {
+          ...process.env,
+          DATABASE_URL: databaseUrl,
+        },
+        shell: true,
+      });
 
-      try {
-        // SQL para criar a tabela business_hours se não existir
-        const createBusinessHoursTable = sqlTemplate.raw(`
-          CREATE TABLE IF NOT EXISTS business_hours (
-            id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
-            tenant_id VARCHAR NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-            day_of_week INTEGER NOT NULL,
-            start_time TEXT NOT NULL,
-            end_time TEXT NOT NULL,
-            active BOOLEAN NOT NULL DEFAULT true,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-        `);
+      let output = '';
+      let errorOutput = '';
 
-        const createIndexTenant = sqlTemplate.raw(`
-          CREATE INDEX IF NOT EXISTS idx_business_hours_tenant ON business_hours(tenant_id);
-        `);
+      // Capturar stdout
+      drizzleProcess.stdout?.on('data', (data) => {
+        const text = data.toString();
+        output += text;
+        console.log('[DRIZZLE]', text);
+      });
 
-        const createIndexDay = sqlTemplate.raw(`
-          CREATE INDEX IF NOT EXISTS idx_business_hours_day ON business_hours(day_of_week);
-        `);
+      // Capturar stderr
+      drizzleProcess.stderr?.on('data', (data) => {
+        const text = data.toString();
+        errorOutput += text;
+        console.error('[DRIZZLE ERROR]', text);
+      });
 
-        // Executar SQL
-        logs.push("[RUNNING] Criando tabela business_hours...");
-        await tempDb.execute(createBusinessHoursTable);
-        logs.push("[SUCCESS] Tabela business_hours criada/verificada");
-
-        logs.push("[RUNNING] Criando índices...");
-        await tempDb.execute(createIndexTenant);
-        await tempDb.execute(createIndexDay);
-        logs.push("[SUCCESS] Índices criados/verificados");
-
-        logs.push("[SUCCESS] Migrations concluídas com sucesso!");
-
-        res.json({ 
-          success: true, 
-          logs,
-          message: "Migrations executadas com sucesso!"
+      // Aguardar conclusão
+      await new Promise<void>((resolve, reject) => {
+        drizzleProcess.on('close', (code) => {
+          if (code === 0) {
+            logs.push("[SUCCESS] Drizzle-kit push executado com sucesso!");
+            logs.push("[INFO] Todas as tabelas foram criadas/atualizadas:");
+            logs.push("  ✓ tenants");
+            logs.push("  ✓ users");
+            logs.push("  ✓ clients");
+            logs.push("  ✓ services");
+            logs.push("  ✓ appointments");
+            logs.push("  ✓ appointment_services");
+            logs.push("  ✓ tenant_api_tokens");
+            logs.push("  ✓ business_hours");
+            logs.push("[SUCCESS] Schema sincronizado com o banco de dados!");
+            
+            if (output) {
+              logs.push("[OUTPUT]");
+              output.split('\n').forEach(line => {
+                if (line.trim()) logs.push(`  ${line}`);
+              });
+            }
+            
+            res.json({ 
+              success: true, 
+              logs,
+              message: "Migrations executadas com sucesso! Todas as tabelas foram criadas/atualizadas."
+            });
+            resolve();
+          } else {
+            logs.push(`[ERROR] Drizzle-kit push falhou com código: ${code}`);
+            if (errorOutput) {
+              logs.push("[ERROR OUTPUT]");
+              errorOutput.split('\n').forEach(line => {
+                if (line.trim()) logs.push(`  ${line}`);
+              });
+            }
+            if (output) {
+              logs.push("[STDOUT OUTPUT]");
+              output.split('\n').forEach(line => {
+                if (line.trim()) logs.push(`  ${line}`);
+              });
+            }
+            
+            res.status(500).json({ 
+              success: false, 
+              logs,
+              error: `Drizzle-kit push falhou. Código de saída: ${code}` 
+            });
+            reject(new Error(`Exit code ${code}`));
+          }
         });
 
-      } catch (dbError: any) {
-        logs.push(`[ERROR] Erro ao executar migrations: ${dbError.message}`);
-        console.error("Migration error:", dbError);
-        
-        res.status(500).json({ 
-          success: false, 
-          logs,
-          error: dbError.message 
+        drizzleProcess.on('error', (error) => {
+          logs.push(`[ERROR] Falha ao executar drizzle-kit: ${error.message}`);
+          res.status(500).json({ 
+            success: false, 
+            logs,
+            error: error.message 
+          });
+          reject(error);
         });
-      } finally {
-        // Sempre fechar conexão temporária
-        await tempPool.end();
-      }
+      });
 
     } catch (error: any) {
       console.error("Error running migrations:", error);
