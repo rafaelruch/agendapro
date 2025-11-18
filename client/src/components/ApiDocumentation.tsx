@@ -934,38 +934,48 @@ curl -X GET "https://seudominio.com/api/appointments/apt-123" \\
     {
       method: "POST",
       path: "/api/appointments",
-      description: "Criar um novo agendamento",
+      description: "Criar um novo agendamento. IMPORTANTE: O sistema valida automaticamente conflitos de horário. Se houver sobreposição com outro agendamento no mesmo dia e horário, retorna erro 409. Agendamentos adjacentes (ex: 10:00-11:00 seguido de 11:00-12:00) são permitidos.",
       auth: "Bearer Token",
       requestBody: `{
   "clientId": "cli-456",
-  "serviceId": "svc-789",
+  "serviceIds": ["svc-789"],
   "date": "2025-01-20",
   "time": "15:00",
-  "duration": 60,
   "status": "scheduled",
   "notes": "Observações opcionais"
 }`,
-      responseExample: `{
+      responseExample: `# Sucesso (201 Created):
+{
   "id": "apt-999",
   "clientId": "cli-456",
-  "serviceId": "svc-789",
+  "serviceIds": ["svc-789"],
   "date": "2025-01-20",
   "time": "15:00",
-  "duration": 60,
   "status": "scheduled",
   "notes": "Observações opcionais",
   "tenantId": "tenant-123",
   "createdAt": "2025-01-20T12:00:00.000Z"
+}
+
+# Erro - Conflito de Horário (409 Conflict):
+{
+  "error": "Horário indisponível",
+  "code": "APPOINTMENT_CONFLICT",
+  "details": {
+    "conflictingAppointmentId": "apt-123",
+    "conflictStart": "14:30",
+    "conflictEnd": "16:00",
+    "message": "Já existe um agendamento das 14:30 às 16:00. Próximo horário disponível: 16:00"
+  }
 }`,
       curlExample: `curl -X POST "https://seudominio.com/api/appointments" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
   -H "Content-Type: application/json" \\
   -d '{
     "clientId": "cli-456",
-    "serviceId": "svc-789",
+    "serviceIds": ["svc-789"],
     "date": "2025-01-20",
     "time": "15:00",
-    "duration": 60,
     "status": "scheduled",
     "notes": "Observações opcionais"
   }'`
@@ -973,7 +983,7 @@ curl -X GET "https://seudominio.com/api/appointments/apt-123" \\
     {
       method: "PUT",
       path: "/api/appointments",
-      description: "Atualizar um agendamento via query parameter (IDEAL PARA N8N)",
+      description: "Atualizar um agendamento via query parameter (IDEAL PARA N8N). IMPORTANTE: Ao alterar data, horário ou serviços, o sistema valida conflitos automaticamente. Retorna erro 409 se houver sobreposição com outro agendamento.",
       auth: "Bearer Token",
       queryParams: [
         { name: "id", type: "string", required: true, description: "ID do agendamento" }
@@ -982,22 +992,33 @@ curl -X GET "https://seudominio.com/api/appointments/apt-123" \\
   "date": "2025-01-25",
   "time": "16:30",
   "clientId": "cli-789",
-  "serviceId": "svc-456",
-  "duration": 90,
+  "serviceIds": ["svc-456"],
   "status": "completed",
   "notes": "Reagendado para novo horário"
 }`,
-      responseExample: `{
+      responseExample: `# Sucesso (200 OK):
+{
   "id": "apt-999",
   "clientId": "cli-789",
-  "serviceId": "svc-456",
+  "serviceIds": ["svc-456"],
   "date": "2025-01-25",
   "time": "16:30",
-  "duration": 90,
   "status": "completed",
   "notes": "Reagendado para novo horário",
   "tenantId": "tenant-123",
   "createdAt": "2025-01-20T12:00:00.000Z"
+}
+
+# Erro - Conflito de Horário (409 Conflict):
+{
+  "error": "Horário indisponível",
+  "code": "APPOINTMENT_CONFLICT",
+  "details": {
+    "conflictingAppointmentId": "apt-555",
+    "conflictStart": "16:00",
+    "conflictEnd": "17:30",
+    "message": "Já existe um agendamento das 16:00 às 17:30. Próximo horário disponível: 17:30"
+  }
 }`,
       curlExample: `# IDEAL PARA N8N - ID via query parameter
 curl -X PUT "https://seudominio.com/api/appointments?id=apt-999" \\
@@ -1007,8 +1028,7 @@ curl -X PUT "https://seudominio.com/api/appointments?id=apt-999" \\
     "date": "2025-01-25",
     "time": "16:30",
     "clientId": "cli-789",
-    "serviceId": "svc-456",
-    "duration": 90,
+    "serviceIds": ["svc-456"],
     "status": "completed",
     "notes": "Reagendado para novo horário"
   }'`
@@ -1016,7 +1036,7 @@ curl -X PUT "https://seudominio.com/api/appointments?id=apt-999" \\
     {
       method: "PUT",
       path: "/api/appointments/:id",
-      description: "Atualizar um agendamento via path parameter (alternativa)",
+      description: "Atualizar um agendamento via path parameter (alternativa). IMPORTANTE: Valida conflitos de horário ao alterar data/horário/serviços. Retorna erro 409 se houver sobreposição.",
       auth: "Bearer Token",
       parameters: [
         { name: "id", type: "string", required: true, description: "ID do agendamento" }
