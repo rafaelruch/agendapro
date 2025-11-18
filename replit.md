@@ -108,3 +108,149 @@ The frontend is built with React, TypeScript, Wouter for routing, and Tailwind C
 - **Session Management**: Express-session.
 - **Data Validation**: Zod.
 - **Integration**: N8N.
+
+## Deploy e Configuração de Produção
+
+### Variáveis de Ambiente Obrigatórias (EasyPanel/Produção)
+
+**CRÍTICO:** O sistema requer que as seguintes variáveis de ambiente estejam configuradas corretamente em produção. Sem elas, a aplicação não funcionará corretamente.
+
+#### 1. DATABASE_URL (OBRIGATÓRIA)
+A variável `DATABASE_URL` é **absolutamente crítica**. Sem ela, a aplicação usa um banco SQLite vazio temporário e todos os dados ficam invisíveis.
+
+**Configuração no EasyPanel:**
+```env
+DATABASE_URL=postgres://usuario:senha@host:5432/database?sslmode=disable
+```
+
+**Exemplo real (EasyPanel com PostgreSQL interno):**
+```env
+DATABASE_URL=postgres://postgres:fd2040ea05b8e182e878@server-geral_agenda-pro-db:5432/server-geral?sslmode=disable
+```
+
+**Importante:**
+- Esta URL deve apontar para o banco PostgreSQL correto
+- Se não configurada, a aplicação criará um banco SQLite vazio local
+- Todos os dados (clientes, serviços, agendamentos) ficarão invisíveis sem esta variável
+- Cada deploy sem DATABASE_URL criará um banco vazio novo
+
+#### 2. Variáveis de Sessão
+
+```env
+NODE_ENV=production
+SESSION_SECRET=seu-secret-muito-seguro-e-aleatorio-minimo-32-caracteres
+```
+
+**Notas:**
+- `SESSION_SECRET` deve ser uma string aleatória longa e segura
+- Nunca use o mesmo secret de desenvolvimento em produção
+- Gere usando: `openssl rand -base64 32`
+
+#### 3. Variáveis do Master Admin (Produção)
+
+```env
+MASTER_ADMIN_USERNAME=seu_usuario_admin
+MASTER_ADMIN_PASSWORD=SuaSenhaForte123!
+MASTER_ADMIN_NAME=Nome do Administrador
+MASTER_ADMIN_EMAIL=admin@seudominio.com
+```
+
+**Importante:**
+- Estas variáveis são **obrigatórias** em produção
+- O master admin só será criado se estas variáveis estiverem configuradas
+- Sem elas, você não conseguirá acessar o painel administrativo
+
+#### 4. Variáveis Opcionais
+
+```env
+# Forçar cookies seguros apenas se tiver HTTPS configurado
+FORCE_SECURE_COOKIE=false
+
+# Porta da aplicação (padrão: 5000)
+PORT=5000
+```
+
+### Processo de Deploy para EasyPanel
+
+#### Passo 1: Configurar Variáveis de Ambiente
+
+1. Acesse seu projeto no EasyPanel
+2. Vá em **Environment** ou **Variables**
+3. Adicione **todas** as variáveis listadas acima
+4. Salve as configurações
+
+#### Passo 2: Deploy da Aplicação
+
+1. Faça commit das alterações no repositório Git
+2. Push para o repositório remoto
+3. No EasyPanel, clique em **Rebuild/Redeploy**
+4. Aguarde o build e deploy finalizar
+
+#### Passo 3: Sincronizar Schema do Banco de Dados
+
+**SEMPRE** que houver mudanças no schema (`shared/schema.ts`):
+
+1. Faça login como **master admin** na aplicação em produção
+2. Acesse **Admin Master** no menu
+3. Clique na aba **Migrations**
+4. Clique no botão **"Executar db:push"**
+5. Aguarde a confirmação de sucesso
+
+**Importante:**
+- Este passo sincroniza o schema do PostgreSQL com o código
+- Cria/atualiza tabelas e colunas conforme definido em `shared/schema.ts`
+- Deve ser executado após qualquer mudança no schema
+- É seguro executar múltiplas vezes (idempotente)
+
+### Troubleshooting - Problemas Comuns
+
+#### Problema: "Dados vazios em produção"
+
+**Causa:** `DATABASE_URL` não configurada ou incorreta
+
+**Solução:**
+1. Verifique se `DATABASE_URL` está configurada no EasyPanel
+2. Confirme que a URL aponta para o banco PostgreSQL correto
+3. Redeploy da aplicação após configurar
+4. Execute migrations via painel master admin
+
+#### Problema: "Sessão não persiste após login"
+
+**Causa:** Problemas com cookies de sessão
+
+**Solução:**
+1. Verifique `SESSION_SECRET` está configurada
+2. Confirme `NODE_ENV=production`
+3. Se usar HTTPS, configure `FORCE_SECURE_COOKIE=true`
+4. Redeploy da aplicação
+
+#### Problema: "Master admin não existe"
+
+**Causa:** Variáveis de ambiente do master admin não configuradas
+
+**Solução:**
+1. Configure todas as variáveis `MASTER_ADMIN_*`
+2. Redeploy da aplicação
+3. O master admin será criado automaticamente no startup
+
+### Checklist de Deploy
+
+Antes de cada deploy em produção, confirme:
+
+- [ ] `DATABASE_URL` configurada apontando para PostgreSQL correto
+- [ ] `SESSION_SECRET` configurada com valor seguro
+- [ ] `NODE_ENV=production`
+- [ ] Variáveis `MASTER_ADMIN_*` configuradas
+- [ ] Código commitado e pushed para repositório
+- [ ] Build e deploy finalizados com sucesso
+- [ ] Migrations executadas via painel master admin (se houver mudanças no schema)
+- [ ] Login testado e funcionando
+- [ ] Dados visíveis e acessíveis
+
+### Formato de Horário (Brasil - São Paulo)
+
+A aplicação usa o padrão brasileiro de 24 horas (00:00 - 23:59):
+- ✅ **Formato correto**: 14:00, 09:30, 23:45
+- ❌ **NÃO usa**: AM/PM, 2:00 PM, etc.
+
+Os inputs HTML5 `type="time"` respeitam automaticamente o locale do navegador, exibindo formato 24h para usuários brasileiros.
