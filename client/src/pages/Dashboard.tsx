@@ -338,23 +338,31 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      {/* Stats Cards - EXATAMENTE como TailAdmin */}
+      {/* Stats Cards - EXATAMENTE como TailAdmin com Gradientes */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-4 2xl:gap-7.5">
         {/* Card 1 - Agendamentos Hoje */}
-        <div className="rounded-sm border border-stroke bg-white px-7.5 py-6 shadow-default dark:border-strokedark dark:bg-boxdark">
-          <div className="flex h-11.5 w-11.5 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
-            <Clock className="h-5 w-5 text-primary dark:text-white" />
+        <div className="relative rounded-sm bg-gradient-to-r from-[#3C50E0] to-[#6571F3] dark:from-[#1F2B6C] dark:to-[#2E3AA8] px-7.5 py-6 shadow-default overflow-hidden">
+          {/* Texture Overlay - TailAdmin Style */}
+          <div className="absolute top-0 right-0 bottom-0 left-1/3 opacity-5" style={{
+            backgroundImage: 'radial-gradient(circle at 2px 2px, white 1.5px, transparent 0)',
+            backgroundSize: '16px 16px',
+            maskImage: 'linear-gradient(to right, transparent, white 20%)',
+            WebkitMaskImage: 'linear-gradient(to right, transparent, white 20%)'
+          }}></div>
+          
+          <div className="relative flex h-11.5 w-11.5 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+            <Clock className="h-5 w-5 text-white" />
           </div>
 
-          <div className="mt-4 flex items-end justify-between">
+          <div className="relative mt-4 flex items-end justify-between">
             <div>
-              <h4 className="text-title-md font-bold text-black dark:text-white" data-testid="stat-today-appointments">
+              <h4 className="text-title-md font-bold text-white" data-testid="stat-today-appointments">
                 {stats.todayAppointments}
               </h4>
-              <span className="text-sm font-medium">Agendamentos Hoje</span>
+              <span className="text-sm font-medium text-white/90">Agendamentos Hoje</span>
             </div>
 
-            <span className="flex items-center gap-1 text-sm font-medium text-meta-3">
+            <span className="flex items-center gap-1 text-sm font-medium text-white">
               {stats.appointmentChange >= 0 ? '+' : ''}{stats.appointmentChange.toFixed(1)}%
               {stats.appointmentChange >= 0 ? (
                 <TrendingUp className="h-3.5 w-3.5" />
@@ -366,22 +374,28 @@ export default function Dashboard() {
         </div>
 
         {/* Card 2 - Receita do Mês */}
-        <div className="rounded-sm border border-stroke bg-white px-7.5 py-6 shadow-default dark:border-strokedark dark:bg-boxdark">
-          <div className="flex h-11.5 w-11.5 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
-            <DollarSign className="h-5 w-5 text-primary dark:text-white" />
+        <div className="relative rounded-sm bg-gradient-to-r from-[#10B981] to-[#34D399] dark:from-[#065F46] dark:to-[#047857] px-7.5 py-6 shadow-default overflow-hidden">
+          {/* Texture Overlay - TailAdmin Style */}
+          <div className="absolute top-0 right-0 bottom-0 left-1/3 opacity-5" style={{
+            backgroundImage: 'radial-gradient(circle at 2px 2px, white 1.5px, transparent 0)',
+            backgroundSize: '16px 16px',
+            maskImage: 'linear-gradient(to right, transparent, white 20%)',
+            WebkitMaskImage: 'linear-gradient(to right, transparent, white 20%)'
+          }}></div>
+          
+          <div className="relative flex h-11.5 w-11.5 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+            <DollarSign className="h-5 w-5 text-white" />
           </div>
 
-          <div className="mt-4 flex items-end justify-between">
+          <div className="relative mt-4 flex items-end justify-between">
             <div>
-              <h4 className="text-title-md font-bold text-black dark:text-white" data-testid="stat-revenue">
+              <h4 className="text-title-md font-bold text-white" data-testid="stat-revenue">
                 R$ {(stats.currentMonthRevenue / 1000).toFixed(1)}k
               </h4>
-              <span className="text-sm font-medium">Receita do Mês</span>
+              <span className="text-sm font-medium text-white/90">Receita do Mês</span>
             </div>
 
-            <span className={`flex items-center gap-1 text-sm font-medium ${
-              stats.revenueChange >= 0 ? 'text-meta-3' : 'text-meta-1'
-            }`}>
+            <span className="flex items-center gap-1 text-sm font-medium text-white">
               {stats.revenueChange >= 0 ? '+' : ''}{stats.revenueChange.toFixed(1)}%
               {stats.revenueChange >= 0 ? (
                 <TrendingUp className="h-3.5 w-3.5" />
@@ -393,20 +407,28 @@ export default function Dashboard() {
         </div>
 
         {/* Card 3 - Clientes Ativos */}
-        <div className="rounded-sm border border-stroke bg-white px-7.5 py-6 shadow-default dark:border-strokedark dark:bg-boxdark">
-          <div className="flex h-11.5 w-11.5 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
-            <Users className="h-5 w-5 text-primary dark:text-white" />
+        <div className="relative rounded-sm bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] dark:from-[#92400E] dark:to-[#B45309] px-7.5 py-6 shadow-default overflow-hidden">
+          {/* Texture Overlay - TailAdmin Style */}
+          <div className="absolute top-0 right-0 bottom-0 left-1/3 opacity-5" style={{
+            backgroundImage: 'radial-gradient(circle at 2px 2px, white 1.5px, transparent 0)',
+            backgroundSize: '16px 16px',
+            maskImage: 'linear-gradient(to right, transparent, white 20%)',
+            WebkitMaskImage: 'linear-gradient(to right, transparent, white 20%)'
+          }}></div>
+          
+          <div className="relative flex h-11.5 w-11.5 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+            <Users className="h-5 w-5 text-white" />
           </div>
 
-          <div className="mt-4 flex items-end justify-between">
+          <div className="relative mt-4 flex items-end justify-between">
             <div>
-              <h4 className="text-title-md font-bold text-black dark:text-white" data-testid="stat-active-clients">
+              <h4 className="text-title-md font-bold text-white" data-testid="stat-active-clients">
                 {stats.activeClients}
               </h4>
-              <span className="text-sm font-medium">Clientes Ativos</span>
+              <span className="text-sm font-medium text-white/90">Clientes Ativos</span>
             </div>
 
-            <span className="flex items-center gap-1 text-sm font-medium text-meta-3">
+            <span className="flex items-center gap-1 text-sm font-medium text-white">
               +0.43%
               <TrendingUp className="h-3.5 w-3.5" />
             </span>
@@ -414,20 +436,28 @@ export default function Dashboard() {
         </div>
 
         {/* Card 4 - Concluídos */}
-        <div className="rounded-sm border border-stroke bg-white px-7.5 py-6 shadow-default dark:border-strokedark dark:bg-boxdark">
-          <div className="flex h-11.5 w-11.5 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
-            <CheckCircle2 className="h-5 w-5 text-primary dark:text-white" />
+        <div className="relative rounded-sm bg-gradient-to-r from-[#8B5CF6] to-[#A78BFA] dark:from-[#5B21B6] dark:to-[#6D28D9] px-7.5 py-6 shadow-default overflow-hidden">
+          {/* Texture Overlay - TailAdmin Style */}
+          <div className="absolute top-0 right-0 bottom-0 left-1/3 opacity-5" style={{
+            backgroundImage: 'radial-gradient(circle at 2px 2px, white 1.5px, transparent 0)',
+            backgroundSize: '16px 16px',
+            maskImage: 'linear-gradient(to right, transparent, white 20%)',
+            WebkitMaskImage: 'linear-gradient(to right, transparent, white 20%)'
+          }}></div>
+          
+          <div className="relative flex h-11.5 w-11.5 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+            <CheckCircle2 className="h-5 w-5 text-white" />
           </div>
 
-          <div className="mt-4 flex items-end justify-between">
+          <div className="relative mt-4 flex items-end justify-between">
             <div>
-              <h4 className="text-title-md font-bold text-black dark:text-white" data-testid="stat-completed">
+              <h4 className="text-title-md font-bold text-white" data-testid="stat-completed">
                 {stats.completedCount}
               </h4>
-              <span className="text-sm font-medium">Concluídos</span>
+              <span className="text-sm font-medium text-white/90">Concluídos</span>
             </div>
 
-            <span className="flex items-center gap-1 text-sm font-medium text-meta-3">
+            <span className="flex items-center gap-1 text-sm font-medium text-white">
               +2.59%
               <TrendingUp className="h-3.5 w-3.5" />
             </span>

@@ -21,19 +21,72 @@ The system employs a multi-tenant SaaS architecture with a distinct separation b
 ### UI/UX Decisions
 The frontend uses React, TypeScript, Wouter for routing, and Tailwind CSS with Shadcn UI for a modern, responsive design, including light and dark themes. Key UI components include dedicated pages for authentication, administration, dashboards, calendar views, client/service/user management, and system settings.
 
-**Dashboard Layout (TailAdmin CRM inspired):**
-- **Stats Cards**: 4 cards showing key metrics (Agendamentos Hoje, Receita do Mês, Clientes Ativos, Agendamentos Concluídos) with trend indicators
-  - Revenue calculations respect promotional pricing based on appointment date (using date-fns parseISO)
-  - Percentage changes compare current vs previous month with proper date parsing
-  - Safe fallbacks for missing data (appointments without services, unknown clients)
-- **Area Chart**: Visual representation of appointments over the last 30 days using Recharts
-- **Top Services**: Progress bars showing the 3 most popular services with percentage and count
-- **Upcoming Appointments**: List of next 5 future appointments with client avatars and service names
-- **Recent Appointments Table**: Interactive table with 5 most recent appointments
-  - Edit button to modify appointment details
-  - Complete button (✓) to mark scheduled appointments as completed
-  - Status badges (Completo, Agendado, Cancelado)
-  - Client avatars with initials
+**IMPORTANT: TailAdmin CRM EXACT Replication:**
+The dashboard layout and styling are EXACTLY replicated from TailAdmin CRM template, not just "inspired". This ensures professional, production-ready UI/UX.
+
+**TailAdmin Exact Colors (CSS Variables):**
+- Primary: `#3C50E0` (HSL: 231 71% 56%) - TailAdmin exact blue
+- Success/meta-3: `#10B981`
+- Warning/meta-2: `#FFA500`
+- Stroke: `#E2E8F0`
+- Boxdark: `#24303F`
+- All color tokens updated in `client/src/index.css` for both light and dark modes
+
+**Header (EXACT TailAdmin):**
+- Search bar on the left side
+- Notifications, Messages, and Profile dropdowns on the right side
+- TailAdmin classes: `border-stroke dark:border-strokedark bg-white dark:bg-boxdark`
+- Sticky positioning with z-index 999
+- Shadow and border styling matching TailAdmin exactly
+
+**Sidebar (EXACT TailAdmin):**
+- Logo with version badge "v1.0"
+- Menu groups: MENU, GESTÃO, ADMINISTRAÇÃO (uppercase labels)
+- TailAdmin exact spacing: `px-4 py-4`, `px-6 py-5.5`
+- Hover states: `hover:bg-graydark dark:hover:bg-meta-4`
+- Active state highlighting with `bg-sidebar-accent`
+
+**Dashboard Stats Cards (EXACT TailAdmin with Gradients):**
+- 4 gradient cards with EXACT TailAdmin color schemes:
+  1. Agendamentos Hoje: Blue gradient `from-[#3C50E0] to-[#6571F3]`
+  2. Receita do Mês: Green gradient `from-[#10B981] to-[#34D399]`
+  3. Clientes Ativos: Orange gradient `from-[#F59E0B] to-[#FBBF24]`
+  4. Concluídos: Purple gradient `from-[#8B5CF6] to-[#A78BFA]`
+- Icons in semi-transparent white circles: `bg-white/20 backdrop-blur-sm`
+- White text: `text-white` with `text-white/90` for labels
+- Texture overlay: Dotted pattern on top-right quadrant with mask and gradient fade
+- TailAdmin exact spacing: `px-7.5 py-6`
+- Dark mode variants for all gradients
+- Revenue calculations respect promotional pricing based on appointment date (using date-fns parseISO)
+- Percentage changes compare current vs previous month with proper date parsing
+- Safe fallbacks for missing data (appointments without services, unknown clients)
+
+**Statistics Chart (EXACT TailAdmin):**
+- Tabs: Dia/Semana/Mês with TailAdmin styling (`bg-whiter dark:bg-meta-4`)
+- Area chart with TailAdmin color #3C50E0
+- CartesianGrid with `stroke="#E2E8F0"` and `vertical={false}`
+- Chart container: `px-5 pb-5 pt-7.5 shadow-default`
+
+**Top Services (EXACT TailAdmin):**
+- Progress bars showing 3 most popular services
+- TailAdmin layout with `gap-5` spacing
+- Progress bar height: `h-1.5` with `bg-stroke dark:bg-strokedark`
+- Color-coded dots and percentages
+
+**Recent Appointments Table (EXACT TailAdmin Grid Layout):**
+- Grid-based layout: `grid-cols-3 sm:grid-cols-5`
+- Header background: `bg-gray-2 dark:bg-meta-4`
+- Row padding: `p-2.5 xl:p-5`
+- Rounded avatars: `h-12 w-12 rounded-full`
+- Border between rows: `border-b border-stroke dark:border-strokedark`
+- Edit and Complete buttons with hover states
+- Status badges: Completo (green), Agendado (secondary), Cancelado (destructive)
+
+**Custom TailAdmin Classes Added to tailwind.config.ts:**
+- Spacing: `7.5`, `11.5`, `4.5`, `5.5`, `1.5`, `2.5`
+- Typography: `text-title-md`, `text-title-lg`, `text-title-xl`, etc.
+- Heights/Widths: `h-11.5`, `w-11.5`, `w-125` (31.25rem)
+- Shadow variants: `shadow-default`, `shadow-card`, `shadow-drop-down`
 - All metrics update in real-time with proper date parsing and promotional price calculations
 
 ### Technical Implementations
