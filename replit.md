@@ -6,6 +6,15 @@ AgendaPro is a multi-tenant SaaS system designed for appointment management. It 
 ## User Preferences
 I prefer simple language and clear explanations. I want iterative development with frequent, small updates. Please ask for my approval before making any major architectural changes or significant feature implementations. Ensure all code is well-documented and follows best practices.
 
+**IMPORTANT: Documentation Update Rule**
+Whenever ANY new feature or implementation is added to the system, it MUST be documented in the Master Admin API Documentation (`client/src/components/ApiDocumentation.tsx`). This ensures that:
+1. All API endpoints are properly documented with examples
+2. Integration tools like N8N have accurate reference documentation
+3. Future development is easier with up-to-date API documentation
+4. The development process is more efficient and organized
+
+Always update the API documentation immediately after implementing new features, endpoints, or modifying existing functionality.
+
 ## Design System & Component Libraries
 
 ### Component Libraries (Already Installed)
