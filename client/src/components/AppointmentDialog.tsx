@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { QuickClientDialog } from "./QuickClientDialog";
 
 interface Client {
   id: string;
@@ -271,6 +272,17 @@ export function AppointmentDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <QuickClientDialog
+        open={showQuickClientDialog}
+        onOpenChange={setShowQuickClientDialog}
+        onClientCreated={(clientId) => {
+          setFormData({ ...formData, clientId });
+          if (onClientCreated) {
+            onClientCreated();
+          }
+        }}
+      />
     </Dialog>
   );
 }
