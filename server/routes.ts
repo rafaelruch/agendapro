@@ -204,42 +204,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Regenerar sessão para segurança e garantir persistência em produção
-      req.session.regenerate((err) => {
+      // Salvar dados na sessão existente (sem regenerate para evitar problemas com proxy)
+      req.session.userId = user.id;
+      req.session.tenantId = user.tenantId ?? undefined;
+      req.session.role = user.role;
+      req.session.username = user.username;
+
+      // Log temporário para debug em produção
+      console.log(`[LOGIN] User: ${user.username}, Role: ${user.role}, TenantId: ${user.tenantId || 'null'}, SessionID: ${req.sessionID}`);
+
+      // Salvar sessão explicitamente antes de responder
+      req.session.save((err) => {
         if (err) {
-          console.error("Erro ao regenerar sessão:", err);
-          return res.status(500).json({ error: "Erro ao criar sessão" });
+          console.error("Erro ao salvar sessão:", err);
+          return res.status(500).json({ error: "Erro ao salvar sessão" });
         }
 
-        // Salvar dados na sessão
-        req.session.userId = user.id;
-        req.session.tenantId = user.tenantId ?? undefined;
-        req.session.role = user.role;
-        req.session.username = user.username;
-
-        // Log temporário para debug em produção
-        console.log(`[LOGIN] User: ${user.username}, Role: ${user.role}, TenantId: ${user.tenantId || 'null'}`);
-
-        // Salvar sessão explicitamente antes de responder
-        req.session.save((err) => {
-          if (err) {
-            console.error("Erro ao salvar sessão:", err);
-            return res.status(500).json({ error: "Erro ao salvar sessão" });
-          }
-
-          res.json({ 
-            user: { 
-              id: user.id, 
-              username: user.username, 
-              name: user.name, 
-              role: user.role,
-              tenantId: user.tenantId
-            },
-            tenant: tenant ? {
-              id: tenant.id,
-              name: tenant.name
-            } : null
-          });
+        res.json({ 
+          user: { 
+            id: user.id, 
+            username: user.username, 
+            name: user.name, 
+            role: user.role,
+            tenantId: user.tenantId
+          },
+          tenant: tenant ? {
+            id: tenant.id,
+            name: tenant.name
+          } : null
         });
       });
     } catch (error) {
