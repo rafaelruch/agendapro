@@ -940,7 +940,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/services - List all services of current tenant
   app.get("/api/services", authenticateRequest, async (req, res) => {
     try {
-      const tenantId = getTenantId(req)!;
+      const user = req.user!;
+      let tenantId: string | null;
+
+      if (user.role === 'master_admin') {
+        tenantId = req.query.tenantId as string || null;
+        if (!tenantId) {
+          return res.status(400).json({ 
+            error: "Master admin deve especificar tenantId via query param: ?tenantId=..." 
+          });
+        }
+      } else {
+        tenantId = getTenantId(req)!;
+      }
+
       const search = req.query.search as string;
       let services;
       
