@@ -49,3 +49,187 @@ The frontend uses React, TypeScript, Wouter for routing, and Tailwind CSS with S
 - **Session Management**: Express-session.
 - **Data Validation**: Zod.
 - **Integration**: N8N.
+
+## Deployment Guide - EasyPanel
+
+### Configuração de Variáveis de Ambiente
+
+#### 1. DATABASE_URL (Obrigatória)
+
+A variável `DATABASE_URL` é **CRÍTICA** para o funcionamento correto em produção.
+
+```env
+DATABASE_URL=postgres://usuario:senha@host:5432/database?sslmode=disable
+```
+
+**Exemplo real (EasyPanel):**
+```
+postgres://postgres:fd2040ea05b8e182e878@server-geral_agenda-pro-db:5432/server-geral?sslmode=disable
+```
+
+**IMPORTANTE:**
+- Sem esta variável, a aplicação criará um banco SQLite vazio em memória
+- Isso faz com que **todos os dados pareçam ter sumido**, mas na verdade estão intactos no PostgreSQL
+- Sempre configure esta variável ANTES do primeiro deploy
+
+#### 2. Session & Node Environment (Obrigatórias)
+
+```env
+NODE_ENV=production
+SESSION_SECRET=seu-secret-muito-seguro-e-aleatorio-minimo-32-caracteres
+```
+
+**Notas:**
+- `SESSION_SECRET`: String aleatória longa e segura. Gere usando: `openssl rand -base64 32`
+- Nunca use o mesmo secret de desenvolvimento em produção
+
+#### 3. Master Admin (Obrigatórias em Produção)
+
+```env
+MASTER_ADMIN_USERNAME=seu_usuario_admin
+MASTER_ADMIN_PASSWORD=SuaSenhaForte123!
+MASTER_ADMIN_NAME=Nome do Administrador
+MASTER_ADMIN_EMAIL=admin@seudominio.com
+```
+
+**IMPORTANTE:**
+- Estas variáveis são **obrigatórias** em produção
+- O master admin só será criado se todas estiverem configuradas
+- Sem elas, você não conseguirá acessar o painel administrativo
+
+#### 4. Variáveis Opcionais
+
+```env
+# Forçar cookies seguros (mantenha false para EasyPanel)
+FORCE_SECURE_COOKIE=false
+
+# Porta da aplicação (padrão: 5000)
+PORT=5000
+```
+
+### Processo de Deploy Completo
+
+#### Passo 1: Configurar Variáveis de Ambiente
+
+1. Acesse seu projeto no EasyPanel
+2. Vá em **Environment** ou **Variables**
+3. Adicione **todas** as variáveis listadas acima
+4. Salve as configurações
+
+#### Passo 2: Deploy da Aplicação
+
+1. Faça commit das alterações no repositório Git
+2. Push para o repositório remoto
+3. No EasyPanel, clique em **Rebuild/Redeploy**
+4. Aguarde o build e deploy finalizar
+
+#### Passo 3: Executar Migrations para Criar Tabelas
+
+**Este passo é OBRIGATÓRIO na primeira vez e sempre que houver mudanças no schema!**
+
+##### Via Painel Master Admin (Recomendado):
+
+1. Acesse a aplicação em produção via navegador
+2. Faça login como **Master Admin** usando as credenciais configuradas
+3. Clique em **Admin Master** no menu lateral
+4. Clique na aba **Migrations**
+5. Cole a **DATABASE_URL completa** no campo
+6. Clique em **"Executar db:push"**
+7. Aguarde até ver a mensagem de sucesso com todas as tabelas criadas:
+   ```
+   ✓ tenants
+   ✓ users
+   ✓ clients
+   ✓ services
+   ✓ appointments
+   ✓ appointment_services
+   ✓ tenant_api_tokens
+   ✓ business_hours
+   ```
+
+**Importante:**
+- Este processo cria **TODAS** as tabelas automaticamente
+- É seguro executar múltiplas vezes (usa `CREATE TABLE IF NOT EXISTS`)
+- Não apaga dados existentes
+- Leva cerca de 2-5 segundos para completar
+
+### Troubleshooting - Problemas Comuns
+
+#### ❌ Problema: "Dados vazios em produção" ou "Tabelas não existem"
+
+**Sintomas:**
+- Login funciona mas dashboard está vazio
+- Erros no log: `relation "services" does not exist`
+- Erros no log: `relation "business_hours" does not exist`
+
+**Causa:** Tabelas não foram criadas no banco PostgreSQL
+
+**Solução:**
+1. Confirme que `DATABASE_URL` está configurada corretamente
+2. Execute migrations via painel master admin (Passo 3 acima)
+3. Verifique os logs de sucesso mostrando todas as tabelas criadas
+4. Faça logout e login novamente
+
+#### ❌ Problema: "Sessão não persiste após login"
+
+**Sintomas:**
+- Login aparenta funcionar mas usuário continua deslogado
+- Dados não aparecem mesmo após login
+
+**Causa:** Problemas com cookies de sessão ou proxy HTTPS
+
+**Solução:**
+1. Verifique que `SESSION_SECRET` está configurada
+2. Confirme `NODE_ENV=production`
+3. **Mantenha `FORCE_SECURE_COOKIE=false`** - O EasyPanel usa proxy HTTPS
+4. Redeploy da aplicação
+5. Faça logout completo (limpe cookies do navegador)
+6. Faça login novamente
+
+**Nota Técnica:**
+- A aplicação foi otimizada para proxies HTTPS (EasyPanel)
+- Login não usa `session.regenerate()` para evitar problemas de sincronização
+- Configuração: `secure: false`, `sameSite: 'lax'`, com `trust proxy` habilitado
+
+#### ❌ Problema: "Master admin não existe"
+
+**Causa:** Variáveis de ambiente do master admin não configuradas
+
+**Solução:**
+1. Configure todas as variáveis `MASTER_ADMIN_*`
+2. Redeploy da aplicação
+3. O master admin será criado automaticamente no startup
+
+### Checklist de Deploy
+
+Antes de cada deploy em produção, confirme:
+
+- [ ] `DATABASE_URL` configurada com URL do PostgreSQL correto
+- [ ] `SESSION_SECRET` configurada (mínimo 32 caracteres aleatórios)
+- [ ] `NODE_ENV=production`
+- [ ] Todas as variáveis `MASTER_ADMIN_*` configuradas
+- [ ] `FORCE_SECURE_COOKIE=false` (para EasyPanel)
+- [ ] Após primeiro deploy: Executar migrations via painel master admin
+- [ ] Testar login como master admin
+- [ ] Criar primeiro tenant e usuário admin
+- [ ] Testar login como admin do tenant
+- [ ] Verificar que dados aparecem corretamente
+
+### URL da DATABASE_URL no EasyPanel
+
+**Formato geral:**
+```
+postgres://[usuario]:[senha]@[host]:[porta]/[database]?sslmode=disable
+```
+
+**Exemplo real:**
+```
+postgres://postgres:fd2040ea05b8e182e878@server-geral_agenda-pro-db:5432/server-geral?sslmode=disable
+```
+
+**Como obter a URL:**
+1. No EasyPanel, vá até o serviço do banco de dados
+2. Procure por "Connection String" ou "DATABASE_URL"
+3. Copie a URL completa
+4. Cole nas variáveis de ambiente da aplicação
+5. Use a mesma URL no painel de migrations
