@@ -1736,6 +1736,66 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
+  // ===========================================
+  // ROTAS DE CORREÇÃO DE DADOS (MASTER ADMIN)
+  // ===========================================
+  
+  // GET /api/admin/orphan-appointments/:tenantId - Listar agendamentos sem serviços
+  app.get("/api/admin/orphan-appointments/:tenantId", requireMasterAdmin, async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+      
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant ID é obrigatório" });
+      }
+      
+      const orphans = await storage.findOrphanAppointments(tenantId);
+      
+      res.json({
+        count: orphans.length,
+        appointments: orphans
+      });
+    } catch (error: any) {
+      console.error("Error finding orphan appointments:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar agendamentos órfãos" });
+    }
+  });
+  
+  // POST /api/admin/fix-orphan-appointments/:tenantId - Corrigir agendamentos sem serviços
+  app.post("/api/admin/fix-orphan-appointments/:tenantId", requireMasterAdmin, async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+      const { defaultServiceId } = req.body;
+      
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant ID é obrigatório" });
+      }
+      
+      if (!defaultServiceId) {
+        return res.status(400).json({ error: "ID do serviço padrão é obrigatório" });
+      }
+      
+      const result = await storage.fixOrphanAppointments(tenantId, defaultServiceId);
+      
+      if (result.errors.length > 0) {
+        console.warn("Errors during fix:", result.errors);
+      }
+      
+      res.json({
+        success: true,
+        fixed: result.fixed,
+        errors: result.errors,
+        message: `${result.fixed} agendamento(s) corrigido(s) com sucesso`
+      });
+    } catch (error: any) {
+      console.error("Error fixing orphan appointments:", error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message || "Erro ao corrigir agendamentos órfãos" 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -109,6 +109,10 @@ export interface IStorage {
   getAllAppointmentsAdmin(): Promise<Appointment[]>;
   getAppointmentAdmin(id: string): Promise<Appointment | undefined>;
   updateAppointmentAdmin(id: string, appointment: Partial<InsertAppointment>): Promise<Appointment | undefined>;
+  
+  // Data correction operations
+  findOrphanAppointments(tenantId: string): Promise<Appointment[]>;
+  fixOrphanAppointments(tenantId: string, defaultServiceId: string): Promise<{ fixed: number; errors: string[] }>;
 }
 
 export class DbStorage implements IStorage {
@@ -920,6 +924,63 @@ export class DbStorage implements IStorage {
       .where(eq(appointments.id, id))
       .returning();
     return result[0];
+  }
+  
+  async findOrphanAppointments(tenantId: string): Promise<Appointment[]> {
+    const allAppointments = await db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.tenantId, tenantId))
+      .orderBy(desc(appointments.date), desc(appointments.time));
+    
+    const orphans: Appointment[] = [];
+    
+    for (const apt of allAppointments) {
+      const linkedServices = await db
+        .select()
+        .from(appointmentServices)
+        .where(eq(appointmentServices.appointmentId, apt.id))
+        .limit(1);
+      
+      if (linkedServices.length === 0) {
+        orphans.push(apt);
+      }
+    }
+    
+    return orphans;
+  }
+  
+  async fixOrphanAppointments(tenantId: string, defaultServiceId: string): Promise<{ fixed: number; errors: string[] }> {
+    const serviceExists = await db
+      .select()
+      .from(services)
+      .where(and(eq(services.id, defaultServiceId), eq(services.tenantId, tenantId)))
+      .limit(1);
+    
+    if (serviceExists.length === 0) {
+      return {
+        fixed: 0,
+        errors: ['Serviço padrão não encontrado ou não pertence ao tenant']
+      };
+    }
+    
+    const orphans = await this.findOrphanAppointments(tenantId);
+    const errors: string[] = [];
+    let fixed = 0;
+    
+    for (const apt of orphans) {
+      try {
+        await db.insert(appointmentServices).values({
+          appointmentId: apt.id,
+          serviceId: defaultServiceId,
+        });
+        fixed++;
+      } catch (error) {
+        errors.push(`Erro ao corrigir agendamento ${apt.id}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      }
+    }
+    
+    return { fixed, errors };
   }
 }
 

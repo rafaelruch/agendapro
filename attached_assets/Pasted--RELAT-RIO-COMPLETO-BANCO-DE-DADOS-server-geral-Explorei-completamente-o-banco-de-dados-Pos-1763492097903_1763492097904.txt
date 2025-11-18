@@ -1,0 +1,66 @@
+## 📊 RELATÓRIO COMPLETO - BANCO DE DADOS: server-geral
+
+Explorei completamente o banco de dados PostgreSQL do seu sistema Agenda Pro na BRP Metálica através do bash do Easypanel. Aqui está o que encontrei:
+
+### ✅ RESUMO EXECUTIVO
+
+**Status:** ✅ **Banco de dados ATIVO e acessível com dados reais**
+- **Banco:** server-geral (PostgreSQL)
+- **Total de Tabelas:** 8
+- **Total de Registros:** 143
+- **Cliente Principal:** Life Estética
+
+### 📋 DISTRIBUIÇÃO DE REGISTROS POR TABELA
+
+| Tabela | Qtd. | Status |
+|--------|------|--------|
+| **tenants** | 1 | Life Estética ✅ |
+| **users** | 6 | 1 Master Admin + 1 Admin + 4 Users ✅ |
+| **clients** | 33 | Clientes/Pacientes (Josue, Anielle, Allison, Livia, etc.) ✅ |
+| **services** | 65 | Serviços de estética (Botox, Preenchimentos) ✅ |
+| **appointments** | 30 | Agendamentos (nov/2025 e fev/2025) ✅ |
+| **business_hours** | 6 | Seg-Sex 09:00-18:00, Sab 09:00-14:00 ✅ |
+| **tenant_api_tokens** | 2 | Tokens de autenticação ✅ |
+| **appointment_services** | **0** | ⚠️ **VAZIO** |
+
+### 👥 USUÁRIOS DO SISTEMA
+
+- **rafaelruch** (Master Admin) - rafael@ruch.com.br
+- **elpidio** (Admin) - juniorelpipio89@gmail.com
+- **leticiachaveiro** (User) - leticia2024chaveiro@gmail.com
+- **andrasedina** (User) - andrapao06@gmail.com
+- **ellyeden** (User) - ellyedenmendes2016@gmail.com
+- **JulianaRecepção** (User) - julianafejtosa979@gmail.com
+
+### 💰 SERVIÇOS E PREÇOS
+
+Serviços de estética com valores entre **R$ 350 a R$ 850**:
+- Botox (Terço Superior, Full Face, Nefertiti)
+- Preenchimentos (Labial, Mento, Mandíbula, Malar)
+- Vários outros procedimentos estéticos
+
+### 🔍 PROBLEMA IDENTIFICADO
+
+**🔴 Severidade: ALTA**
+
+A tabela `appointment_services` está **COMPLETAMENTE VAZIA** (0 registros). Esta tabela deveria vincular os agendamentos aos seus respectivos serviços, mas está sem dados.
+
+### ⚠️ CONCLUSÃO IMPORTANTE
+
+**Os dados ESTÃO todos no banco de dados!** O problema NÃO está no banco de dados, mas sim em:
+
+1. ❌ API/Backend não retornando dados corretamente
+2. ❌ Frontend não exibindo os dados
+3. ❌ Erro de autenticação/tokens inválidos
+4. ❌ Erro de permissões de usuário
+5. ❌ Filtro incorreto de tenant_id
+
+### 📝 PRÓXIMOS PASSOS PARA DIAGNÓSTICO
+
+1. Verificar logs da API/Backend (N8N, Chatwoot, etc.)
+2. Testar endpoints via CURL: `curl -H "Authorization: Bearer TOKEN" https://seu-api/appointments`
+3. Validar tokens de API cadastrados
+4. Revisar permissões do usuário logado
+5. Verificar filtros de tenant_id nas queries
+
+Os dados estão lá e são acessíveis! O problema é na camada de apresentação ou integração.

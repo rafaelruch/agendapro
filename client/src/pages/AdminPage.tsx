@@ -39,6 +39,9 @@ export default function AdminPage() {
   const [tokenTenantId, setTokenTenantId] = useState<string>("");
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
+  const [correctionTenantId, setCorrectionTenantId] = useState<string>("");
+  const [defaultServiceId, setDefaultServiceId] = useState<string>("");
+  const [orphanCount, setOrphanCount] = useState<number | null>(null);
 
   const { data: tenants = [], isLoading } = useQuery<Tenant[]>({
     queryKey: ["/api/admin/tenants"],
@@ -229,6 +232,81 @@ export default function AdminPage() {
     createTokenMutation.mutate({ tenantId: tokenTenantId, label: tokenLabel });
   };
 
+  const checkOrphansMutation = useMutation({
+    mutationFn: async (tenantId: string) => {
+      const res = await apiRequest("GET", `/api/admin/orphan-appointments/${tenantId}`);
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      setOrphanCount(data.count);
+      toast({
+        title: `${data.count} agendamento(s) órfão(s)`,
+        description: data.count > 0 ? "Encontrados agendamentos sem serviços associados" : "Todos os agendamentos estão corretos",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao verificar",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const fixOrphansMutation = useMutation({
+    mutationFn: async ({ tenantId, defaultServiceId }: { tenantId: string; defaultServiceId: string }) => {
+      const res = await apiRequest("POST", `/api/admin/fix-orphan-appointments/${tenantId}`, { defaultServiceId });
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      setOrphanCount(null);
+      toast({
+        title: "Correção concluída!",
+        description: data.message,
+      });
+      setDefaultServiceId("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao corrigir",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCheckOrphans = () => {
+    if (!correctionTenantId) {
+      toast({
+        title: "Erro",
+        description: "Selecione um tenant primeiro",
+        variant: "destructive",
+      });
+      return;
+    }
+    checkOrphansMutation.mutate(correctionTenantId);
+  };
+
+  const handleFixOrphans = () => {
+    if (!correctionTenantId) {
+      toast({
+        title: "Erro",
+        description: "Selecione um tenant primeiro",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!defaultServiceId.trim()) {
+      toast({
+        title: "Erro",
+        description: "Digite o ID do serviço padrão",
+        variant: "destructive",
+      });
+      return;
+    }
+    fixOrphansMutation.mutate({ tenantId: correctionTenantId, defaultServiceId });
+  };
+
   if (isLoading) {
     return <div className="p-6">Carregando...</div>;
   }
@@ -241,11 +319,12 @@ export default function AdminPage() {
       </div>
 
       <Tabs defaultValue="tenants" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="tenants">Tenants</TabsTrigger>
           <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
           <TabsTrigger value="tokens">Tokens de API</TabsTrigger>
           <TabsTrigger value="migrations">Migrations</TabsTrigger>
+          <TabsTrigger value="correction">Correção</TabsTrigger>
           <TabsTrigger value="docs">Documentação API</TabsTrigger>
         </TabsList>
 
@@ -333,9 +412,8 @@ export default function AdminPage() {
                     <TableHead>Data</TableHead>
                     <TableHead>Horário</TableHead>
                     <TableHead>Cliente ID</TableHead>
-                    <TableHead>Serviço ID</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Tenant ID</TableHead>
+                    <TableHead>Tenant</TableHead>
                     <TableHead className="w-[70px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -351,9 +429,6 @@ export default function AdminPage() {
                         <TableCell>{formatDate(appointment.date)}</TableCell>
                         <TableCell>{appointment.time}</TableCell>
                         <TableCell className="font-mono text-xs">{appointment.clientId.substring(0, 8)}...</TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {appointment.serviceId ? `${appointment.serviceId.substring(0, 8)}...` : '-'}
-                        </TableCell>
                         <TableCell>
                           <Badge variant={appointment.status === 'completed' ? 'secondary' : 'default'}>
                             {appointment.status === 'completed' ? 'Concluído' : appointment.status === 'scheduled' ? 'Agendado' : 'Cancelado'}
@@ -507,6 +582,102 @@ export default function AdminPage() {
 
         <TabsContent value="migrations" className="mt-6">
           <MigrationsPanel />
+        </TabsContent>
+
+        <TabsContent value="correction" className="mt-6 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Correção de Agendamentos Órfãos</CardTitle>
+              <CardDescription>
+                Agendamentos órfãos são agendamentos que não possuem nenhum serviço associado.
+                Isso pode acontecer quando dados são importados incorretamente ou há problemas na criação.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Como funciona:</strong>
+                  <ol className="list-decimal list-inside mt-2 space-y-1">
+                    <li>Selecione o tenant que deseja verificar</li>
+                    <li>Clique em "Verificar Órfãos" para ver quantos agendamentos estão sem serviços</li>
+                    <li>Se houver órfãos, digite o ID de um serviço padrão para associar</li>
+                    <li>Clique em "Corrigir Órfãos" para aplicar a correção</li>
+                  </ol>
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="correction-tenant">Selecione o Tenant</Label>
+                  <Select value={correctionTenantId} onValueChange={setCorrectionTenantId}>
+                    <SelectTrigger id="correction-tenant" data-testid="select-correction-tenant">
+                      <SelectValue placeholder="Selecione um tenant..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tenants.map((tenant) => (
+                        <SelectItem key={tenant.id} value={tenant.id}>
+                          {tenant.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleCheckOrphans}
+                    disabled={!correctionTenantId || checkOrphansMutation.isPending}
+                    data-testid="button-check-orphans"
+                  >
+                    {checkOrphansMutation.isPending ? "Verificando..." : "Verificar Órfãos"}
+                  </Button>
+                  
+                  {orphanCount !== null && (
+                    <Badge variant={orphanCount > 0 ? "destructive" : "default"} className="text-base px-4 py-2">
+                      {orphanCount} órfão(s) encontrado(s)
+                    </Badge>
+                  )}
+                </div>
+
+                {orphanCount !== null && orphanCount > 0 && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>Atenção:</strong> Encontrados {orphanCount} agendamento(s) sem serviços associados.
+                        Digite o ID de um serviço padrão para associar a todos eles.
+                      </AlertDescription>
+                    </Alert>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="default-service-id">ID do Serviço Padrão</Label>
+                      <Input
+                        id="default-service-id"
+                        value={defaultServiceId}
+                        onChange={(e) => setDefaultServiceId(e.target.value)}
+                        placeholder="Ex: fe45fbbd-832f-49ec-b926-19195cb9e361"
+                        data-testid="input-default-service-id"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        💡 Dica: Você pode obter o ID de um serviço acessando a aba de Serviços do tenant
+                        ou consultando diretamente no banco de dados.
+                      </p>
+                    </div>
+
+                    <Button
+                      onClick={handleFixOrphans}
+                      disabled={!defaultServiceId.trim() || fixOrphansMutation.isPending}
+                      variant="destructive"
+                      data-testid="button-fix-orphans"
+                    >
+                      {fixOrphansMutation.isPending ? "Corrigindo..." : "Corrigir Órfãos"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="docs" className="mt-6">
