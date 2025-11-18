@@ -12,7 +12,7 @@ import { LogOut, Search } from "lucide-react";
 import { HeaderDropdownNotification } from "@/components/HeaderDropdownNotification";
 import { HeaderDropdownMessage } from "@/components/HeaderDropdownMessage";
 import { HeaderDropdownProfile } from "@/components/HeaderDropdownProfile";
-import Dashboard from "@/pages/Dashboard";
+import DashboardCRM from "@/pages/DashboardCRM";
 import CalendarPage from "@/pages/CalendarPage";
 import ClientsPage from "@/pages/ClientsPage";
 import ServicesPage from "@/pages/ServicesPage";
@@ -45,7 +45,7 @@ interface AuthData {
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
+      <Route path="/" component={DashboardCRM} />
       <Route path="/calendar" component={CalendarPage} />
       <Route path="/clients" component={ClientsPage} />
       <Route path="/services" component={ServicesPage} />
