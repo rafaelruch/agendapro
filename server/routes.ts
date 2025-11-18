@@ -940,10 +940,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/services - List all services of current tenant
   app.get("/api/services", authenticateRequest, async (req, res) => {
     try {
-      const user = req.user!;
+      const userRole = req.session.role;
       let tenantId: string | null;
 
-      if (user.role === 'master_admin') {
+      if (userRole === 'master_admin') {
         tenantId = req.query.tenantId as string || null;
         if (!tenantId) {
           return res.status(400).json({ 
