@@ -463,8 +463,125 @@ export class DbStorage implements IStorage {
       .orderBy(desc(appointments.date), desc(appointments.time));
   }
 
+  private timeToMinutes(time: string): number {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  }
+
+  private async calculateAppointmentDuration(appointmentId: string, providedDuration?: number): Promise<number> {
+    if (providedDuration) {
+      return providedDuration;
+    }
+    
+    const totalDuration = await this.getAppointmentTotalDuration(appointmentId);
+    return totalDuration > 0 ? totalDuration : 60;
+  }
+
+  async findOverlappingAppointments(
+    tenantId: string,
+    date: string,
+    time: string,
+    duration: number,
+    excludeAppointmentId?: string
+  ): Promise<Appointment[]> {
+    const newStartMinutes = this.timeToMinutes(time);
+    const newEndMinutes = newStartMinutes + duration;
+
+    let conditions = [
+      eq(appointments.tenantId, tenantId),
+      eq(appointments.date, date),
+    ];
+
+    if (excludeAppointmentId) {
+      conditions.push(eq(appointments.id, excludeAppointmentId));
+    }
+
+    const existingAppointments = excludeAppointmentId
+      ? await db
+          .select()
+          .from(appointments)
+          .where(and(
+            eq(appointments.tenantId, tenantId),
+            eq(appointments.date, date)
+          ))
+      : await db
+          .select()
+          .from(appointments)
+          .where(and(...conditions));
+
+    const conflicting: Appointment[] = [];
+
+    for (const apt of existingAppointments) {
+      if (excludeAppointmentId && apt.id === excludeAppointmentId) {
+        continue;
+      }
+
+      const existingStartMinutes = this.timeToMinutes(apt.time);
+      const existingDuration = await this.calculateAppointmentDuration(apt.id, apt.duration);
+      const existingEndMinutes = existingStartMinutes + existingDuration;
+
+      const hasOverlap = 
+        (newStartMinutes >= existingStartMinutes && newStartMinutes < existingEndMinutes) ||
+        (newEndMinutes > existingStartMinutes && newEndMinutes <= existingEndMinutes) ||
+        (newStartMinutes <= existingStartMinutes && newEndMinutes >= existingEndMinutes);
+
+      if (hasOverlap) {
+        conflicting.push(apt);
+      }
+    }
+
+    return conflicting;
+  }
+
   async createAppointment(insertAppointment: InsertAppointment): Promise<Appointment> {
     const { serviceIds, ...appointmentData } = insertAppointment;
+    
+    let totalDuration = appointmentData.duration || 60;
+    
+    if (serviceIds && serviceIds.length > 0) {
+      let serviceDuration = 0;
+      for (const serviceId of serviceIds) {
+        const service = await db
+          .select()
+          .from(services)
+          .where(eq(services.id, serviceId))
+          .limit(1);
+        if (service[0]?.duration) {
+          serviceDuration += service[0].duration;
+        }
+      }
+      if (serviceDuration > 0) {
+        totalDuration = serviceDuration;
+      }
+    }
+    
+    const conflicts = await this.findOverlappingAppointments(
+      appointmentData.tenantId,
+      appointmentData.date,
+      appointmentData.time,
+      totalDuration
+    );
+    
+    if (conflicts.length > 0) {
+      const conflict = conflicts[0];
+      const conflictDuration = await this.calculateAppointmentDuration(conflict.id, conflict.duration);
+      const conflictStartMinutes = this.timeToMinutes(conflict.time);
+      const conflictEndMinutes = conflictStartMinutes + conflictDuration;
+      const endHours = Math.floor(conflictEndMinutes / 60);
+      const endMinutes = conflictEndMinutes % 60;
+      const conflictEnd = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+      
+      throw new Error(JSON.stringify({
+        error: 'Horário indisponível',
+        code: 'APPOINTMENT_CONFLICT',
+        details: {
+          conflictingAppointmentId: conflict.id,
+          conflictStart: conflict.time,
+          conflictEnd,
+          message: `Já existe um agendamento das ${conflict.time} às ${conflictEnd}. Próximo horário disponível: ${conflictEnd}`
+        }
+      }));
+    }
     
     return await db.transaction(async (tx) => {
       const result = await tx.insert(appointments).values(appointmentData).returning();
@@ -488,6 +605,69 @@ export class DbStorage implements IStorage {
     appointmentData: Partial<InsertAppointment>
   ): Promise<Appointment | undefined> {
     const { serviceIds, ...dataToUpdate } = appointmentData;
+    
+    const currentAppointment = await this.getAppointment(id, tenantId);
+    if (!currentAppointment) return undefined;
+    
+    const dateChanged = dataToUpdate.date !== undefined;
+    const timeChanged = dataToUpdate.time !== undefined;
+    const servicesChanged = serviceIds !== undefined;
+    
+    if (dateChanged || timeChanged || servicesChanged) {
+      const finalDate = dataToUpdate.date || currentAppointment.date;
+      const finalTime = dataToUpdate.time || currentAppointment.time;
+      
+      let totalDuration = dataToUpdate.duration || currentAppointment.duration || 60;
+      
+      if (servicesChanged && serviceIds && serviceIds.length > 0) {
+        let serviceDuration = 0;
+        for (const serviceId of serviceIds) {
+          const service = await db
+            .select()
+            .from(services)
+            .where(eq(services.id, serviceId))
+            .limit(1);
+          if (service[0]?.duration) {
+            serviceDuration += service[0].duration;
+          }
+        }
+        if (serviceDuration > 0) {
+          totalDuration = serviceDuration;
+        }
+      } else if (!servicesChanged) {
+        const existingDuration = await this.calculateAppointmentDuration(id, currentAppointment.duration);
+        totalDuration = existingDuration;
+      }
+      
+      const conflicts = await this.findOverlappingAppointments(
+        tenantId,
+        finalDate,
+        finalTime,
+        totalDuration,
+        id
+      );
+      
+      if (conflicts.length > 0) {
+        const conflict = conflicts[0];
+        const conflictDuration = await this.calculateAppointmentDuration(conflict.id, conflict.duration);
+        const conflictStartMinutes = this.timeToMinutes(conflict.time);
+        const conflictEndMinutes = conflictStartMinutes + conflictDuration;
+        const endHours = Math.floor(conflictEndMinutes / 60);
+        const endMinutes = conflictEndMinutes % 60;
+        const conflictEnd = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+        
+        throw new Error(JSON.stringify({
+          error: 'Horário indisponível',
+          code: 'APPOINTMENT_CONFLICT',
+          details: {
+            conflictingAppointmentId: conflict.id,
+            conflictStart: conflict.time,
+            conflictEnd,
+            message: `Já existe um agendamento das ${conflict.time} às ${conflictEnd}. Próximo horário disponível: ${conflictEnd}`
+          }
+        }));
+      }
+    }
     
     return await db.transaction(async (tx) => {
       let appointment;
