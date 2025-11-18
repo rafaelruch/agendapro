@@ -6,37 +6,6 @@ AgendaPro is a multi-tenant SaaS system designed for appointment management. It 
 ## User Preferences
 I prefer simple language and clear explanations. I want iterative development with frequent, small updates. Please ask for my approval before making any major architectural changes or significant feature implementations. Ensure all code is well-documented and follows best practices.
 
-## Design System Reference
-The application uses **ngx-admin** as the primary visual design reference:
-- **Reference Repository**: https://github.com/akveo/ngx-admin
-- **Live Demo**: https://akveo.github.io/ngx-admin/
-- **Documentation**: https://akveo.github.io/ngx-admin/docs/
-
-### Theme Configuration
-- **Light Mode**: ngx-admin "Corporate" theme - Professional, neutral tones with clean, modern aesthetic
-- **Dark Mode**: ngx-admin "Dark" theme - Dark backgrounds with optimized contrast for extended use
-
-### Design Adaptation
-While ngx-admin is an Angular template, we adapt its visual design language to our React/Shadcn/Tailwind stack:
-- **Component Library**: Shadcn UI components styled to match ngx-admin's visual aesthetic
-- **Layout Patterns**: Dashboard layouts, sidebars, cards, and data tables following ngx-admin structure
-- **Authentication**: Login and registration pages inspired by ngx-admin auth screens
-- **Color Palette**: Corporate theme colors adapted to our Tailwind CSS configuration
-- **Typography**: Clean, professional typography matching ngx-admin's readability standards
-- **Charts & Data Visualization**: Data presentation following ngx-admin dashboard patterns
-- **Responsive Design**: Mobile-first approach consistent with ngx-admin's responsive behavior
-
-### Key Visual Elements from ngx-admin
-- Clean, card-based layouts with subtle shadows
-- Professional color scheme (blues, greens for success, reds for alerts)
-- Consistent spacing and padding
-- Status cards with icons and metrics
-- Data tables with sorting and filtering
-- Modal dialogs and notifications
-- Form layouts with clear labels and validation
-- Header with theme toggle and user profile
-- Collapsible sidebar navigation
-
 ## System Architecture
 The system employs a multi-tenant SaaS architecture with a distinct separation between frontend and backend.
 
