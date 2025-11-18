@@ -144,6 +144,11 @@ export type Service = typeof services.$inferSelect;
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 export type Appointment = typeof appointments.$inferSelect;
 
+// Appointment com serviceIds (retornado pela API)
+export type AppointmentWithServices = Appointment & {
+  serviceIds: string[];
+};
+
 export type InsertAppointmentService = z.infer<typeof insertAppointmentServiceSchema>;
 export type AppointmentService = typeof appointmentServices.$inferSelect;
 

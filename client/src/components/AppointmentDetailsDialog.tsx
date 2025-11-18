@@ -20,7 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, User, Briefcase, FileText, CheckCircle2, Circle, Pencil, Trash2 } from "lucide-react";
-import type { Appointment, Client, Service } from "@shared/schema";
+import type { AppointmentWithServices, Client, Service } from "@shared/schema";
 
 interface AppointmentDetailsDialogProps {
   appointmentId: string | null;
@@ -39,7 +39,7 @@ export function AppointmentDetailsDialog({
 }: AppointmentDetailsDialogProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const { data: appointment, isLoading } = useQuery<Appointment>({
+  const { data: appointment, isLoading } = useQuery<AppointmentWithServices>({
     queryKey: ["/api/appointments", appointmentId],
     enabled: !!appointmentId && open,
   });
@@ -49,9 +49,9 @@ export function AppointmentDetailsDialog({
     enabled: !!appointment?.clientId,
   });
 
-  const { data: service } = useQuery<Service>({
-    queryKey: ["/api/services", appointment?.serviceId],
-    enabled: !!appointment?.serviceId,
+  const { data: services = [] } = useQuery<Service[]>({
+    queryKey: ["/api/services"],
+    enabled: open,
   });
 
   const handleDeleteConfirm = () => {
@@ -85,6 +85,28 @@ export function AppointmentDetailsDialog({
     const [year, month, day] = dateStr.split('-');
     return `${day}/${month}/${year}`;
   };
+
+  // Calcular serviços selecionados e duração total
+  const selectedServices = services.filter(s => 
+    appointment?.serviceIds?.includes(s.id)
+  );
+  const totalDuration = selectedServices.reduce((sum, service) => sum + (service.duration || 60), 0);
+  const totalValue = selectedServices.reduce((sum, service) => sum + parseFloat(service.value), 0);
+
+  // Calcular horário de término apenas se houver duração válida
+  const calculateEndTime = (startTime: string, durationMinutes: number): string | null => {
+    if (!durationMinutes || durationMinutes <= 0) return null;
+    
+    const [hours, minutes] = startTime.split(':').map(Number);
+    if (isNaN(hours) || isNaN(minutes)) return null;
+    
+    const totalMinutes = hours * 60 + minutes + durationMinutes;
+    const endHours = Math.floor(totalMinutes / 60) % 24;
+    const endMinutes = totalMinutes % 60;
+    return `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
+  };
+
+  const endTime = appointment ? calculateEndTime(appointment.time, totalDuration) : null;
 
   const statusLabels: Record<string, string> = {
     scheduled: "Agendado",
@@ -135,33 +157,43 @@ export function AppointmentDetailsDialog({
                   {client.phone}
                 </p>
               )}
-              {client?.email && (
-                <p className="text-sm text-muted-foreground" data-testid="text-client-email">
-                  {client.email}
+              {client?.birthdate && (
+                <p className="text-sm text-muted-foreground" data-testid="text-client-birthdate">
+                  Data de Nascimento: {formatDate(client.birthdate)}
                 </p>
               )}
             </div>
           </div>
 
-          {/* Serviço */}
-          {appointment.serviceId && (
+          {/* Serviços */}
+          {selectedServices.length > 0 && (
             <div className="flex items-start gap-3">
               <Briefcase className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-medium">Serviço</p>
-                <p className="text-sm text-muted-foreground" data-testid="text-service-name">
-                  {service?.name || "Carregando..."}
-                </p>
-                {service?.category && (
-                  <p className="text-xs text-muted-foreground" data-testid="text-service-category">
-                    {service.category}
-                  </p>
-                )}
-                {service?.value && (
-                  <p className="text-sm font-medium mt-1" data-testid="text-service-value">
-                    R$ {Number(service.value).toFixed(2)}
-                  </p>
-                )}
+                <p className="text-sm font-medium">Serviços</p>
+                <div className="space-y-2 mt-1">
+                  {selectedServices.map((service) => (
+                    <div key={service.id} className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <p className="text-sm text-muted-foreground" data-testid={`text-service-${service.id}`}>
+                          {service.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {service.category} • {service.duration} min
+                        </p>
+                      </div>
+                      <p className="text-sm font-medium">
+                        R$ {Number(service.value).toFixed(2).replace('.', ',')}
+                      </p>
+                    </div>
+                  ))}
+                  <div className="border-t pt-2 flex items-center justify-between">
+                    <p className="text-sm font-semibold">Total</p>
+                    <p className="text-sm font-semibold" data-testid="text-total-value">
+                      R$ {totalValue.toFixed(2).replace('.', ',')}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -183,8 +215,13 @@ export function AppointmentDetailsDialog({
             <div className="flex-1">
               <p className="text-sm font-medium">Horário</p>
               <p className="text-sm text-muted-foreground" data-testid="text-appointment-time">
-                {appointment.time} ({appointment.duration} minutos)
+                {endTime ? `${appointment.time} às ${endTime}` : appointment.time}
               </p>
+              {totalDuration > 0 && (
+                <p className="text-xs text-muted-foreground" data-testid="text-appointment-duration">
+                  Duração total: {totalDuration} minutos
+                </p>
+              )}
             </div>
           </div>
 

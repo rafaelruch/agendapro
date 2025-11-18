@@ -77,6 +77,7 @@ The frontend is built with React, TypeScript, Wouter for routing, and Tailwind C
 - **Data Validation**: Zod is used for robust data validation throughout the system.
 - **Core Features**: Includes multi-tenant support, secure authentication, master admin panel, per-tenant user/service management, appointment scheduling and editing, business hours configuration, availability checking, and a full REST API.
 - **Advanced Features**: Appointment editing with conflict detection, flexible business hours management, an availability API, a secure API token system, role-based access control, a master admin panel for cross-tenant management and migrations, dynamic API documentation with schema alignment, bulk service import, detailed calendar appointment views, and client phone uniqueness validation.
+- **Multi-Service Appointments**: Each appointment can have multiple services associated via the `appointment_services` junction table. The system automatically calculates total duration by summing individual service durations and displays appointment time ranges (e.g., "14:00-16:00" for 120 minutes total). The API enriches all appointment responses with a `serviceIds` array for consistent frontend consumption. Appointments without associated services display only the start time (robust fallback for data integrity).
 
 ### System Design Choices
 - **Backend**: Express.js.

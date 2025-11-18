@@ -9,6 +9,7 @@ interface CalendarAppointment {
   time: string;
   clientName: string;
   status: "scheduled" | "completed" | "cancelled" | "retorno";
+  duration?: number;
 }
 
 interface CalendarViewProps {
@@ -91,18 +92,38 @@ export function CalendarView({ appointments, onDateClick, onAppointmentClick }: 
           )}
         </div>
         <div className="space-y-1">
-          {dayAppointments.slice(0, 2).map((apt) => (
-            <div
-              key={apt.id}
-              className={`text-xs p-1 rounded truncate ${getStatusColor(apt.status)}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onAppointmentClick?.(apt.id);
-              }}
-            >
-              {apt.time.split('T')[1]?.substring(0, 5)} {apt.clientName}
-            </div>
-          ))}
+          {dayAppointments.slice(0, 2).map((apt) => {
+            // Extrair horário inicial do formato ISO "YYYY-MM-DDTHH:MM"
+            const timePart = apt.time.split('T')[1] || apt.time;
+            const startTime = timePart.substring(0, 5);
+            let timeDisplay = startTime;
+            
+            // Calcular horário de término se houver duração válida
+            if (apt.duration && apt.duration > 0) {
+              const [hours, minutes] = startTime.split(':').map(Number);
+              if (!isNaN(hours) && !isNaN(minutes)) {
+                const totalMinutes = hours * 60 + minutes + apt.duration;
+                const endHours = Math.floor(totalMinutes / 60) % 24;
+                const endMinutes = totalMinutes % 60;
+                const endTime = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
+                timeDisplay = `${startTime}-${endTime}`;
+              }
+            }
+            
+            return (
+              <div
+                key={apt.id}
+                className={`text-xs p-1 rounded truncate ${getStatusColor(apt.status)}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAppointmentClick?.(apt.id);
+                }}
+                data-testid={`calendar-appointment-${apt.id}`}
+              >
+                {timeDisplay} {apt.clientName}
+              </div>
+            );
+          })}
           {dayAppointments.length > 2 && (
             <div className="text-xs text-muted-foreground">
               +{dayAppointments.length - 2} mais

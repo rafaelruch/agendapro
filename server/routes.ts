@@ -1158,7 +1158,12 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         if (!appointment) {
           return res.status(404).json({ error: "Agendamento não encontrado" });
         }
-        return res.json(appointment);
+        // Adicionar serviceIds
+        const services = await storage.getAppointmentServices(appointment.id);
+        return res.json({
+          ...appointment,
+          serviceIds: services.map(s => s.id),
+        });
       }
 
       if (date && time) {
@@ -1180,7 +1185,17 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
           endDate as string,
           clientId as string | undefined
         );
-        return res.json(appointments);
+        // Adicionar serviceIds a cada appointment
+        const appointmentsWithServices = await Promise.all(
+          appointments.map(async (apt) => {
+            const services = await storage.getAppointmentServices(apt.id);
+            return {
+              ...apt,
+              serviceIds: services.map(s => s.id),
+            };
+          })
+        );
+        return res.json(appointmentsWithServices);
       }
 
       const appointments = await storage.getAllAppointments(
@@ -1189,7 +1204,19 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         serviceId as string | undefined,
         status as string | undefined
       );
-      res.json(appointments);
+      
+      // Adicionar serviceIds a cada appointment
+      const appointmentsWithServices = await Promise.all(
+        appointments.map(async (apt) => {
+          const services = await storage.getAppointmentServices(apt.id);
+          return {
+            ...apt,
+            serviceIds: services.map(s => s.id),
+          };
+        })
+      );
+      
+      res.json(appointmentsWithServices);
     } catch (error) {
       console.error("Error fetching appointments:", error);
       res.status(500).json({ error: "Erro ao buscar agendamentos" });

@@ -7,7 +7,7 @@ import { AppointmentDialog } from "@/components/AppointmentDialog";
 import { AppointmentDetailsDialog } from "@/components/AppointmentDetailsDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Appointment, Client, Service } from "@shared/schema";
+import type { Appointment, AppointmentWithServices, Client, Service } from "@shared/schema";
 
 export default function CalendarPage() {
   const [showAppointmentDialog, setShowAppointmentDialog] = useState(false);
@@ -23,7 +23,7 @@ export default function CalendarPage() {
     queryKey: ["/api/services"],
   });
 
-  const { data: appointments = [], isLoading } = useQuery<Appointment[]>({
+  const { data: appointments = [], isLoading } = useQuery<AppointmentWithServices[]>({
     queryKey: ["/api/appointments"],
   });
 
@@ -91,11 +91,21 @@ export default function CalendarPage() {
   const formatAppointmentsForCalendar = () => {
     return appointments.map(apt => {
       const client = clients.find(c => c.id === apt.clientId);
+      
+      // Calcular duração total dos serviços
+      const appointmentServices = services.filter(s => 
+        apt.serviceIds?.includes(s.id)
+      );
+      const totalDuration = appointmentServices.reduce((sum, service) => 
+        sum + (service.duration || 60), 0
+      );
+      
       return {
         id: apt.id,
-        time: `${apt.date}T${apt.time}`,
+        time: `${apt.date}T${apt.time}`, // Formato ISO para split funcionar
         clientName: client?.name || "Cliente desconhecido",
         status: apt.status as "scheduled" | "completed" | "cancelled" | "retorno",
+        duration: totalDuration > 0 ? totalDuration : undefined, // Só passa duração se houver serviços
       };
     });
   };
@@ -155,7 +165,7 @@ export default function CalendarPage() {
         onEdit={() => {
           const appointment = appointments.find(a => a.id === selectedAppointmentId);
           if (appointment) {
-            setEditingAppointment(appointment);
+            setEditingAppointment(appointment as any);
             setShowAppointmentDialog(true);
             setSelectedAppointmentId(null);
           }
