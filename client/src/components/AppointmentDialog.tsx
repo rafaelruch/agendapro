@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -48,17 +48,35 @@ export function AppointmentDialog({
   onSave,
   initialData,
 }: AppointmentDialogProps) {
-  const [formData, setFormData] = useState(
-    initialData || {
-      clientId: "",
-      serviceId: "none",
-      date: "",
-      time: "",
-      duration: "60",
-      status: "scheduled",
-      notes: "",
+  const defaultFormData = {
+    clientId: "",
+    serviceId: "none",
+    date: "",
+    time: "",
+    duration: "60",
+    status: "scheduled",
+    notes: "",
+  };
+
+  const [formData, setFormData] = useState(defaultFormData);
+
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        setFormData({
+          clientId: initialData.clientId || "",
+          serviceId: initialData.serviceId || "none",
+          date: initialData.date || "",
+          time: initialData.time || "",
+          duration: String(initialData.duration || "60"),
+          status: initialData.status || "scheduled",
+          notes: initialData.notes || "",
+        });
+      } else {
+        setFormData(defaultFormData);
+      }
     }
-  );
+  }, [open, initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
