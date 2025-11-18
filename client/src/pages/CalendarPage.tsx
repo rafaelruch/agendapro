@@ -143,6 +143,9 @@ export default function CalendarPage() {
             createAppointmentMutation.mutate(data);
           }
         }}
+        onClientCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+        }}
       />
 
       <AppointmentDetailsDialog
