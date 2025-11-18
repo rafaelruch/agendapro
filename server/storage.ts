@@ -13,13 +13,16 @@ import {
   type InsertTenantApiToken,
   type BusinessHours,
   type InsertBusinessHours,
+  type AppointmentService,
+  type InsertAppointmentService,
   clients,
   services,
   appointments,
   tenants,
   users,
   tenantApiTokens,
-  businessHours
+  businessHours,
+  appointmentServices
 } from "@shared/schema";
 import { randomBytes } from "crypto";
 import { db } from "./db";
@@ -74,6 +77,11 @@ export interface IStorage {
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
   updateAppointment(id: string, tenantId: string, appointment: Partial<InsertAppointment>): Promise<Appointment | undefined>;
   deleteAppointment(id: string, tenantId: string): Promise<boolean>;
+  
+  // Appointment Services operations
+  getAppointmentServices(appointmentId: string): Promise<Service[]>;
+  setAppointmentServices(appointmentId: string, serviceIds: string[]): Promise<void>;
+  getAppointmentTotalDuration(appointmentId: string): Promise<number>;
   
   // Stats operations
   getClientStats(clientId: string, tenantId: string): Promise<{
@@ -341,14 +349,39 @@ export class DbStorage implements IStorage {
   }
 
   async getAllAppointments(tenantId: string, clientId?: string, serviceId?: string, status?: string): Promise<Appointment[]> {
+    if (serviceId) {
+      const appointmentIds = await db
+        .select({ appointmentId: appointmentServices.appointmentId })
+        .from(appointmentServices)
+        .where(eq(appointmentServices.serviceId, serviceId));
+      
+      const ids = appointmentIds.map(a => a.appointmentId);
+      if (ids.length === 0) return [];
+      
+      const conditions = [
+        eq(appointments.tenantId, tenantId),
+        or(...ids.map(id => eq(appointments.id, id)))!,
+      ];
+      
+      if (clientId) {
+        conditions.push(eq(appointments.clientId, clientId));
+      }
+      
+      if (status) {
+        conditions.push(eq(appointments.status, status));
+      }
+      
+      return await db
+        .select()
+        .from(appointments)
+        .where(and(...conditions))
+        .orderBy(desc(appointments.date), desc(appointments.time));
+    }
+    
     const conditions = [eq(appointments.tenantId, tenantId)];
     
     if (clientId) {
       conditions.push(eq(appointments.clientId, clientId));
-    }
-    
-    if (serviceId) {
-      conditions.push(eq(appointments.serviceId, serviceId));
     }
     
     if (status) {
@@ -371,10 +404,21 @@ export class DbStorage implements IStorage {
   }
 
   async getAppointmentsByService(serviceId: string, tenantId: string): Promise<Appointment[]> {
+    const appointmentIds = await db
+      .select({ appointmentId: appointmentServices.appointmentId })
+      .from(appointmentServices)
+      .where(eq(appointmentServices.serviceId, serviceId));
+    
+    const ids = appointmentIds.map(a => a.appointmentId);
+    if (ids.length === 0) return [];
+    
     return await db
       .select()
       .from(appointments)
-      .where(and(eq(appointments.tenantId, tenantId), eq(appointments.serviceId, serviceId)))
+      .where(and(
+        eq(appointments.tenantId, tenantId),
+        or(...ids.map(id => eq(appointments.id, id)))!
+      ))
       .orderBy(desc(appointments.date), desc(appointments.time));
   }
 
@@ -402,8 +446,22 @@ export class DbStorage implements IStorage {
   }
 
   async createAppointment(insertAppointment: InsertAppointment): Promise<Appointment> {
-    const result = await db.insert(appointments).values(insertAppointment).returning();
-    return result[0];
+    const { serviceIds, ...appointmentData } = insertAppointment;
+    
+    return await db.transaction(async (tx) => {
+      const result = await tx.insert(appointments).values(appointmentData).returning();
+      const appointment = result[0];
+      
+      if (serviceIds && serviceIds.length > 0) {
+        const values = serviceIds.map(serviceId => ({
+          appointmentId: appointment.id,
+          serviceId,
+        }));
+        await tx.insert(appointmentServices).values(values);
+      }
+      
+      return appointment;
+    });
   }
 
   async updateAppointment(
@@ -411,12 +469,45 @@ export class DbStorage implements IStorage {
     tenantId: string,
     appointmentData: Partial<InsertAppointment>
   ): Promise<Appointment | undefined> {
-    const result = await db
-      .update(appointments)
-      .set(appointmentData)
-      .where(and(eq(appointments.id, id), eq(appointments.tenantId, tenantId)))
-      .returning();
-    return result[0];
+    const { serviceIds, ...dataToUpdate } = appointmentData;
+    
+    return await db.transaction(async (tx) => {
+      let appointment;
+      
+      if (Object.keys(dataToUpdate).length > 0) {
+        const result = await tx
+          .update(appointments)
+          .set(dataToUpdate)
+          .where(and(eq(appointments.id, id), eq(appointments.tenantId, tenantId)))
+          .returning();
+        
+        if (result.length === 0) return undefined;
+        appointment = result[0];
+      } else {
+        const result = await tx
+          .select()
+          .from(appointments)
+          .where(and(eq(appointments.id, id), eq(appointments.tenantId, tenantId)))
+          .limit(1);
+        
+        if (result.length === 0) return undefined;
+        appointment = result[0];
+      }
+      
+      if (serviceIds !== undefined) {
+        await tx.delete(appointmentServices).where(eq(appointmentServices.appointmentId, id));
+        
+        if (serviceIds.length > 0) {
+          const values = serviceIds.map(serviceId => ({
+            appointmentId: id,
+            serviceId,
+          }));
+          await tx.insert(appointmentServices).values(values);
+        }
+      }
+      
+      return appointment;
+    });
   }
 
   async deleteAppointment(id: string, tenantId: string): Promise<boolean> {
@@ -425,6 +516,41 @@ export class DbStorage implements IStorage {
       .where(and(eq(appointments.id, id), eq(appointments.tenantId, tenantId)))
       .returning();
     return result.length > 0;
+  }
+
+  // Appointment Services operations
+  async getAppointmentServices(appointmentId: string): Promise<Service[]> {
+    const result = await db
+      .select({
+        id: services.id,
+        tenantId: services.tenantId,
+        name: services.name,
+        category: services.category,
+        value: services.value,
+        duration: services.duration,
+      })
+      .from(appointmentServices)
+      .innerJoin(services, eq(appointmentServices.serviceId, services.id))
+      .where(eq(appointmentServices.appointmentId, appointmentId));
+    
+    return result as Service[];
+  }
+
+  async setAppointmentServices(appointmentId: string, serviceIds: string[]): Promise<void> {
+    await db.delete(appointmentServices).where(eq(appointmentServices.appointmentId, appointmentId));
+    
+    if (serviceIds.length > 0) {
+      const values = serviceIds.map(serviceId => ({
+        appointmentId,
+        serviceId,
+      }));
+      await db.insert(appointmentServices).values(values);
+    }
+  }
+
+  async getAppointmentTotalDuration(appointmentId: string): Promise<number> {
+    const services = await this.getAppointmentServices(appointmentId);
+    return services.reduce((total, service) => total + (service.duration || 0), 0);
   }
 
   // Stats operations

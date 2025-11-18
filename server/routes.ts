@@ -1384,10 +1384,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         clientId as string | undefined
       );
 
-      // Filtrar por serviceId se fornecido
-      const filteredAppointments = serviceId 
-        ? appointments.filter(apt => apt.serviceId === serviceId)
-        : appointments;
+      // Filtrar por serviceId se fornecido (já feito no storage.getAppointmentsByDateRange se necessário)
+      const filteredAppointments = appointments;
 
       // Calcular disponibilidade por dia
       const availability = [];
@@ -1413,6 +1411,21 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
           apt => apt.date === dateStr
         );
 
+        const appointmentsWithDuration = await Promise.all(
+          dayAppointments.map(async (apt) => {
+            const duration = await storage.getAppointmentTotalDuration(apt.id);
+            const services = await storage.getAppointmentServices(apt.id);
+            return {
+              id: apt.id,
+              time: apt.time,
+              duration,
+              clientId: apt.clientId,
+              serviceIds: services.map(s => s.id),
+              status: apt.status
+            };
+          })
+        );
+
         availability.push({
           date: dateStr,
           dayOfWeek,
@@ -1420,14 +1433,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
             startTime: bh.startTime,
             endTime: bh.endTime
           })),
-          appointments: dayAppointments.map(apt => ({
-            id: apt.id,
-            time: apt.time,
-            duration: apt.duration,
-            clientId: apt.clientId,
-            serviceId: apt.serviceId,
-            status: apt.status
-          }))
+          appointments: appointmentsWithDuration
         });
       }
 

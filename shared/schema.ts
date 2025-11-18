@@ -40,19 +40,24 @@ export const services = pgTable("services", {
   name: text("name").notNull(),
   category: text("category").notNull(),
   value: numeric("value", { precision: 10, scale: 2 }).notNull(),
+  duration: integer("duration").notNull().default(60),
 });
 
 export const appointments = pgTable("appointments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   clientId: varchar("client_id").notNull().references(() => clients.id, { onDelete: 'cascade' }),
-  serviceId: varchar("service_id").references(() => services.id, { onDelete: 'set null' }),
   date: text("date").notNull(),
   time: text("time").notNull(),
-  duration: integer("duration").notNull(),
   status: text("status").notNull().default("scheduled"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const appointmentServices = pgTable("appointment_services", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  appointmentId: varchar("appointment_id").notNull().references(() => appointments.id, { onDelete: 'cascade' }),
+  serviceId: varchar("service_id").notNull().references(() => services.id, { onDelete: 'cascade' }),
 });
 
 export const tenantApiTokens = pgTable("tenant_api_tokens", {
@@ -94,11 +99,18 @@ export const insertServiceSchema = createInsertSchema(services).omit({
   id: true,
 }).extend({
   value: z.coerce.number().positive(),
+  duration: z.coerce.number().int().positive().default(60),
 });
 
 export const insertAppointmentSchema = createInsertSchema(appointments).omit({
   id: true,
   createdAt: true,
+}).extend({
+  serviceIds: z.array(z.string()).optional(),
+});
+
+export const insertAppointmentServiceSchema = createInsertSchema(appointmentServices).omit({
+  id: true,
 });
 
 export const insertTenantApiTokenSchema = createInsertSchema(tenantApiTokens).omit({
@@ -131,6 +143,9 @@ export type Service = typeof services.$inferSelect;
 
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 export type Appointment = typeof appointments.$inferSelect;
+
+export type InsertAppointmentService = z.infer<typeof insertAppointmentServiceSchema>;
+export type AppointmentService = typeof appointmentServices.$inferSelect;
 
 export type InsertTenantApiToken = z.infer<typeof insertTenantApiTokenSchema>;
 export type TenantApiToken = typeof tenantApiTokens.$inferSelect;
