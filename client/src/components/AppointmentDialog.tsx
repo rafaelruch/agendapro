@@ -197,14 +197,16 @@ export function AppointmentDialog({
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="time">Horário</Label>
+                <Label htmlFor="time">Horário (24h)</Label>
                 <Input
                   id="time"
                   type="time"
                   value={formData.time}
                   onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                   data-testid="input-time"
+                  step="60"
                   required
+                  placeholder="14:00"
                 />
               </div>
             </div>

@@ -126,6 +126,8 @@ export function BusinessHoursManager() {
                 value={newHour.startTime}
                 onChange={(e) => setNewHour({ ...newHour, startTime: e.target.value })}
                 data-testid="input-start-time"
+                step="60"
+                placeholder="09:00"
               />
 
               <Input
@@ -133,6 +135,8 @@ export function BusinessHoursManager() {
                 value={newHour.endTime}
                 onChange={(e) => setNewHour({ ...newHour, endTime: e.target.value })}
                 data-testid="input-end-time"
+                step="60"
+                placeholder="18:00"
               />
 
               <Button
