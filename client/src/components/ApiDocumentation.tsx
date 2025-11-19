@@ -562,6 +562,23 @@ export function ApiDocumentation() {
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               Crie e gerencie agendamentos. O campo <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">duration</code> é calculado automaticamente com base nos serviços selecionados.
             </p>
+
+            {/* Nota sobre Duration */}
+            <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-lg p-6 mb-6">
+              <h3 className="text-sm font-semibold text-green-900 dark:text-green-300 mb-3">✅ Campo `duration` - Cálculo Automático</h3>
+              <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
+                <p>
+                  <strong>NÃO envie</strong> o campo <code className="text-xs bg-white dark:bg-gray-900 px-1.5 py-0.5 rounded">duration</code> ao criar ou atualizar agendamentos!
+                </p>
+                <p>
+                  O backend calcula automaticamente a duração somando os <code className="text-xs bg-white dark:bg-gray-900 px-1.5 py-0.5 rounded">serviceIds</code> selecionados.
+                </p>
+                <p className="font-semibold text-green-800 dark:text-green-400">
+                  ✅ <strong>Para N8N</strong>: Envie apenas <code className="text-xs bg-white dark:bg-gray-900 px-1.5 py-0.5 rounded">clientId</code>, <code className="text-xs bg-white dark:bg-gray-900 px-1.5 py-0.5 rounded">serviceIds</code>, <code className="text-xs bg-white dark:bg-gray-900 px-1.5 py-0.5 rounded">date</code>, <code className="text-xs bg-white dark:bg-gray-900 px-1.5 py-0.5 rounded">time</code>, <code className="text-xs bg-white dark:bg-gray-900 px-1.5 py-0.5 rounded">status</code> e <code className="text-xs bg-white dark:bg-gray-900 px-1.5 py-0.5 rounded">notes</code> (opcional).
+                </p>
+              </div>
+            </div>
+
             {endpoints.agendamentos.map((endpoint, idx) => (
               <EndpointCard key={idx} endpoint={endpoint} />
             ))}
