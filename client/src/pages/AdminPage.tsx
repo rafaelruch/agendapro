@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ApiDocumentation } from "@/components/ApiDocumentation";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { AppointmentDialog } from "@/components/AppointmentDialog";
 import { MigrationsPanel } from "@/components/MigrationsPanel";
 import type { Tenant, User, Appointment, Client, Service } from "@shared/schema";
@@ -409,12 +409,12 @@ export default function AdminPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Horário</TableHead>
-                    <TableHead>Cliente ID</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Tenant</TableHead>
-                    <TableHead className="w-[70px]"></TableHead>
+                    <TableCell isHeader={true}>Data</TableCell>
+                    <TableCell isHeader={true}>Horário</TableCell>
+                    <TableCell isHeader={true}>Cliente ID</TableCell>
+                    <TableCell isHeader={true}>Status</TableCell>
+                    <TableCell isHeader={true}>Tenant</TableCell>
+                    <TableCell isHeader={true} className="w-[70px]"> </TableCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

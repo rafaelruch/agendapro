@@ -7,7 +7,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -279,10 +278,10 @@ export default function ServicesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead className="w-[70px]"></TableHead>
+                <TableCell isHeader={true}>Nome</TableCell>
+                <TableCell isHeader={true}>Categoria</TableCell>
+                <TableCell isHeader={true}>Valor</TableCell>
+                <TableCell isHeader={true} className="w-[70px]"> </TableCell>
               </TableRow>
             </TableHeader>
             <TableBody>

@@ -6,7 +6,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -143,12 +142,12 @@ export default function UsersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Usuário</TableHead>
-              <TableHead>E-mail</TableHead>
-              <TableHead>Permissão</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
+              <TableCell isHeader={true}>Nome</TableCell>
+              <TableCell isHeader={true}>Usuário</TableCell>
+              <TableCell isHeader={true}>E-mail</TableCell>
+              <TableCell isHeader={true}>Permissão</TableCell>
+              <TableCell isHeader={true}>Status</TableCell>
+              <TableCell isHeader={true} className="w-[70px]"> </TableCell>
             </TableRow>
           </TableHeader>
           <TableBody>

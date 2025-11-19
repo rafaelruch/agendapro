@@ -1,14 +1,12 @@
 import { Switch, Route, Redirect } from "wouter";
 import { queryClient, getQueryFn } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
 import { AppSidebarNew } from "@/components/AppSidebarNew";
 import Backdrop from "@/components/Backdrop";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ClientSelector } from "@/components/ClientSelector";
-import { Button } from "@/components/ui/button";
+import Button from "@/components/ui/button/Button";
 import { LogOut, Search } from "lucide-react";
 import { HeaderDropdownNotification } from "@/components/HeaderDropdownNotification";
 import { HeaderDropdownProfile } from "@/components/HeaderDropdownProfile";
@@ -25,7 +23,7 @@ import NotFound from "@/pages/not-found";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+// import { useToast } from "@/hooks/use-toast"; // TODO: Implement TailAdmin toast
 import type { Client } from "@shared/schema";
 
 interface AuthData {
@@ -59,7 +57,7 @@ function Router() {
 
 function AuthenticatedApp({ authData }: { authData: AuthData }) {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const { toast } = useToast();
+  // const { toast } = useToast(); // TODO: Implement TailAdmin toast
   const { isExpanded } = useSidebar();
 
   const { data: clients = [] } = useQuery<Client[]>({
@@ -73,7 +71,7 @@ function AuthenticatedApp({ authData }: { authData: AuthData }) {
     onSuccess: () => {
       queryClient.clear();
       window.location.href = "/login";
-      toast({ title: "Logout realizado com sucesso" });
+      // toast({ title: "Logout realizado com sucesso" }); // TODO: Implement TailAdmin toast
     },
   });
 
@@ -92,9 +90,9 @@ function AuthenticatedApp({ authData }: { authData: AuthData }) {
               variant="outline"
               size="sm"
               onClick={() => logoutMutation.mutate()}
+              startIcon={<LogOut className="w-4 h-4" />}
               data-testid="button-logout"
             >
-              <LogOut className="w-4 h-4 mr-2" />
               Sair
             </Button>
           </div>
@@ -219,12 +217,9 @@ function AppContent() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <SidebarProvider>
-          <AppContent />
-          <Toaster />
-        </SidebarProvider>
-      </TooltipProvider>
+      <SidebarProvider>
+        <AppContent />
+      </SidebarProvider>
     </QueryClientProvider>
   );
 }
