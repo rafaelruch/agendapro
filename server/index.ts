@@ -78,18 +78,22 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
-// Configurar trust proxy APENAS quando há um proxy reverso confiável
-// Em produção (Replit Deploy, Easypanel, etc), há um proxy reverso que define X-Forwarded-For
-// Em desenvolvimento local SEM proxy, não devemos confiar em headers arbitrários
-// Use ENABLE_TRUST_PROXY=true para habilitar manualmente se necessário
-const shouldTrustProxy = process.env.ENABLE_TRUST_PROXY === 'true' || 
+// Configurar trust proxy baseado no ambiente
+// Replit SEMPRE usa proxy reverso (em dev e prod), então SEMPRE confiamos
+// Outros ambientes: apenas em produção ou com ENABLE_TRUST_PROXY=true
+const isReplit = !!process.env.REPL_ID || !!process.env.REPLIT_DB_URL;
+const shouldTrustProxy = isReplit || 
+                         process.env.ENABLE_TRUST_PROXY === 'true' || 
                          process.env.NODE_ENV === 'production';
 
 if (shouldTrustProxy) {
   app.set('trust proxy', 1);
-  console.log('🔒 Trust proxy habilitado (modo produção/proxy reverso)');
+  const reason = isReplit ? 'Replit environment' : 
+                 process.env.NODE_ENV === 'production' ? 'production mode' : 
+                 'manual override';
+  console.log(`🔒 Trust proxy habilitado (${reason})`);
 } else {
-  console.log('⚠️  Trust proxy desabilitado (modo desenvolvimento)');
+  console.log('⚠️  Trust proxy desabilitado (desenvolvimento local)');
 }
 
 // SEGURANÇA CRÍTICA: SESSION_SECRET obrigatório em TODOS os ambientes

@@ -81,11 +81,12 @@ Utilizes FullCalendar with TailAdmin styling, supporting full CRUD operations fo
    - Skip successful auth attempts
 
 3. **Trust Proxy Configuration** (CRITICAL):
-   - **Development**: Trust proxy DISABLED (prevents IP spoofing)
+   - **Replit Environment**: Trust proxy AUTO-ENABLED (detects REPL_ID/REPLIT_DB_URL)
    - **Production**: Trust proxy AUTO-ENABLED (NODE_ENV=production)
+   - **Local Development**: Trust proxy DISABLED (prevents IP spoofing)
    - **Manual Override**: Set ENABLE_TRUST_PROXY=true if needed
    - Prevents rate limit bypass via X-Forwarded-For spoofing
-   - Only trusts proxy headers when behind real reverse proxy
+   - Replit always uses reverse proxy, so trust is required in dev and prod
 
 4. **Input Validation** (Zod):
    - All POST/PUT endpoints validated
