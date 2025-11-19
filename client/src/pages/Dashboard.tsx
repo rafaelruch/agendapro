@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Calendar, Users, CheckCircle2, Clock, Plus, TrendingUp, TrendingDown, DollarSign, Activity } from "lucide-react";
+import { Calendar, Users, CheckCircle2, Clock, Plus, TrendingUp, TrendingDown, DollarSign, Activity, Eye, Edit2, Check } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,6 @@ import { AppointmentDialog } from "@/components/AppointmentDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { PencilIcon, CheckLineIcon } from "@/icons";
 import LineChartOne from "@/components/charts/line/LineChartOne";
 import type { Appointment, Client, Service } from "@shared/schema";
 import { format, startOfMonth, endOfMonth, parseISO, subWeeks } from 'date-fns';
@@ -654,30 +653,26 @@ export default function Dashboard() {
 
                     <div className="hidden items-center justify-center gap-2 p-2.5 sm:flex xl:p-5">
                       <button
+                        type="button"
                         onClick={() => {
                           setEditingAppointment(apt);
                           setShowAppointmentDialog(true);
                         }}
                         data-testid={`button-edit-appointment-${apt.id}`}
-                        className="inline-flex items-center gap-1 rounded bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-opacity-90"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg transition w-8 h-8 text-brand-600 hover:bg-brand-50 hover:text-brand-700 dark:text-brand-500 dark:hover:bg-brand-500/10"
                       >
-                        <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                        </svg>
-                        Editar
+                        <Edit2 className="w-4 h-4" />
                       </button>
                       {apt.status === "scheduled" && (
                         <button
+                          type="button"
                           onClick={() => {
                             toggleCompleteMutation.mutate({ id: apt.id, completed: true });
                           }}
                           data-testid={`button-complete-appointment-${apt.id}`}
-                          className="inline-flex items-center gap-1 rounded bg-meta-3 px-3 py-1.5 text-xs font-medium text-white hover:bg-opacity-90"
+                          className="inline-flex items-center justify-center gap-2 rounded-lg transition w-8 h-8 text-green-600 hover:bg-green-50 hover:text-green-700 dark:text-green-500 dark:hover:bg-green-500/10"
                         >
-                          <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                          Concluir
+                          <Check className="w-4 h-4" />
                         </button>
                       )}
                     </div>
