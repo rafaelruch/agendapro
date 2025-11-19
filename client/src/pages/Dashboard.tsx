@@ -659,9 +659,12 @@ export default function Dashboard() {
                           setShowAppointmentDialog(true);
                         }}
                         data-testid={`button-edit-appointment-${apt.id}`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+                        className="inline-flex items-center gap-1 rounded bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-opacity-90"
                       >
-                        <PencilIcon className="h-4 w-4 fill-gray-500 dark:fill-gray-400" />
+                        <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                        </svg>
+                        Editar
                       </button>
                       {apt.status === "scheduled" && (
                         <button
@@ -669,9 +672,12 @@ export default function Dashboard() {
                             toggleCompleteMutation.mutate({ id: apt.id, completed: true });
                           }}
                           data-testid={`button-complete-appointment-${apt.id}`}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded hover:bg-green-50 dark:hover:bg-green-900"
+                          className="inline-flex items-center gap-1 rounded bg-meta-3 px-3 py-1.5 text-xs font-medium text-white hover:bg-opacity-90"
                         >
-                          <CheckLineIcon className="h-4 w-4 fill-green-600 dark:fill-green-400" />
+                          <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          Concluir
                         </button>
                       )}
                     </div>
