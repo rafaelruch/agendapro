@@ -51,7 +51,7 @@ export function ClientSearchSelect({
   };
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative w-full">
       <Input
         type="text"
         placeholder={selectedClient?.name || placeholder}
@@ -62,6 +62,7 @@ export function ClientSearchSelect({
         }}
         onFocus={() => setIsOpen(true)}
         data-testid="input-client-search"
+        className="w-full"
       />
 
       {isOpen && (

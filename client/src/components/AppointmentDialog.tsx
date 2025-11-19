@@ -126,13 +126,15 @@ export function AppointmentDialog({
         <div className="grid gap-4 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
             <div className="grid gap-2">
               <Label htmlFor="client">Cliente</Label>
-              <div className="flex gap-2">
-                <ClientSearchSelect
-                  clients={clients}
-                  value={formData.clientId}
-                  onChange={(clientId) => setFormData({ ...formData, clientId })}
-                  placeholder="Buscar e selecionar cliente..."
-                />
+              <div className="flex gap-2 w-full">
+                <div className="flex-1">
+                  <ClientSearchSelect
+                    clients={clients}
+                    value={formData.clientId}
+                    onChange={(clientId) => setFormData({ ...formData, clientId })}
+                    placeholder="Buscar e selecionar cliente..."
+                  />
+                </div>
                 <Button
                   type="button"
                   size="icon"
