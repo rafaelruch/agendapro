@@ -1450,6 +1450,43 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
+  // PATCH /api/appointments/:id - Update appointment status only
+  app.patch("/api/appointments/:id", authenticateRequest, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req)!;
+      
+      // Validar apenas o status
+      const statusSchema = z.object({
+        status: z.enum(["scheduled", "completed", "cancelled"]),
+      });
+      
+      const { status } = statusSchema.parse(req.body);
+      
+      const appointment = await storage.updateAppointment(
+        req.params.id,
+        tenantId,
+        { status }
+      );
+      
+      if (!appointment) {
+        return res.status(404).json({ error: "Agendamento não encontrado" });
+      }
+      
+      // Adicionar serviceIds
+      const services = await storage.getAppointmentServices(appointment.id);
+      res.json({
+        ...appointment,
+        serviceIds: services.map(s => s.id),
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Status inválido", details: error.errors });
+      }
+      console.error("Error updating appointment status:", error);
+      res.status(500).json({ error: "Erro ao atualizar status do agendamento" });
+    }
+  });
+
   // DELETE /api/appointments/:id - Delete an appointment
   app.delete("/api/appointments/:id", authenticateRequest, async (req, res) => {
     try {

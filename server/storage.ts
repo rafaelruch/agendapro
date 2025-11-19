@@ -703,15 +703,16 @@ export class DbStorage implements IStorage {
           serviceId,
         }));
         await tx.insert(appointmentServices).values(values);
-      }
-      
-      const finalServices = await tx
-        .select()
-        .from(appointmentServices)
-        .where(eq(appointmentServices.appointmentId, id));
-      
-      if (finalServices.length === 0) {
-        throw new Error('Agendamento deve ter pelo menos um serviço associado');
+        
+        // Validar serviços apenas quando serviceIds foi especificado
+        const finalServices = await tx
+          .select()
+          .from(appointmentServices)
+          .where(eq(appointmentServices.appointmentId, id));
+        
+        if (finalServices.length === 0) {
+          throw new Error('Agendamento deve ter pelo menos um serviço associado');
+        }
       }
       
       return appointment;

@@ -1,18 +1,23 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
-import { TrendingUp, TrendingDown, Calendar as CalendarIcon, Users, CheckCircle2, DollarSign } from "lucide-react";
+import { TrendingUp, TrendingDown, Calendar as CalendarIcon, Users, CheckCircle2, DollarSign, Check, X } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Badge from "@/components/ui/badge-tailadmin";
 import type { Appointment, Client, Service } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 type AppointmentWithServices = Appointment & {
   serviceIds?: string[];
 };
 
 export default function DashboardCRM() {
+  const { toast } = useToast();
+  
   const { data: appointments = [] } = useQuery<AppointmentWithServices[]>({
     queryKey: ["/api/appointments"],
   });
@@ -23,6 +28,27 @@ export default function DashboardCRM() {
 
   const { data: services = [] } = useQuery<Service[]>({
     queryKey: ["/api/services"],
+  });
+
+  // Mutation para atualizar status do agendamento
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      return apiRequest("PATCH", `/api/appointments/${id}`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      toast({
+        title: "Status atualizado",
+        description: "O status do agendamento foi atualizado com sucesso.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o status do agendamento.",
+        variant: "destructive",
+      });
+    },
   });
 
   // Cálculos de estatísticas REAIS
@@ -435,10 +461,9 @@ export default function DashboardCRM() {
             <thead className="border-gray-100 dark:border-gray-800 border-y">
               <tr>
                 <th className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Cliente</th>
-                <th className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Serviços</th>
-                <th className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Valor</th>
                 <th className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Data/Hora</th>
                 <th className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Status</th>
+                <th className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Ações</th>
               </tr>
             </thead>
 
@@ -454,12 +479,6 @@ export default function DashboardCRM() {
                         {apt.clientPhone}
                       </span>
                     </div>
-                  </td>
-                  <td className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {apt.services}
-                  </td>
-                  <td className="py-3 text-gray-800 font-medium text-theme-sm dark:text-white/90">
-                    R$ {apt.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                   <td className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                     {format(parseISO(apt.date), 'dd/MM/yyyy', { locale: ptBR })} {apt.time}
@@ -478,10 +497,38 @@ export default function DashboardCRM() {
                        "Cancelado"}
                     </Badge>
                   </td>
+                  <td className="py-3">
+                    <div className="flex gap-2">
+                      {apt.status !== "completed" && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => updateStatusMutation.mutate({ id: apt.id, status: "completed" })}
+                          disabled={updateStatusMutation.isPending}
+                          className="w-8 h-8 text-success-600 hover:bg-success-50 hover:text-success-700 dark:text-success-500 dark:hover:bg-success-500/10"
+                          data-testid={`button-complete-${index}`}
+                        >
+                          <Check className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {apt.status !== "cancelled" && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => updateStatusMutation.mutate({ id: apt.id, status: "cancelled" })}
+                          disabled={updateStatusMutation.isPending}
+                          className="w-8 h-8 text-error-600 hover:bg-error-50 hover:text-error-700 dark:text-error-500 dark:hover:bg-error-500/10"
+                          data-testid={`button-cancel-${index}`}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-gray-400">
                     Nenhum agendamento recente
                   </td>
                 </tr>
