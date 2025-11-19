@@ -544,3 +544,24 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-400 dark:bg-gray-600;
 }
+/* ============================================
+   TAILADMIN MODAL Z-INDEX FIXES
+   ============================================ */
+#modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+#modal-root > * {
+  pointer-events: auto;
+}
+
+aside, .sidebar, nav {
+  z-index: 100 !important;
+}
+
+header {
+  z-index: 100 !important;
+}
