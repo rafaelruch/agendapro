@@ -41,7 +41,7 @@ TODOS os componentes UI (buttons, forms, tables, alerts, badges, images, dropdow
 - All color tokens are updated in `client/src/index.css` for both light and dark modes.
 
 **TailAdmin Modal System:**
-Implemented using wrapper components that maintain the Shadcn API but render TailAdmin Modals with specific styling (z-index `z-999999`, `max-w-3xl` for dialogs, `max-w-lg` for alert dialogs, `rounded-3xl` border radius, `backdrop-blur-[32px]` with `bg-gray-400/50`). This ensures full keyboard accessibility, focus management, and smooth TailAdmin animations.
+Implemented using React Portal and wrapper components. Modal renders via `createPortal` into `#modal-root` with proper z-index layering (`z-[9999]`). CSS fixes ensure modals appear above all elements (sidebar/header z-100). Dialog wrapper (Dialog/DialogTrigger/DialogContent/DialogHeader/DialogTitle/DialogDescription/DialogFooter) maintains Shadcn API but renders TailAdmin Modal internally. Styling: `max-w-3xl` for dialogs, `rounded-3xl` border radius, `backdrop-blur-[32px]` with `bg-gray-400/50`, `shadow-xl`. Full keyboard accessibility (Escape key), focus management, and pointer-events handling.
 
 **Login Page:**
 Replicates the TailAdmin SignInForm with a two-column layout (form on left, brand section on right). The brand section features a `bg-brand-950` background with a Calendar icon logo and project text. Social logins and a back button are explicitly removed.
