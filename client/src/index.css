@@ -583,3 +583,110 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   display: none;
   -webkit-appearance: none;
 }
+
+/* ============================================
+   FLATPICKR - ESTILO COMPACTO PARA MODAIS
+   ============================================ */
+.flatpickr-calendar {
+  font-size: 13px !important;
+  width: 280px !important;
+}
+
+.flatpickr-months {
+  padding: 8px 0 !important;
+}
+
+.flatpickr-current-month {
+  font-size: 14px !important;
+  padding: 4px 0 !important;
+}
+
+.flatpickr-monthDropdown-months {
+  font-size: 13px !important;
+}
+
+.flatpickr-weekdays {
+  height: 28px !important;
+  margin-top: 4px !important;
+}
+
+.flatpickr-weekday {
+  font-size: 12px !important;
+  line-height: 28px !important;
+}
+
+.flatpickr-days {
+  width: 280px !important;
+}
+
+.flatpickr-day {
+  height: 32px !important;
+  line-height: 32px !important;
+  max-width: 36px !important;
+  font-size: 13px !important;
+}
+
+.flatpickr-time {
+  height: auto !important;
+  padding: 8px !important;
+}
+
+.flatpickr-time input {
+  font-size: 14px !important;
+  height: 32px !important;
+}
+
+.flatpickr-time .flatpickr-time-separator,
+.flatpickr-time .flatpickr-am-pm {
+  height: 32px !important;
+  line-height: 32px !important;
+  font-size: 13px !important;
+}
+
+/* Flatpickr - Tema escuro */
+.dark .flatpickr-calendar {
+  background: rgb(17 24 39) !important;
+  border-color: rgb(55 65 81) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .flatpickr-months {
+  background: rgb(17 24 39) !important;
+}
+
+.dark .flatpickr-current-month .flatpickr-monthDropdown-months {
+  background: rgb(31 41 55) !important;
+  color: rgb(243 244 246) !important;
+}
+
+.dark .flatpickr-weekday {
+  color: rgb(156 163 175) !important;
+}
+
+.dark .flatpickr-day {
+  color: rgb(229 231 235) !important;
+}
+
+.dark .flatpickr-day:hover:not(.flatpickr-disabled) {
+  background: rgb(55 65 81) !important;
+  border-color: rgb(55 65 81) !important;
+}
+
+.dark .flatpickr-day.selected {
+  background: hsl(231 71% 56%) !important;
+  border-color: hsl(231 71% 56%) !important;
+  color: white !important;
+}
+
+.dark .flatpickr-day.today {
+  border-color: hsl(231 71% 56%) !important;
+}
+
+.dark .flatpickr-time input {
+  background: rgb(31 41 55) !important;
+  color: rgb(243 244 246) !important;
+}
+
+.dark .flatpickr-time .flatpickr-time-separator {
+  color: rgb(156 163 175) !important;
+}
