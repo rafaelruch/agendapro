@@ -495,14 +495,14 @@ const endpoints: { [key: string]: EndpointExample[] } = {
       description: "Listar todos os clientes do tenant",
       auth: "Bearer Token",
       queryParams: [
-        { name: "search", type: "string", required: false, description: "Buscar clientes por nome, email ou telefone (ex: ?search=11999999999 ou ?search=João)" }
+        { name: "search", type: "string", required: false, description: "Buscar clientes por nome ou telefone (ex: ?search=11999999999 ou ?search=João)" }
       ],
       responseExample: `[
   {
     "id": "123e4567-e89b-12d3-a456-426614174000",
     "name": "João Silva",
-    "email": "joao@exemplo.com",
     "phone": "11999999999",
+    "birthdate": "1990-05-15",
     "tenantId": "tenant-123"
   }
 ]`,
@@ -520,8 +520,8 @@ const endpoints: { [key: string]: EndpointExample[] } = {
       responseExample: `{
   "id": "123e4567-e89b-12d3-a456-426614174000",
   "name": "João Silva",
-  "email": "joao@exemplo.com",
   "phone": "11999999999",
+  "birthdate": "1990-05-15",
   "tenantId": "tenant-123"
 }`,
       curlExample: `curl -X GET "https://seudominio.com/api/clients/123e4567-e89b-12d3-a456-426614174000" \\
@@ -534,14 +534,14 @@ const endpoints: { [key: string]: EndpointExample[] } = {
       auth: "Bearer Token",
       requestBody: `{
   "name": "Maria Santos",
-  "email": "maria@exemplo.com",
-  "phone": "11988888888"
+  "phone": "11988888888",
+  "birthdate": "1985-03-20"
 }`,
       responseExample: `{
   "id": "456e7890-e89b-12d3-a456-426614174111",
   "name": "Maria Santos",
-  "email": "maria@exemplo.com",
   "phone": "11988888888",
+  "birthdate": "1985-03-20",
   "tenantId": "tenant-123"
 }`,
       curlExample: `curl -X POST "https://seudominio.com/api/clients" \\
@@ -549,8 +549,8 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   -H "Content-Type: application/json" \\
   -d '{
     "name": "Maria Santos",
-    "email": "maria@exemplo.com",
-    "phone": "11988888888"
+    "phone": "11988888888",
+    "birthdate": "1985-03-20"
   }'`
     },
     {
@@ -563,13 +563,14 @@ const endpoints: { [key: string]: EndpointExample[] } = {
       ],
       requestBody: `{
   "name": "Maria Santos Oliveira",
-  "phone": "11988888888"
+  "phone": "11988888888",
+  "birthdate": "1985-03-20"
 }`,
       responseExample: `{
   "id": "456e7890-e89b-12d3-a456-426614174111",
   "name": "Maria Santos Oliveira",
-  "email": "maria@exemplo.com",
   "phone": "11988888888",
+  "birthdate": "1985-03-20",
   "tenantId": "tenant-123"
 }`,
       curlExample: `curl -X PUT "https://seudominio.com/api/clients/456e7890-e89b-12d3-a456-426614174111" \\
@@ -1397,16 +1398,16 @@ curl -X POST "${baseUrl}/api/clients" \\
   -H "Content-Type: application/json" \\
   -d '{
     "name": "João Silva Teste",
-    "email": "joao.teste@exemplo.com",
-    "phone": "11999887766"
+    "phone": "11999887766",
+    "birthdate": "1990-05-15"
   }'
 
 # Resposta esperada (201 Created):
 {
   "id": "...",
   "name": "João Silva Teste",
-  "email": "joao.teste@exemplo.com",
   "phone": "11999887766",
+  "birthdate": "1990-05-15",
   "tenantId": "..."
 }`}</code>
                 </pre>
