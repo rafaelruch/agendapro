@@ -1,6 +1,16 @@
 <svg width="231" height="48" viewBox="0 0 231 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="48" height="48" rx="12" fill="#3C50E0"/>
-<path d="M16 20L24 14L32 20V34C32 34.5304 31.7893 35.0391 31.4142 35.4142C31.0391 35.7893 30.5304 36 30 36H18C17.4696 36 16.9609 35.7893 16.5858 35.4142C16.2107 35.0391 16 34.5304 16 34V20Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M21 36V24H27V36" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="58" y="32" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="white">AgendaPro</text>
+  <!-- Icon Background -->
+  <rect width="48" height="48" rx="12" fill="#3C50E0"/>
+  
+  <!-- Calendar Icon -->
+  <rect x="14" y="16" width="20" height="20" rx="2" stroke="white" stroke-width="2" fill="none"/>
+  <line x1="19" y1="14" x2="19" y2="18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <line x1="29" y1="14" x2="29" y2="18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <line x1="14" y1="22" x2="34" y2="22" stroke="white" stroke-width="2"/>
+  <circle cx="19" cy="28" r="1.5" fill="white"/>
+  <circle cx="24" cy="28" r="1.5" fill="white"/>
+  <circle cx="29" cy="28" r="1.5" fill="white"/>
+  
+  <!-- Text "AgendaPro" -->
+  <text x="58" y="32" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="white">AgendaPro</text>
 </svg>

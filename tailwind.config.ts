@@ -110,6 +110,7 @@ export default {
           50: "#EEF2FF",
           400: "#818CF8",
           500: "#3C50E0",
+          950: "#1C2434", // TailAdmin exact dark blue for auth background
         },
         "success-50": "#ECFDF5",
         "success-500": "#10B981",
