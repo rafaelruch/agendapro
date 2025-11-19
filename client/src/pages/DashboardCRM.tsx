@@ -1,8 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
-import { TrendingUp, TrendingDown, Calendar as CalendarIcon, Users, CheckCircle2, DollarSign, Check, X } from "lucide-react";
+import { TrendingUp, TrendingDown, Calendar as CalendarIcon, Users, CheckCircle2, DollarSign, Check, X, Eye } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Badge from "@/components/ui/badge-tailadmin";
@@ -10,6 +10,7 @@ import type { Appointment, Client, Service } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { AppointmentDetailsDialog } from "@/components/AppointmentDetailsDialog";
 
 type AppointmentWithServices = Appointment & {
   serviceIds?: string[];
@@ -17,6 +18,8 @@ type AppointmentWithServices = Appointment & {
 
 export default function DashboardCRM() {
   const { toast } = useToast();
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   
   const { data: appointments = [] } = useQuery<AppointmentWithServices[]>({
     queryKey: ["/api/appointments"],
@@ -499,6 +502,18 @@ export default function DashboardCRM() {
                   </td>
                   <td className="py-3">
                     <div className="flex gap-2">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedAppointmentId(apt.id);
+                          setShowDetailsDialog(true);
+                        }}
+                        className="w-8 h-8 text-brand-600 hover:bg-brand-50 hover:text-brand-700 dark:text-brand-500 dark:hover:bg-brand-500/10"
+                        data-testid={`button-view-${index}`}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
                       {apt.status !== "completed" && (
                         <Button
                           size="icon"
@@ -537,6 +552,13 @@ export default function DashboardCRM() {
           </table>
         </div>
       </div>
+
+      {/* Dialog de Detalhes do Agendamento */}
+      <AppointmentDetailsDialog
+        appointmentId={selectedAppointmentId}
+        open={showDetailsDialog}
+        onOpenChange={setShowDetailsDialog}
+      />
     </div>
   );
 }
