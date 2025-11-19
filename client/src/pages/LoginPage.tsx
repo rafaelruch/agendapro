@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { useLocation, Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -12,7 +10,7 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [keepLoggedIn, setKeepLoggedIn] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
@@ -52,147 +50,179 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 py-12 sm:px-6 lg:px-8">
-      {/* Theme Toggle - Fixed Top Right */}
-      <div className="fixed top-6 right-6 z-50">
-        <ThemeToggle />
-      </div>
+    <div className="relative p-6 bg-white dark:bg-gray-900 z-1 sm:p-0">
+      <div className="relative flex flex-col justify-center w-full h-screen lg:flex-row dark:bg-gray-900 sm:p-0">
+        {/* Left Side - Form (EXACT TailAdmin SignInForm) */}
+        <div className="flex flex-col flex-1">
+          <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
+            <div>
+              <div className="mb-5 sm:mb-8">
+                <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
+                  Entrar
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Digite seu usuário e senha para entrar!
+                </p>
+              </div>
+              <div>
+                <form onSubmit={handleSubmit}>
+                  <div className="space-y-6">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                        Usuário <span className="text-error-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Digite seu usuário"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800"
+                        data-testid="input-username"
+                        autoFocus
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                        Senha <span className="text-error-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Digite sua senha"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800"
+                          data-testid="input-password"
+                        />
+                        <span
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
+                        >
+                          {showPassword ? (
+                            <Eye className="size-5 text-gray-500 dark:text-gray-400" />
+                          ) : (
+                            <EyeOff className="size-5 text-gray-500 dark:text-gray-400" />
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <label className="flex items-center space-x-3 group cursor-pointer">
+                          <div className="relative w-5 h-5">
+                            <input
+                              type="checkbox"
+                              className="w-5 h-5 appearance-none cursor-pointer dark:border-gray-700 border border-gray-300 checked:border-transparent rounded-md checked:bg-brand-500"
+                              checked={keepLoggedIn}
+                              onChange={(e) => setKeepLoggedIn(e.target.checked)}
+                              data-testid="checkbox-keep-logged-in"
+                            />
+                            {keepLoggedIn && (
+                              <svg
+                                className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-none top-1/2 left-1/2"
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="14"
+                                height="14"
+                                viewBox="0 0 14 14"
+                                fill="none"
+                              >
+                                <path
+                                  d="M11.6666 3.5L5.24992 9.91667L2.33325 7"
+                                  stroke="white"
+                                  strokeWidth="1.94437"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                        </label>
+                        <span className="block text-sm font-normal text-gray-700 dark:text-gray-400">
+                          Manter conectado
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          toast({
+                            title: "Recuperação de senha",
+                            description: "Entre em contato com o administrador",
+                          });
+                        }}
+                        className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
+                        data-testid="button-forgot-password"
+                      >
+                        Esqueceu a senha?
+                      </button>
+                    </div>
+                    <div>
+                      <button
+                        type="submit"
+                        disabled={loginMutation.isPending}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg transition w-full px-4 py-3 text-sm bg-brand-500 text-white shadow-theme-xs hover:bg-brand-600 disabled:bg-brand-300 disabled:cursor-not-allowed disabled:opacity-50"
+                        data-testid="button-login"
+                      >
+                        {loginMutation.isPending ? "Entrando..." : "Entrar"}
+                      </button>
+                    </div>
+                  </div>
+                </form>
 
-      <div className="w-full max-w-md">
-        {/* Logo and Title */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-500/10 dark:bg-brand-400/10">
-            <CalendarDays className="h-8 w-8 text-brand-500 dark:text-brand-400" />
+                <div className="mt-5">
+                  <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
+                    Não tem uma conta?{" "}
+                    <a
+                      href="https://wa.me/5562996918770?text=Quero%20o%20sistema%20de%20agendamento%20para%20o%20meu%20neg%C3%B3cio"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-brand-500 hover:text-brand-600 dark:text-brand-400"
+                      data-testid="link-whatsapp-admin"
+                    >
+                      Fale com o administrador
+                    </a>
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Entrar no AgendaPro
-          </h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Digite seu usuário e senha para acessar
-          </p>
         </div>
 
-        {/* Sign In Form */}
-        <div className="rounded-lg bg-white dark:bg-gray-800 p-8 shadow-lg border border-gray-200 dark:border-gray-700">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Username Input */}
-            <div>
-              <label
-                htmlFor="username"
-                className="mb-2.5 block text-sm font-medium text-gray-900 dark:text-white"
-              >
-                Usuário
-              </label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="Digite seu usuário"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-3 text-gray-900 dark:text-white focus:border-brand-500 dark:focus:border-brand-400"
-                required
-                autoFocus
-                data-testid="input-username"
+        {/* Right Side - Brand Section (EXACT TailAdmin AuthLayout) */}
+        <div className="items-center hidden w-full h-full lg:w-1/2 bg-brand-950 dark:bg-white/5 lg:grid">
+          <div className="relative flex items-center justify-center z-1">
+            {/* Grid Pattern Background */}
+            <div className="absolute inset-0 opacity-10">
+              <div
+                className="h-full w-full"
+                style={{
+                  backgroundImage: `
+                    linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)
+                  `,
+                  backgroundSize: '50px 50px',
+                }}
               />
             </div>
-
-            {/* Password Input */}
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-2.5 block text-sm font-medium text-gray-900 dark:text-white"
-              >
-                Senha
-              </label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Digite sua senha"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-3 pr-12 text-gray-900 dark:text-white focus:border-brand-500 dark:focus:border-brand-400"
-                  required
-                  data-testid="input-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                  data-testid="button-toggle-password"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
+            <div className="flex flex-col items-center max-w-xs">
+              <Link href="/" className="block mb-4">
+                <div className="flex items-center gap-3">
+                  <CalendarDays className="w-12 h-12 text-white" />
+                  <span className="text-3xl font-bold text-white">
+                    AgendaPro
+                  </span>
+                </div>
+              </Link>
+              <p className="text-center text-gray-400 dark:text-white/60">
+                Sistema de Gerenciamento de Agendas Multi-Tenant
+              </p>
             </div>
-
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="remember"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700"
-                  data-testid="checkbox-remember"
-                />
-                <label
-                  htmlFor="remember"
-                  className="ml-2 text-sm text-gray-600 dark:text-gray-400"
-                >
-                  Lembrar de mim
-                </label>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  toast({
-                    title: "Recuperação de senha",
-                    description: "Entre em contato com o administrador",
-                  });
-                }}
-                className="text-sm text-brand-600 hover:underline dark:text-brand-400"
-                data-testid="link-forgot-password"
-              >
-                Esqueceu a senha?
-              </button>
-            </div>
-
-            {/* Sign In Button */}
-            <Button
-              type="submit"
-              disabled={loginMutation.isPending}
-              className="w-full rounded-lg bg-brand-600 dark:bg-brand-500 px-4 py-3 font-medium text-white hover:bg-brand-700 dark:hover:bg-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-300 dark:focus:ring-brand-800"
-              data-testid="button-login"
-            >
-              {loginMutation.isPending ? "Entrando..." : "Entrar"}
-            </Button>
-          </form>
-
-          {/* Sign Up Link */}
-          <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-            Não tem uma conta?{" "}
-            <a
-              href="https://wa.me/5562996918770?text=Quero%20o%20sistema%20de%20agendamento%20para%20o%20meu%20neg%C3%B3cio"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-brand-600 hover:underline dark:text-brand-400"
-              data-testid="link-whatsapp-admin"
-            >
-              Fale com o administrador
-            </a>
-          </p>
+          </div>
         </div>
 
-        {/* Footer */}
-        <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-          © 2024 AgendaPro. Todos os direitos reservados.
-        </p>
+        {/* Theme Toggle - Fixed Bottom Right (EXACT TailAdmin) */}
+        <div className="fixed z-50 hidden bottom-6 right-6 sm:block">
+          <ThemeToggle />
+        </div>
       </div>
     </div>
   );
