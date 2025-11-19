@@ -76,7 +76,7 @@ export default function LoginPage() {
                         placeholder="Digite seu usuário"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800"
+                        className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:focus:border-brand-800"
                         data-testid="input-username"
                         autoFocus
                       />
@@ -91,19 +91,22 @@ export default function LoginPage() {
                           placeholder="Digite sua senha"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800"
+                          className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:focus:border-brand-800"
                           data-testid="input-password"
                         />
-                        <span
+                        <button
+                          type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
+                          className="absolute z-30 -translate-y-1/2 right-4 top-1/2 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                          aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                          data-testid="button-toggle-password"
                         >
                           {showPassword ? (
                             <Eye className="size-5 text-gray-500 dark:text-gray-400" />
                           ) : (
                             <EyeOff className="size-5 text-gray-500 dark:text-gray-400" />
                           )}
-                        </span>
+                        </button>
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
@@ -159,7 +162,7 @@ export default function LoginPage() {
                       <button
                         type="submit"
                         disabled={loginMutation.isPending}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg transition w-full px-4 py-3 text-sm bg-brand-500 text-white shadow-theme-xs hover:bg-brand-600 disabled:bg-brand-300 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg transition w-full px-4 py-3 text-sm bg-brand-500 text-white shadow-sm hover:bg-brand-600 disabled:bg-brand-300 disabled:cursor-not-allowed disabled:opacity-50"
                         data-testid="button-login"
                       >
                         {loginMutation.isPending ? "Entrando..." : "Entrar"}

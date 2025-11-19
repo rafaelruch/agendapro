@@ -95,6 +95,22 @@ The dashboard layout and styling are EXACTLY replicated from TailAdmin CRM templ
 - Shadow variants: `shadow-default`, `shadow-card`, `shadow-drop-down`
 - All metrics update in real-time with proper date parsing and promotional price calculations
 
+**Login Page (EXACT TailAdmin SignInForm - `client/src/pages/LoginPage.tsx`):**
+- **Structure**: Two-column layout (form on left, brand section on right)
+- **NO back button** (removed as per TailAdmin design)
+- **NO social logins** (Google/X buttons removed)
+- **Form Fields**:
+  - Usuário (username): `h-11` input with `shadow-sm` and focus states
+  - Senha (password): `h-11` input with accessible toggle button (Eye/EyeOff icons)
+  - Manter conectado: TailAdmin checkbox (state stored but not used in backend yet)
+  - Esqueceu a senha?: link that shows toast message
+  - Fale com o administrador: WhatsApp link (external)
+- **Accessibility**: Password toggle is a `<button>` (not span) with dynamic `aria-label` ("Mostrar senha" / "Ocultar senha")
+- **TailAdmin Classes**: All classes are valid Tailwind (shadow-sm, focus:ring-2, focus:outline-none, focus:ring-brand-500/10)
+- **Theme Toggle**: Fixed bottom-right corner (TailAdmin AuthLayout pattern)
+- **Brand Section**: Grid pattern background with AgendaPro logo and description (hidden on mobile, visible on lg+)
+- **Test IDs**: input-username, input-password, button-toggle-password, checkbox-keep-logged-in, button-forgot-password, link-whatsapp-admin, button-login
+
 **Calendar Page (EXACT TailAdmin + Full CRUD Integration):**
 - **Visual**: FullCalendar component with TailAdmin styling (month/week/day views)
 - **CRUD Operations**:
