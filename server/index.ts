@@ -32,18 +32,24 @@ if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
 
+// SEGURANÇA: SESSION_SECRET obrigatório em produção
+const sessionSecret = process.env.SESSION_SECRET;
+if (process.env.NODE_ENV === 'production' && !sessionSecret) {
+  throw new Error('❌ ERRO CRÍTICO: SESSION_SECRET é obrigatório em produção! Configure esta variável de ambiente antes de iniciar a aplicação.');
+}
+
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
+  secret: sessionSecret || 'dev-secret-only-for-local-development',
   resave: false,
   saveUninitialized: false,
   proxy: process.env.NODE_ENV === 'production',
   cookie: {
     httpOnly: true,
-    // Desabilitar secure cookie em produção por padrão (EasyPanel geralmente usa proxy HTTPS)
-    // Se quiser forçar HTTPS, configure FORCE_SECURE_COOKIE=true
-    secure: process.env.FORCE_SECURE_COOKIE === 'true',
-    sameSite: 'lax',
-    maxAge: 1000 * 60 * 60 * 24 * 7,
+    // Em produção: secure=true (requer HTTPS), sameSite=strict (proteção CSRF)
+    // Em desenvolvimento: secure=false (permite HTTP local)
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
   }
 }));
 
