@@ -10,6 +10,8 @@ import {
   insertTenantSchema,
   insertUserSchema,
   insertBusinessHoursSchema,
+  loginSchema,
+  setupSchema,
   type InsertUser
 } from "@shared/schema";
 import { z } from "zod";
@@ -132,16 +134,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Sistema já foi instalado" });
       }
 
-      const { username, name, email, password } = req.body;
-
-      if (!username || !name || !email || !password) {
-        return res.status(400).json({ error: "Todos os campos são obrigatórios" });
-      }
-
-      // Validar dados
-      if (password.length < 6) {
-        return res.status(400).json({ error: "Senha deve ter no mínimo 6 caracteres" });
-      }
+      // SEGURANÇA: Validação Zod
+      const validatedData = setupSchema.parse(req.body);
+      const { username, name, email, password } = validatedData;
 
       // Hash da senha
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -165,6 +160,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: { id: user.id, username: user.username, name: user.name }
       });
     } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Dados inválidos", details: error.errors });
+      }
       console.error("Error during setup:", error);
       res.status(500).json({ error: error.message || "Erro ao instalar sistema" });
     }
@@ -178,11 +176,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // SEGURANÇA: Rate limiting (5 tentativas a cada 10 minutos)
   app.post("/api/auth/login", authLimiter, async (req, res) => {
     try {
-      const { username, password } = req.body;
-      
-      if (!username || !password) {
-        return res.status(400).json({ error: "Usuário e senha são obrigatórios" });
-      }
+      // SEGURANÇA: Validação Zod
+      const validatedData = loginSchema.parse(req.body);
+      const { username, password } = validatedData;
 
       const user = await storage.getUserByUsername(username);
       
@@ -238,6 +234,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Dados inválidos", details: error.errors });
+      }
       console.error("Error during login:", error);
       res.status(500).json({ error: "Erro ao fazer login" });
     }

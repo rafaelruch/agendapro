@@ -235,3 +235,23 @@ export function getServiceEffectiveValue(service: Service): number {
   }
   return parseFloat(String(service.value));
 }
+
+// SCHEMAS DE AUTENTICAÇÃO
+
+// Schema para login
+export const loginSchema = z.object({
+  username: z.string().min(1, "Usuário é obrigatório"),
+  password: z.string().min(1, "Senha é obrigatória")
+});
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Schema para setup/instalação
+export const setupSchema = z.object({
+  username: z.string().min(3, "Usuário deve ter no mínimo 3 caracteres"),
+  name: z.string().min(1, "Nome é obrigatório"),
+  email: z.string().email("Email inválido"),
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres")
+});
+
+export type SetupData = z.infer<typeof setupSchema>;
