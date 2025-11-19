@@ -59,6 +59,55 @@ Utilizes FullCalendar with TailAdmin styling, supporting full CRUD operations fo
 - **Advanced Features**: Appointment conflict detection, flexible business hours, availability API, secure API token system, role-based access control, dynamic API documentation, bulk service import, detailed calendar views, client phone uniqueness, multi-service appointments (total duration calculation), and promotional pricing with date-based activation.
 - **Troubleshooting Tools**: Master admin tools for correcting "orphan appointments" and managing service visibility.
 
+### Production Security (PRODUCTION-READY ✅)
+**CRITICAL REQUIREMENTS:**
+- **SESSION_SECRET**: MANDATORY environment variable (min 32 characters)
+  - NO fallback - application fails immediately if not set
+  - Generate with: `openssl rand -base64 32`
+  - Production enforces minimum entropy (32 chars)
+
+**Security Measures Implemented:**
+1. **Session Security**:
+   - httpOnly cookies (prevents XSS)
+   - secure: true in production (HTTPS only)
+   - sameSite: 'strict' in production (CSRF protection)
+   - 7-day session lifetime
+
+2. **Rate Limiting** (express-rate-limit):
+   - Auth endpoints: 5 attempts / 10 minutes
+   - API endpoints: 100 requests / 15 minutes
+   - CSV uploads: 10 uploads / hour
+   - RFC-compliant headers (RateLimit-*)
+   - Skip successful auth attempts
+
+3. **Input Validation** (Zod):
+   - All POST/PUT endpoints validated
+   - Login: loginSchema (username, password)
+   - Setup: setupSchema (username, name, email, password min 6 chars)
+   - Structured error responses with details
+
+4. **File Upload Security** (CSV):
+   - Max file size: 5MB
+   - Max rows: 1000 services per upload
+   - Strict type validation (CSV only)
+   - Empty file detection
+   - MulterError handling
+
+5. **Environment Variables**:
+   - SESSION_SECRET (required, min 32 chars)
+   - NODE_ENV (production/development)
+   - DATABASE_URL (PostgreSQL connection)
+
+**Deployment Checklist:**
+- [ ] Set SESSION_SECRET environment variable (≥32 chars)
+- [ ] Set NODE_ENV=production
+- [ ] Configure DATABASE_URL for production database
+- [ ] Enable HTTPS on hosting platform
+- [ ] Configure trust proxy if behind reverse proxy
+- [ ] Test rate limiting behavior
+- [ ] Verify secure cookies are set
+- [ ] Run smoke tests (login, API calls, CSV import)
+
 ### System Design Choices
 - **Backend**: Express.js.
 - **Database**: PostgreSQL with Drizzle ORM.
