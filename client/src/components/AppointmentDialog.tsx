@@ -35,6 +35,10 @@ import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuickClientDialog } from "./QuickClientDialog";
 import { ServiceMultiSelect } from "./ServiceMultiSelect";
+import type { InsertAppointment } from "@shared/schema";
+
+// Frontend appointment data - tenantId is set by backend
+type FrontendAppointmentData = Omit<InsertAppointment, 'tenantId'>;
 
 interface Client {
   id: string;
@@ -54,9 +58,9 @@ interface AppointmentDialogProps {
   onOpenChange: (open: boolean) => void;
   clients: Client[];
   services: Service[];
-  onSave: (appointment: any) => void;
+  onSave: (appointment: FrontendAppointmentData) => void;
   onClientCreated?: () => void;
-  initialData?: any;
+  initialData?: Partial<FrontendAppointmentData>;
 }
 
 export function AppointmentDialog({
@@ -100,6 +104,25 @@ export function AppointmentDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!formData.clientId) {
+      alert("Por favor, selecione um cliente.");
+      return;
+    }
+    if (!formData.serviceIds || formData.serviceIds.length === 0) {
+      alert("Por favor, selecione pelo menos um serviço.");
+      return;
+    }
+    if (!formData.time) {
+      alert("Por favor, informe o horário do agendamento.");
+      return;
+    }
+    if (!formData.date) {
+      alert("Por favor, informe a data do agendamento.");
+      return;
+    }
+    
     const dataToSave = {
       ...formData,
       serviceIds: formData.serviceIds,
