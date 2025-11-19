@@ -38,8 +38,8 @@ export default function ClientsPage() {
 
   const createClientMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/clients", data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
       setShowClientDialog(false);
       setEditingClient(null);
       toast({
@@ -59,8 +59,8 @@ export default function ClientsPage() {
   const updateClientMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
       apiRequest("PUT", `/api/clients/${id}`, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
       setShowClientDialog(false);
       setEditingClient(null);
       toast({
@@ -79,9 +79,9 @@ export default function ClientsPage() {
 
   const deleteClientMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/clients/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
       toast({
         title: "Cliente excluído",
         description: "O cliente foi excluído com sucesso.",

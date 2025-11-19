@@ -36,8 +36,8 @@ export default function CalendarPage() {
 
   const createAppointmentMutation = useMutation({
     mutationFn: (data: FrontendAppointmentData) => apiRequest("POST", "/api/appointments", data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
       setShowAppointmentDialog(false);
       setEditingAppointment(null);
       setPrefilledDate(null);
@@ -58,8 +58,8 @@ export default function CalendarPage() {
   const updateAppointmentMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: FrontendAppointmentData }) =>
       apiRequest("PUT", `/api/appointments/${id}`, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
       setShowAppointmentDialog(false);
       setEditingAppointment(null);
       setSelectedAppointmentId(null);
@@ -79,8 +79,8 @@ export default function CalendarPage() {
 
   const deleteAppointmentMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/appointments/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
       setSelectedAppointmentId(null);
       toast({
         title: "Agendamento excluído",

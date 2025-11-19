@@ -8,10 +8,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Calendar, Clock } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Plus } from "lucide-react";
 import { QuickClientDialog } from "./QuickClientDialog";
 import { TailAdminMultiSelect } from "./TailAdminMultiSelect";
 import { ClientSearchSelect } from "./ClientSearchSelect";
@@ -107,7 +107,7 @@ export function AppointmentDialog({
       serviceIds: formData.serviceIds,
     };
     onSave(dataToSave);
-    onOpenChange(false);
+    // NÃO fechar o dialog aqui - o parent fecha no onSuccess da mutation
   };
 
 
@@ -157,40 +157,26 @@ export function AppointmentDialog({
               placeholder="Selecione um ou mais serviços..."
             />
             <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="date">Data</Label>
-                <div className="relative">
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    data-testid="input-date"
-                    required
-                  />
-                  <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
-                    <Calendar className="size-6" />
-                  </span>
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="time">Horário (24h)</Label>
-                <div className="relative">
-                  <Input
-                    id="time"
-                    type="time"
-                    value={formData.time}
-                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                    data-testid="input-time"
-                    step={60}
-                    required
-                    placeholder="14:00"
-                  />
-                  <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
-                    <Clock className="size-6" />
-                  </span>
-                </div>
-              </div>
+              <DatePicker
+                id="date"
+                label="Data"
+                mode="single"
+                value={formData.date}
+                onChange={(_, dateStr) => setFormData({ ...formData, date: dateStr })}
+                placeholder="Selecione a data"
+                data-testid="input-date"
+                required
+              />
+              <DatePicker
+                id="time"
+                label="Horário (24h)"
+                mode="time"
+                value={formData.time}
+                onChange={(_, timeStr) => setFormData({ ...formData, time: timeStr })}
+                placeholder="14:00"
+                data-testid="input-time"
+                required
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="status">Status</Label>

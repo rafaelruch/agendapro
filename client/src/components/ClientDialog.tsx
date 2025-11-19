@@ -3,6 +3,7 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface ClientDialogProps {
   open: boolean;
@@ -79,16 +80,15 @@ export function ClientDialog({
                 required
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="birthdate">Data de Nascimento (Opcional)</Label>
-              <Input
-                id="birthdate"
-                type="date"
-                value={formData.birthdate || ""}
-                onChange={(e) => setFormData({ ...formData, birthdate: e.target.value })}
-                data-testid="input-client-birthdate"
-              />
-            </div>
+            <DatePicker
+              id="birthdate"
+              label="Data de Nascimento (Opcional)"
+              mode="single"
+              value={formData.birthdate || ""}
+              onChange={(_, dateStr) => setFormData({ ...formData, birthdate: dateStr })}
+              placeholder="Selecione a data"
+              data-testid="input-client-birthdate"
+            />
           </div>
           <div className="flex items-center justify-end gap-3 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel">
