@@ -16,7 +16,7 @@ interface EndpointExample {
   curlExample: string;
 }
 
-const endpoints: { [key: string]: EndpointExample[] } = {
+const getEndpoints = (baseUrl: string): { [key: string]: EndpointExample[] } => ({
   clientes: [
     {
       method: "GET",
@@ -35,7 +35,7 @@ const endpoints: { [key: string]: EndpointExample[] } = {
     "tenantId": "tenant-123"
   }
 ]`,
-      curlExample: `curl -X GET "https://seudominio.com/api/clients?search=11999999999" \\
+      curlExample: `curl -X GET "${baseUrl}/api/clients?search=11999999999" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     },
     {
@@ -55,7 +55,7 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   "birthdate": "1985-03-20",
   "tenantId": "tenant-123"
 }`,
-      curlExample: `curl -X POST "https://seudominio.com/api/clients" \\
+      curlExample: `curl -X POST "${baseUrl}/api/clients" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -83,7 +83,7 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   "birthdate": "1985-03-20",
   "tenantId": "tenant-123"
 }`,
-      curlExample: `curl -X PUT "https://seudominio.com/api/clients/456e7890-e89b-12d3-a456-426614174111" \\
+      curlExample: `curl -X PUT "${baseUrl}/api/clients/456e7890-e89b-12d3-a456-426614174111" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -100,7 +100,7 @@ const endpoints: { [key: string]: EndpointExample[] } = {
         { name: "id", type: "string", required: true, description: "ID do cliente" }
       ],
       responseExample: "204 No Content",
-      curlExample: `curl -X DELETE "https://seudominio.com/api/clients/456e7890-e89b-12d3-a456-426614174111" \\
+      curlExample: `curl -X DELETE "${baseUrl}/api/clients/456e7890-e89b-12d3-a456-426614174111" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     }
   ],
@@ -128,7 +128,7 @@ const endpoints: { [key: string]: EndpointExample[] } = {
     "tenantId": "tenant-123"
   }
 ]`,
-      curlExample: `curl -X GET "https://seudominio.com/api/services" \\
+      curlExample: `curl -X GET "${baseUrl}/api/services" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     },
     {
@@ -150,7 +150,7 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   "duration": 45,
   "tenantId": "tenant-123"
 }`,
-      curlExample: `curl -X POST "https://seudominio.com/api/services" \\
+      curlExample: `curl -X POST "${baseUrl}/api/services" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -184,7 +184,7 @@ const endpoints: { [key: string]: EndpointExample[] } = {
     "tenantId": "tenant-123"
   }
 ]`,
-      curlExample: `curl -X GET "https://seudominio.com/api/appointments?date=2025-11-20" \\
+      curlExample: `curl -X GET "${baseUrl}/api/appointments?date=2025-11-20" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     },
     {
@@ -210,7 +210,7 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   "notes": "Cliente preferencial",
   "tenantId": "tenant-123"
 }`,
-      curlExample: `curl -X POST "https://seudominio.com/api/appointments" \\
+      curlExample: `curl -X POST "${baseUrl}/api/appointments" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -237,7 +237,7 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   "token": "apt_1234567890abcdef...",
   "createdAt": "2025-11-19T10:00:00Z"
 }`,
-      curlExample: `curl -X POST "https://seudominio.com/api/settings/api-tokens" \\
+      curlExample: `curl -X POST "${baseUrl}/api/settings/api-tokens" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -253,11 +253,11 @@ const endpoints: { [key: string]: EndpointExample[] } = {
         { name: "id", type: "string", required: true, description: "ID do token" }
       ],
       responseExample: "204 No Content",
-      curlExample: `curl -X DELETE "https://seudominio.com/api/settings/api-tokens/token-123" \\
+      curlExample: `curl -X DELETE "${baseUrl}/api/settings/api-tokens/token-123" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     }
   ]
-};
+});
 
 const sections = [
   { id: "overview", label: "Visão Geral" },
@@ -423,6 +423,9 @@ export function ApiDocumentation() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  const baseUrl = window.location.origin;
+  const endpoints = getEndpoints(baseUrl);
+
   // Scroll to section
   const scrollToSection = (sectionId: string) => {
     setActiveSection(sectionId);
@@ -451,8 +454,6 @@ export function ApiDocumentation() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  const baseUrl = window.location.origin;
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -526,8 +527,7 @@ export function ApiDocumentation() {
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Exemplo de Requisição</h3>
               <div className="relative">
                 <pre className="text-xs bg-gray-900 dark:bg-gray-950 text-gray-100 p-4 rounded-lg overflow-x-auto">
-                  <code>{`curl -X GET "${baseUrl}/api/clients" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"`}</code>
+                  <code>{`curl -X GET "${baseUrl}/api/clients" \\\n  -H "Authorization: Bearer SEU_TOKEN_AQUI"`}</code>
                 </pre>
                 <CopyButton text={`curl -X GET "${baseUrl}/api/clients" \\\n  -H "Authorization: Bearer SEU_TOKEN_AQUI"`} />
               </div>
