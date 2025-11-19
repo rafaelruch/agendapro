@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
+import { Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Eye, EyeOff, CalendarDays } from "lucide-react";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import GridShape from "@/components/GridShape";
+import ThemeTogglerTwo from "@/components/ThemeTogglerTwo";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -50,7 +51,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative p-6 bg-white dark:bg-gray-900 z-1 sm:p-0">
+    <div className="relative p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">
       <div className="relative flex flex-col justify-center w-full h-screen lg:flex-row dark:bg-gray-900 sm:p-0">
         {/* Left Side - Form (EXACT TailAdmin SignInForm) */}
         <div className="flex flex-col flex-1">
@@ -94,19 +95,16 @@ export default function LoginPage() {
                           className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:focus:border-brand-800"
                           data-testid="input-password"
                         />
-                        <button
-                          type="button"
+                        <span
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute z-30 -translate-y-1/2 right-4 top-1/2 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                          aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                          data-testid="button-toggle-password"
+                          className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
                         >
                           {showPassword ? (
-                            <Eye className="size-5 text-gray-500 dark:text-gray-400" />
+                            <Eye className="fill-gray-500 dark:fill-gray-400 size-5" />
                           ) : (
-                            <EyeOff className="size-5 text-gray-500 dark:text-gray-400" />
+                            <EyeOff className="fill-gray-500 dark:fill-gray-400 size-5" />
                           )}
-                        </button>
+                        </span>
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
@@ -193,27 +191,16 @@ export default function LoginPage() {
         {/* Right Side - Brand Section (EXACT TailAdmin AuthLayout) */}
         <div className="items-center hidden w-full h-full lg:w-1/2 bg-brand-950 dark:bg-white/5 lg:grid">
           <div className="relative flex items-center justify-center z-1">
-            {/* Grid Pattern Background */}
-            <div className="absolute inset-0 opacity-10">
-              <div
-                className="h-full w-full"
-                style={{
-                  backgroundImage: `
-                    linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)
-                  `,
-                  backgroundSize: '50px 50px',
-                }}
-              />
-            </div>
+            {/* Grid Shape - EXACT TailAdmin */}
+            <GridShape />
             <div className="flex flex-col items-center max-w-xs">
               <Link href="/" className="block mb-4">
-                <div className="flex items-center gap-3">
-                  <CalendarDays className="w-12 h-12 text-white" />
-                  <span className="text-3xl font-bold text-white">
-                    AgendaPro
-                  </span>
-                </div>
+                <img
+                  width={231}
+                  height={48}
+                  src="/images/logo/auth-logo.svg"
+                  alt="Logo"
+                />
               </Link>
               <p className="text-center text-gray-400 dark:text-white/60">
                 Sistema de Gerenciamento de Agendas Multi-Tenant
@@ -222,9 +209,9 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Theme Toggle - Fixed Bottom Right (EXACT TailAdmin) */}
+        {/* Theme Toggle - EXACT TailAdmin ThemeTogglerTwo */}
         <div className="fixed z-50 hidden bottom-6 right-6 sm:block">
-          <ThemeToggle />
+          <ThemeTogglerTwo />
         </div>
       </div>
     </div>
