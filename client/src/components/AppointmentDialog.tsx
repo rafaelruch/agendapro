@@ -34,7 +34,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuickClientDialog } from "./QuickClientDialog";
-import { ServiceMultiSelect } from "./ServiceMultiSelect";
+import { TailAdminMultiSelect } from "./TailAdminMultiSelect";
 import type { InsertAppointment } from "@shared/schema";
 
 // Frontend appointment data - tenantId is set by backend
@@ -202,10 +202,16 @@ export function AppointmentDialog({
                 </Button>
               </div>
             </div>
-            <ServiceMultiSelect
-              services={services}
-              selectedServiceIds={formData.serviceIds}
+            <TailAdminMultiSelect
+              options={services.map(s => ({
+                id: s.id,
+                name: s.name,
+                description: `${s.category} • R$ ${parseFloat(s.value).toFixed(2).replace('.', ',')} • ${s.duration} min`
+              }))}
+              selected={formData.serviceIds}
               onChange={(serviceIds) => setFormData({ ...formData, serviceIds })}
+              label="Serviços"
+              placeholder="Selecione um ou mais serviços..."
             />
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
