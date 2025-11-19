@@ -132,61 +132,83 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 220 13% 9%;
+  /* TailAdmin Exact Dark Mode Colors - Using Decimal Precision for Perfect Match */
+  /* gray-900: #101828 - Precise calculation */
+  --background: 220 42.9% 11%;
 
-  --foreground: 220 9% 93%;
+  /* white/90 opacity - handled via text-white/90 in components */
+  --foreground: 0 0% 90%;
 
-  --border: 220 13% 18%;
+  /* gray-800: #1d2939 - Precise calculation */
+  --border: 220 32.5% 17%;
 
-  --card: 220 9% 11%;
+  /* gray-dark: #1a2231 - Precise calculation */
+  --card: 219 31% 15%;
 
-  --card-foreground: 220 9% 93%;
+  /* white/90 opacity */
+  --card-foreground: 0 0% 90%;
 
-  --card-border: 220 13% 15%;
+  /* gray-800: #1d2939 */
+  --card-border: 220 32.5% 17%;
 
-  --sidebar: 220 9% 13%;
+  /* gray-dark: #1a2231 */
+  --sidebar: 219 31% 15%;
 
-  --sidebar-foreground: 220 9% 93%;
+  /* white/90 opacity */
+  --sidebar-foreground: 0 0% 90%;
 
-  --sidebar-border: 220 13% 20%;
+  /* gray-800: #1d2939 */
+  --sidebar-border: 220 32.5% 17%;
 
   --sidebar-primary: 231 71% 56%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 220 13% 18%;
+  /* gray-700: #344054 - hover state */
+  --sidebar-accent: 217 18.5% 27%;
 
-  --sidebar-accent-foreground: 220 9% 93%;
+  /* white/90 */
+  --sidebar-accent-foreground: 0 0% 90%;
 
   --sidebar-ring: 231 71% 56%;
 
-  --popover: 220 13% 15%;
+  /* gray-dark: #1a2231 */
+  --popover: 219 31% 15%;
 
-  --popover-foreground: 220 9% 93%;
+  /* white/90 */
+  --popover-foreground: 0 0% 90%;
 
-  --popover-border: 220 13% 20%;
+  /* gray-800: #1d2939 */
+  --popover-border: 220 32.5% 17%;
 
   --primary: 231 71% 56%;
 
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 220 13% 18%;
+  /* gray-700: #344054 */
+  --secondary: 217 18.5% 27%;
 
-  --secondary-foreground: 220 9% 93%;
+  /* white/90 */
+  --secondary-foreground: 0 0% 90%;
 
-  --muted: 220 13% 16%;
+  /* gray-800: #1d2939 - muted backgrounds */
+  --muted: 220 32.5% 17%;
 
-  --muted-foreground: 220 9% 65%;
+  /* gray-400: #98a2b3 - muted text */
+  --muted-foreground: 220 13.5% 65%;
 
-  --accent: 217 20% 17%;
+  /* gray-700: #344054 - accent */
+  --accent: 217 18.5% 27%;
 
-  --accent-foreground: 220 9% 93%;
+  /* white/90 */
+  --accent-foreground: 0 0% 90%;
 
   --destructive: 0 84% 60%;
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 220 13% 28%;
+  /* gray-600: #475467 - input borders */
+  --input: 215 15.5% 34%;
   --ring: 231 71% 56%;
   --chart-1: 231 71% 70%;
   --chart-2: 142 76% 56%;
