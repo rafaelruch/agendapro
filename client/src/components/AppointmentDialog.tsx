@@ -1,13 +1,6 @@
 import { useState, useEffect } from "react";
+import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog-tailadmin";
 import {
   Select,
   SelectContent,
@@ -133,16 +126,18 @@ export function AppointmentDialog({
 
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>{initialData ? "Editar Agendamento" : "Novo Agendamento"}</DialogTitle>
-            <DialogDescription>
-              Preencha as informações do agendamento abaixo.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
+    <>
+      <Modal isOpen={open} onClose={() => onOpenChange(false)} className="sm:max-w-[500px]">
+      <form onSubmit={handleSubmit}>
+        <div className="px-6 pt-6 pb-4 sm:px-9.5 sm:pt-9.5 sm:pb-6">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
+            {initialData ? "Editar Agendamento" : "Novo Agendamento"}
+          </h3>
+          <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
+            Preencha as informações do agendamento abaixo.
+          </p>
+        </div>
+        <div className="grid gap-4 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
             <div className="grid gap-2">
               <Label htmlFor="client">Cliente</Label>
               <div className="flex gap-2">
@@ -267,16 +262,16 @@ export function AppointmentDialog({
               />
             </div>
           </div>
-          <DialogFooter>
+          <div className="flex items-center justify-end gap-3 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel">
               Cancelar
             </Button>
             <Button type="submit" data-testid="button-save">
               Salvar
             </Button>
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
+      </Modal>
 
       <QuickClientDialog
         open={showQuickClientDialog}
@@ -288,6 +283,6 @@ export function AppointmentDialog({
           }
         }}
       />
-    </Dialog>
+    </>
   );
 }

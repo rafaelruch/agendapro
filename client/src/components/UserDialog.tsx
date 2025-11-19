@@ -2,13 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog-tailadmin";
+import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -88,21 +82,20 @@ export function UserDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle data-testid="text-dialog-title">
-            {user ? "Editar Usuário" : "Novo Usuário"}
-          </DialogTitle>
-          <DialogDescription>
-            {user
-              ? "Atualize as informações do usuário"
-              : "Adicione um novo usuário ao sistema"}
-          </DialogDescription>
-        </DialogHeader>
+    <Modal isOpen={open} onClose={() => onOpenChange(false)} className="sm:max-w-[500px]">
+      <div className="px-6 pt-6 pb-4 sm:px-9.5 sm:pt-9.5 sm:pb-6">
+        <h3 className="text-xl font-semibold text-gray-800 dark:text-white" data-testid="text-dialog-title">
+          {user ? "Editar Usuário" : "Novo Usuário"}
+        </h3>
+        <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
+          {user
+            ? "Atualize as informações do usuário"
+            : "Adicione um novo usuário ao sistema"}
+        </p>
+      </div>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
             <FormField
               control={form.control}
               name="username"
@@ -226,10 +219,9 @@ export function UserDialog({
               >
                 {isPending ? "Salvando..." : user ? "Atualizar" : "Criar"}
               </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          </div>
+        </form>
+      </Form>
+    </Modal>
   );
 }

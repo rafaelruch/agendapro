@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog-tailadmin";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -685,14 +685,13 @@ export default function AdminPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Dialog para criar tenant */}
-      <Dialog open={tenantDialogOpen} onOpenChange={setTenantDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Novo Tenant</DialogTitle>
-            <DialogDescription>Criar um novo cliente para usar o sistema</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
+      {/* Modal para criar tenant */}
+      <Modal isOpen={tenantDialogOpen} onClose={() => setTenantDialogOpen(false)} className="sm:max-w-[425px]">
+        <div className="px-6 pt-6 pb-4 sm:px-9.5 sm:pt-9.5 sm:pb-6">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Novo Tenant</h3>
+          <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">Criar um novo cliente para usar o sistema</p>
+        </div>
+        <div className="space-y-4 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
             <div className="space-y-2">
               <Label htmlFor="tenant-name">Nome *</Label>
               <Input
@@ -725,25 +724,23 @@ export default function AdminPage() {
               />
             </div>
           </div>
-          <DialogFooter>
+          <div className="flex items-center justify-end gap-3 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
             <Button variant="outline" onClick={() => setTenantDialogOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleCreateTenant} disabled={createTenantMutation.isPending} data-testid="button-save-tenant">
               Criar Tenant
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+      </Modal>
 
-      {/* Dialog para criar usuário */}
-      <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Novo Usuário</DialogTitle>
-            <DialogDescription>Criar um usuário para o tenant selecionado</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
+      {/* Modal para criar usuário */}
+      <Modal isOpen={userDialogOpen} onClose={() => setUserDialogOpen(false)} className="sm:max-w-[425px]">
+        <div className="px-6 pt-6 pb-4 sm:px-9.5 sm:pt-9.5 sm:pb-6">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Novo Usuário</h3>
+          <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">Criar um usuário para o tenant selecionado</p>
+        </div>
+        <div className="space-y-4 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
             <div className="space-y-2">
               <Label htmlFor="user-username">Usuário *</Label>
               <Input
@@ -787,16 +784,15 @@ export default function AdminPage() {
               />
             </div>
           </div>
-          <DialogFooter>
+          <div className="flex items-center justify-end gap-3 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
             <Button variant="outline" onClick={() => setUserDialogOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleCreateUser} disabled={createUserMutation.isPending} data-testid="button-save-user">
               Criar Usuário
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+      </Modal>
 
       {/* Dialog para editar agendamento */}
       <AppointmentDialog

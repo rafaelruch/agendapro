@@ -1,22 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog-tailadmin";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog-tailadmin";
+import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, User, Briefcase, FileText, CheckCircle2, Circle, Pencil, Trash2, Tag } from "lucide-react";
@@ -65,16 +49,16 @@ export function AppointmentDetailsDialog({
 
   if (isLoading) {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent data-testid="dialog-appointment-details">
-          <DialogHeader>
-            <DialogTitle>Detalhes do Agendamento</DialogTitle>
-          </DialogHeader>
-          <div className="flex items-center justify-center py-8">
-            <p className="text-muted-foreground">Carregando...</p>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <Modal isOpen={open} onClose={() => onOpenChange(false)} className="max-w-md" data-testid="dialog-appointment-details">
+        <div className="px-6 pt-6 pb-4 sm:px-9.5 sm:pt-9.5 sm:pb-6">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
+            Detalhes do Agendamento
+          </h3>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </Modal>
     );
   }
 
@@ -126,13 +110,15 @@ export function AppointmentDetailsDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md" data-testid="dialog-appointment-details">
-        <DialogHeader>
-          <DialogTitle>Detalhes do Agendamento</DialogTitle>
-        </DialogHeader>
+    <>
+      <Modal isOpen={open} onClose={() => onOpenChange(false)} className="max-w-md">
+        <div className="px-6 pt-6 pb-4 sm:px-9.5 sm:pt-9.5 sm:pb-6">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
+            Detalhes do Agendamento
+          </h3>
+        </div>
         
-        <div className="space-y-4">
+        <div className="space-y-4 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
           {/* Status */}
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Status</span>
@@ -261,60 +247,67 @@ export function AppointmentDetailsDialog({
               </div>
             </div>
           )}
-        </div>
+          </div>
 
-        {(onEdit || onDelete) && (
-          <DialogFooter className="flex-row gap-2 justify-end">
-            {onDelete && (
-              <Button 
-                variant="destructive" 
-                onClick={() => setShowDeleteConfirm(true)} 
-                data-testid="button-delete-appointment"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Excluir
-              </Button>
-            )}
-            {onEdit && (
-              <Button onClick={onEdit} data-testid="button-edit-appointment">
-                <Pencil className="h-4 w-4 mr-2" />
-                Editar
-              </Button>
-            )}
-          </DialogFooter>
-        )}
-      </DialogContent>
+          {(onEdit || onDelete) && (
+            <div className="flex flex-row gap-2 justify-end px-6 pb-6 sm:px-9.5 sm:pb-9.5">
+              {onDelete && (
+                <Button 
+                  variant="destructive" 
+                  onClick={() => setShowDeleteConfirm(true)} 
+                  data-testid="button-delete-appointment"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
+                </Button>
+              )}
+              {onEdit && (
+                <Button onClick={onEdit} data-testid="button-edit-appointment">
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Editar
+                </Button>
+              )}
+            </div>
+          )}
+        </Modal>
 
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent data-testid="dialog-delete-confirm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.
+        <Modal isOpen={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} className="max-w-lg">
+          <div className="px-6 pt-6 pb-4 sm:px-9.5 sm:pt-9.5 sm:pb-6">
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
+              Confirmar Exclusão
+            </h3>
+            <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+              <p>Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.</p>
               {client && (
-                <div className="mt-4 p-3 bg-muted rounded-md">
-                  <p className="text-sm font-medium text-foreground">Cliente: {client.name}</p>
+                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+                  <p className="text-sm font-medium text-gray-800 dark:text-white">Cliente: {client.name}</p>
                   {appointment && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {formatDate(appointment.date)} às {appointment.time}
                     </p>
                   )}
                 </div>
               )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-3 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setShowDeleteConfirm(false)} 
+              data-testid="button-cancel-delete"
+            >
+              Cancelar
+            </Button>
+            <Button 
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-confirm-delete"
             >
               Excluir Agendamento
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </Dialog>
-  );
-}
+            </Button>
+          </div>
+        </Modal>
+      </>
+    );
+  }

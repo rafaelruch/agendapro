@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
+import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog-tailadmin";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Service } from "@shared/schema";
@@ -89,21 +82,21 @@ export function ServiceDialog({
     // Se estamos CRIANDO e campos vazios, omitir (não enviar)
     
     onSave(data);
+    // NÃO fechar o dialog aqui - o parent fecha no onSuccess da mutation
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>
-              {initialData ? "Editar Serviço" : "Novo Serviço"}
-            </DialogTitle>
-            <DialogDescription>
-              Preencha as informações do serviço abaixo.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
+    <Modal isOpen={open} onClose={() => onOpenChange(false)} className="sm:max-w-[425px]">
+      <form onSubmit={handleSubmit}>
+        <div className="px-6 pt-6 pb-4 sm:px-9.5 sm:pt-9.5 sm:pb-6">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
+            {initialData ? "Editar Serviço" : "Novo Serviço"}
+          </h3>
+          <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
+            Preencha as informações do serviço abaixo.
+          </p>
+        </div>
+        <div className="grid gap-4 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
             <div className="grid gap-2">
               <Label htmlFor="name">Nome do Serviço</Label>
               <Input
@@ -211,7 +204,7 @@ export function ServiceDialog({
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <div className="flex items-center justify-end gap-3 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
             <Button
               type="button"
               variant="outline"
@@ -223,9 +216,8 @@ export function ServiceDialog({
             <Button type="submit" data-testid="button-save-service">
               Salvar
             </Button>
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </Modal>
   );
 }
