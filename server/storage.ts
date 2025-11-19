@@ -604,11 +604,13 @@ export class DbStorage implements IStorage {
     tenantId: string,
     appointmentData: Partial<InsertAppointment>
   ): Promise<Appointment | undefined> {
-    const { serviceIds, ...dataToUpdate } = appointmentData;
+    // Remover duration e serviceIds do appointmentData antes de usar
+    const { serviceIds, duration: _, ...dataToUpdate } = appointmentData;
     
     const currentAppointment = await this.getAppointment(id, tenantId);
     if (!currentAppointment) return undefined;
     
+    // Validar serviceIds ANTES de calcular duration
     if (serviceIds !== undefined && serviceIds.length === 0) {
       throw new Error('Pelo menos um serviço deve ser selecionado');
     }
@@ -640,12 +642,14 @@ export class DbStorage implements IStorage {
         if (totalDuration === 0) {
           totalDuration = 60;
         }
-        // Adicionar duration ao dataToUpdate quando os serviços mudarem
-        (dataToUpdate as any).duration = totalDuration;
-      } else if (!servicesChanged) {
+      } else {
+        // Serviços não mudaram, usar duração existente
         const existingDuration = await this.calculateAppointmentDuration(id);
         totalDuration = existingDuration;
       }
+      
+      // SEMPRE adicionar duration ao dataToUpdate quando há mudanças
+      (dataToUpdate as any).duration = totalDuration;
       
       const conflicts = await this.findOverlappingAppointments(
         tenantId,
