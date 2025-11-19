@@ -66,6 +66,12 @@ Implemented `client/src/components/ui/date-picker.tsx` using Flatpickr for profe
 2. **Premature Dialog Closures**: Removed `onOpenChange(false)` from submit handlers in AppointmentDialog. Parent components now control dialog closure after mutation success, ensuring errors are properly displayed.
 3. **DatePicker Closure Bug**: Fixed critical issue where selecting dates would wipe other form fields. Solution: Second useEffect dynamically updates Flatpickr's onChange callback, preventing closure over stale form state.
 
+**Schema Corrections (Nov 2025):**
+1. **Clients Table**: Removed `email` field completely (not used in the application). Table structure: id, tenant_id, name, phone (NOT NULL), birthdate (nullable).
+2. **Appointments Table**: Added `duration` field (integer, NOT NULL) to store total appointment duration. Backend automatically calculates duration by summing selected services' durations.
+3. **Phone Field**: Enforced as NOT NULL in both schema and database to maintain business logic integrity (uniquePhonePerTenant constraint, getClientByPhone queries).
+4. **Duration Calculation**: `insertAppointmentSchema` omits `duration` field (auto-calculated server-side in `DbStorage.createAppointment`), preventing frontend from manually setting values.
+
 ### Technical Implementations
 - **Multi-Tenant Architecture**: Data isolation enforced via `tenantId` and middleware.
 - **Authentication**: Secure login with `express-session` and `bcrypt` for web sessions, and token-based for API.
