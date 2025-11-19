@@ -194,13 +194,26 @@ export default function LoginPage() {
             {/* Grid Shape - EXACT TailAdmin */}
             <GridShape />
             <div className="flex flex-col items-center max-w-xs">
-              <Link href="/" className="block mb-4">
-                <img
-                  width={231}
-                  height={48}
-                  src="/images/logo/auth-logo.svg"
-                  alt="Logo"
-                />
+              {/* Logo Textual - Calendar Icon + AgendaPro v1.0 */}
+              <Link href="/" className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-brand-500 rounded-2xl">
+                  <svg
+                    className="w-8 h-8 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="8" y1="2" x2="8" y2="6" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="3" y1="10" x2="21" y2="10" strokeWidth="2" />
+                  </svg>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold text-white">AgendaPro</span>
+                  <span className="text-sm font-medium text-gray-400">v1.0</span>
+                </div>
               </Link>
               <p className="text-center text-gray-400 dark:text-white/60">
                 Sistema de Gerenciamento de Agendas Multi-Tenant
