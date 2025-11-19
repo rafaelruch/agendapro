@@ -8,7 +8,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog-tailadmin";
 import { Button } from "@/components/ui/button";
 import {
   Form,
