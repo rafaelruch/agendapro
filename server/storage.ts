@@ -583,7 +583,10 @@ export class DbStorage implements IStorage {
     }
     
     return await db.transaction(async (tx) => {
-      const result = await tx.insert(appointments).values(appointmentData).returning();
+      const result = await tx.insert(appointments).values({
+        ...appointmentData,
+        duration: totalDuration
+      }).returning();
       const appointment = result[0];
       
       const values = serviceIds.map(serviceId => ({
@@ -637,6 +640,8 @@ export class DbStorage implements IStorage {
         if (totalDuration === 0) {
           totalDuration = 60;
         }
+        // Adicionar duration ao dataToUpdate quando os serviços mudarem
+        (dataToUpdate as any).duration = totalDuration;
       } else if (!servicesChanged) {
         const existingDuration = await this.calculateAppointmentDuration(id);
         totalDuration = existingDuration;
