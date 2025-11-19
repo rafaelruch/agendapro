@@ -15,6 +15,15 @@ Whenever ANY new feature or implementation is added to the system, it MUST be do
 
 Always update the API documentation immediately after implementing new features, endpoints, or modifying existing functionality.
 
+**API Documentation Enhancements (Nov 2025):**
+Added comprehensive "GUIA DE TESTE PRÁTICO" (Practical Testing Guide) section to `ApiDocumentation.tsx`:
+- Step-by-step guide to generate API tokens via Settings page
+- Practical cURL examples for creating clients with real base URL substitution
+- Search parameter examples (search by phone/name)
+- Testing tips for Postman, Insomnia, and N8N HTTP Request nodes
+- Clear explanations of tenant isolation and phone uniqueness constraints
+- Visual design with gradient backgrounds and prominent badges for better UX
+
 ## System Architecture
 The system employs a multi-tenant SaaS architecture with a distinct separation between frontend and backend.
 

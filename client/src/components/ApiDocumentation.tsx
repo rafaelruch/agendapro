@@ -1364,6 +1364,104 @@ export function ApiDocumentation() {
         <p className="text-muted-foreground">
           Documentação completa de todos os endpoints disponíveis para integração com N8N e outras ferramentas.
         </p>
+
+        {/* GUIA DE TESTE PRÁTICO */}
+        <div className="mt-6 p-6 bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/20 rounded-lg space-y-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Badge className="text-base px-3 py-1">🚀 GUIA DE TESTE PRÁTICO</Badge>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-bold text-lg mb-2">📝 Passo 1: Gerar Token de API</h3>
+              <ol className="list-decimal ml-6 space-y-2 text-sm">
+                <li>Faça login como <strong>Admin do Tenant</strong> (ex: <code className="bg-background/80 px-1.5 py-0.5 rounded">teste/Teste@123</code>)</li>
+                <li>No menu lateral, clique em <strong>"Configurações"</strong></li>
+                <li>Na aba <strong>"Tokens de API"</strong>, clique em <strong>"Criar Token"</strong></li>
+                <li>Dê um nome (ex: "Teste API") e copie o token gerado</li>
+                <li className="text-destructive font-semibold">⚠️ IMPORTANTE: O token só é exibido UMA VEZ! Salve em local seguro</li>
+              </ol>
+            </div>
+
+            <Separator />
+
+            <div>
+              <h3 className="font-bold text-lg mb-2">🧪 Passo 2: Testar Criação de Cliente</h3>
+              <p className="text-sm mb-3">Use o comando cURL abaixo substituindo <code className="bg-background/80 px-1.5 py-0.5 rounded">SEU_TOKEN_AQUI</code> pelo token copiado:</p>
+              
+              <div className="relative">
+                <pre className="bg-background/80 p-4 rounded-lg text-xs overflow-x-auto border border-primary/30">
+<code>{`# Criar um novo cliente
+curl -X POST "${baseUrl}/api/clients" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "João Silva Teste",
+    "email": "joao.teste@exemplo.com",
+    "phone": "11999887766"
+  }'
+
+# Resposta esperada (201 Created):
+{
+  "id": "...",
+  "name": "João Silva Teste",
+  "email": "joao.teste@exemplo.com",
+  "phone": "11999887766",
+  "tenantId": "..."
+}`}</code>
+                </pre>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <h3 className="font-bold text-lg mb-2">✅ Passo 3: Listar Clientes</h3>
+              <p className="text-sm mb-3">Verifique se o cliente foi criado:</p>
+              
+              <div className="relative">
+                <pre className="bg-background/80 p-4 rounded-lg text-xs overflow-x-auto border border-primary/30">
+<code>{`# Listar todos os clientes
+curl -X GET "${baseUrl}/api/clients" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`}</code>
+                </pre>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <h3 className="font-bold text-lg mb-2">🔍 Passo 4: Buscar Cliente por Telefone</h3>
+              <p className="text-sm mb-3">Use o parâmetro <code className="bg-background/80 px-1.5 py-0.5 rounded">search</code> para filtrar:</p>
+              
+              <div className="relative">
+                <pre className="bg-background/80 p-4 rounded-lg text-xs overflow-x-auto border border-primary/30">
+<code>{`# Buscar por telefone
+curl -X GET "${baseUrl}/api/clients?search=11999887766" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"
+
+# Buscar por nome
+curl -X GET "${baseUrl}/api/clients?search=João" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`}</code>
+                </pre>
+              </div>
+            </div>
+
+            <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
+              <h4 className="font-semibold mb-2 flex items-center gap-2">
+                💡 Dicas de Teste
+              </h4>
+              <ul className="text-sm space-y-1.5 ml-4">
+                <li>✓ Use <strong>Postman</strong>, <strong>Insomnia</strong> ou <strong>cURL</strong> para testar</li>
+                <li>✓ Telefones devem ser <strong>únicos por tenant</strong> (não pode duplicar)</li>
+                <li>✓ Todos os campos <strong>name, email, phone</strong> são <strong>obrigatórios</strong></li>
+                <li>✓ Token de API é <strong>específico por tenant</strong> (isolamento de dados)</li>
+                <li>✓ Para N8N, use <strong>HTTP Request node</strong> com método Bearer Token</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         <div className="mt-4 p-4 bg-muted rounded-lg space-y-4">
           <div>
             <h3 className="font-semibold mb-2">Base URL</h3>
