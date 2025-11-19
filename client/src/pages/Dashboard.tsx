@@ -140,6 +140,8 @@ export default function Dashboard() {
     const currentMonthAppointments = appointments.filter(apt => apt.date.startsWith(currentMonth));
     const lastMonthAppointments = appointments.filter(apt => apt.date.startsWith(lastMonth));
     const completedCount = appointments.filter(apt => apt.status === "completed").length;
+    const totalAppointments = appointments.length;
+    const completionRate = totalAppointments > 0 ? (completedCount / totalAppointments) * 100 : 0;
     
     // Calcular receita do mês
     const currentMonthRevenue = currentMonthAppointments.reduce((total, apt) => {
@@ -207,6 +209,7 @@ export default function Dashboard() {
       currentMonthRevenue,
       revenueChange,
       completedCount,
+      completionRate,
       appointmentChange,
       activeClients: clients.length,
     };
@@ -448,18 +451,27 @@ export default function Dashboard() {
             <CheckCircle2 className="h-5 w-5 text-white" />
           </div>
 
-          <div className="relative mt-4 flex items-end justify-between">
-            <div>
-              <h4 className="text-title-md font-bold text-white" data-testid="stat-completed">
-                {stats.completedCount}
-              </h4>
-              <span className="text-sm font-medium text-white/90">Concluídos</span>
+          <div className="relative mt-4">
+            <div className="flex items-end justify-between">
+              <div>
+                <h4 className="text-title-md font-bold text-white" data-testid="stat-completed">
+                  {stats.completedCount}
+                </h4>
+                <span className="text-sm font-medium text-white/90">Concluídos</span>
+              </div>
+
+              <span className="flex items-center gap-1 text-sm font-medium text-white">
+                {stats.completionRate.toFixed(1)}%
+              </span>
             </div>
 
-            <span className="flex items-center gap-1 text-sm font-medium text-white">
-              +2.59%
-              <TrendingUp className="h-3.5 w-3.5" />
-            </span>
+            {/* Progress Bar - Taxa de Conclusão */}
+            <div className="mt-3 h-2 w-full bg-white/20 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-white transition-all duration-300" 
+                style={{ width: `${stats.completionRate}%` }}
+              ></div>
+            </div>
           </div>
         </div>
       </div>
