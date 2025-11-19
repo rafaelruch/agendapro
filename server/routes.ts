@@ -12,7 +12,9 @@ import {
   insertBusinessHoursSchema,
   loginSchema,
   setupSchema,
-  type InsertUser
+  type InsertUser,
+  isServiceInPromotion,
+  getServiceEffectiveValue
 } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
@@ -978,7 +980,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         services = await storage.getAllServices(tenantId);
       }
       
-      res.json(services);
+      // Adicionar campos calculados de promoção
+      const servicesWithPromotion = services.map(service => ({
+        ...service,
+        isPromotionActive: isServiceInPromotion(service),
+        effectiveValue: getServiceEffectiveValue(service)
+      }));
+      
+      res.json(servicesWithPromotion);
     } catch (error) {
       console.error("Error fetching services:", error);
       res.status(500).json({ error: "Erro ao buscar serviços" });
@@ -1158,7 +1167,15 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       if (!service) {
         return res.status(404).json({ error: "Serviço não encontrado" });
       }
-      res.json(service);
+      
+      // Adicionar campos calculados de promoção
+      const serviceWithPromotion = {
+        ...service,
+        isPromotionActive: isServiceInPromotion(service),
+        effectiveValue: getServiceEffectiveValue(service)
+      };
+      
+      res.json(serviceWithPromotion);
     } catch (error) {
       console.error("Error fetching service:", error);
       res.status(500).json({ error: "Erro ao buscar serviço" });
