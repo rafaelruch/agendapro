@@ -5,7 +5,7 @@ import { ApexOptions } from "apexcharts";
 import { TrendingUp, TrendingDown, Calendar as CalendarIcon, Users, CheckCircle2, DollarSign } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import TailAdminBadge from "@/components/ui/TailAdminBadge";
+import Badge from "@/components/ui/badge-tailadmin";
 import type { Appointment, Client, Service } from "@shared/schema";
 
 type AppointmentWithServices = Appointment & {
@@ -225,7 +225,7 @@ export default function DashboardCRM() {
     stroke: {
       lineCap: "round",
     },
-    labels: ["Progresso"],
+    labels: ["Progress"],
   };
 
   return (
@@ -247,9 +247,9 @@ export default function DashboardCRM() {
                 {stats.todayAppointments}
               </h4>
             </div>
-            <TailAdminBadge color={stats.appointmentChange >= 0 ? "success" : "error"} data-testid="badge-change-today" startIcon={stats.appointmentChange >= 0 ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}>
+            <Badge color={stats.appointmentChange >= 0 ? "success" : "error"} data-testid="badge-change-today" startIcon={stats.appointmentChange >= 0 ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}>
               {Math.abs(stats.appointmentChange).toFixed(1)}%
-            </TailAdminBadge>
+            </Badge>
           </div>
         </div>
 
@@ -268,9 +268,9 @@ export default function DashboardCRM() {
               </h4>
             </div>
 
-            <TailAdminBadge color={stats.revenueChange >= 0 ? "success" : "error"} data-testid="badge-change-revenue" startIcon={stats.revenueChange >= 0 ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}>
+            <Badge color={stats.revenueChange >= 0 ? "success" : "error"} data-testid="badge-change-revenue" startIcon={stats.revenueChange >= 0 ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}>
               {Math.abs(stats.revenueChange).toFixed(1)}%
-            </TailAdminBadge>
+            </Badge>
           </div>
         </div>
 
@@ -288,9 +288,9 @@ export default function DashboardCRM() {
                 {stats.activeClients}
               </h4>
             </div>
-            <TailAdminBadge color="info" data-testid="badge-info-clients">
+            <Badge color="info" data-testid="badge-info-clients">
               Total
-            </TailAdminBadge>
+            </Badge>
           </div>
         </div>
 
@@ -308,9 +308,9 @@ export default function DashboardCRM() {
                 {stats.completedCount}
               </h4>
             </div>
-            <TailAdminBadge color="success" data-testid="badge-success-completed">
+            <Badge color="success" data-testid="badge-success-completed">
               {gaugeValue}% total
-            </TailAdminBadge>
+            </Badge>
           </div>
         </div>
       </div>
@@ -465,7 +465,7 @@ export default function DashboardCRM() {
                     {format(parseISO(apt.date), 'dd/MM/yyyy', { locale: ptBR })} {apt.time}
                   </td>
                   <td className="py-3">
-                    <TailAdminBadge
+                    <Badge
                       color={
                         apt.status === "completed" ? "success" :
                         apt.status === "scheduled" ? "warning" :
@@ -476,7 +476,7 @@ export default function DashboardCRM() {
                       {apt.status === "completed" ? "Completo" :
                        apt.status === "scheduled" ? "Agendado" :
                        "Cancelado"}
-                    </TailAdminBadge>
+                    </Badge>
                   </td>
                 </tr>
               )) : (

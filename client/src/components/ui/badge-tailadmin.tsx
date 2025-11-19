@@ -18,7 +18,7 @@ interface BadgeProps {
   children: React.ReactNode; // Badge content
 }
 
-const TailAdminBadge: React.FC<BadgeProps> = ({
+const Badge: React.FC<BadgeProps> = ({
   variant = "light",
   color = "primary",
   size = "md",
@@ -74,4 +74,4 @@ const TailAdminBadge: React.FC<BadgeProps> = ({
   );
 };
 
-export default TailAdminBadge;
+export default Badge;
