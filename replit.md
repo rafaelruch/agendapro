@@ -15,14 +15,18 @@ Whenever ANY new feature or implementation is added to the system, it MUST be do
 
 Always update the API documentation immediately after implementing new features, endpoints, or modifying existing functionality.
 
-**API Documentation Enhancements (Nov 2025):**
-Added comprehensive "GUIA DE TESTE PRÁTICO" (Practical Testing Guide) section to `ApiDocumentation.tsx`:
-- Step-by-step guide to generate API tokens via Settings page
-- Practical cURL examples for creating clients with real base URL substitution
-- Search parameter examples (search by phone/name)
-- Testing tips for Postman, Insomnia, and N8N HTTP Request nodes
-- Clear explanations of tenant isolation and phone uniqueness constraints
-- Visual design with gradient backgrounds and prominent badges for better UX
+**API Documentation Complete Redesign (Nov 19, 2025):**
+Completely redesigned `ApiDocumentation.tsx` with clean, professional layout inspired by Aikeedo:
+- **Fixed Sidebar Navigation**: Smooth scroll to sections (Overview, Authentication, Clients, Services, Appointments, Tokens)
+- **Active Section Detection**: Auto-highlights current section in sidebar as user scrolls
+- **Two-Column Layout**: Left column (parameters, request body), Right column (cURL + response examples)
+- **Color-coded HTTP Badges**: GET (green), POST (blue), PUT (orange), DELETE (red)
+- **Visible Copy Buttons**: Each code block has positioned copy button with "Copiado!" feedback
+- **Clean Typography**: Better visual hierarchy, spacing, and organization
+- **Responsive Design**: Adapts to mobile/tablet/desktop screens
+- **Dynamic Base URL**: Automatically uses window.location.origin for accurate examples
+- **Comprehensive Sections**: Setup, Master Admin, Clients, Services, Appointments, API Tokens
+- **Automatic Service Fields**: Documents isPromotionActive and effectiveValue auto-calculation
 
 ## System Architecture
 The system employs a multi-tenant SaaS architecture with a distinct separation between frontend and backend.
