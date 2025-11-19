@@ -29,7 +29,7 @@ export const clients = pgTable("clients", {
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   name: text("name").notNull(),
   email: text("email"),
-  phone: text("phone").notNull(),
+  phone: text("phone"),
   birthdate: text("birthdate"),
 }, (table) => ({
   uniquePhonePerTenant: unique().on(table.tenantId, table.phone)
