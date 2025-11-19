@@ -189,9 +189,6 @@ export default function ClientsPage() {
                     Telefone
                   </TableHead>
                   <TableHead className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
-                    Data de Nascimento
-                  </TableHead>
-                  <TableHead className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
                     Agendamentos
                   </TableHead>
                   <TableHead className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
@@ -232,11 +229,6 @@ export default function ClientsPage() {
                       </TableCell>
                       <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         {client.phone || "-"}
-                      </TableCell>
-                      <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                        {client.birthdate 
-                          ? format(parseISO(client.birthdate), 'dd/MM/yyyy', { locale: ptBR })
-                          : "-"}
                       </TableCell>
                       <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         {appointmentCount} {appointmentCount === 1 ? 'agendamento' : 'agendamentos'}
