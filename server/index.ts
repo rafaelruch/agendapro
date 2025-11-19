@@ -83,14 +83,35 @@ if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
 
-// SEGURANÇA: SESSION_SECRET obrigatório em produção
+// SEGURANÇA CRÍTICA: SESSION_SECRET obrigatório em TODOS os ambientes
+// Não há fallback - a aplicação DEVE falhar se SESSION_SECRET não estiver definido
 const sessionSecret = process.env.SESSION_SECRET;
-if (process.env.NODE_ENV === 'production' && !sessionSecret) {
-  throw new Error('❌ ERRO CRÍTICO: SESSION_SECRET é obrigatório em produção! Configure esta variável de ambiente antes de iniciar a aplicação.');
+
+if (!sessionSecret) {
+  console.error('\n❌ ERRO CRÍTICO DE SEGURANÇA ❌');
+  console.error('SESSION_SECRET não está definido!');
+  console.error('\nEm produção: Configure SESSION_SECRET com um valor secreto forte.');
+  console.error('Em desenvolvimento: Use SESSION_SECRET=dev-secret-change-me ou similar.');
+  console.error('\nA aplicação NÃO pode iniciar sem um SESSION_SECRET válido.\n');
+  throw new Error('SESSION_SECRET é obrigatório. Configure esta variável de ambiente.');
 }
 
+// SEGURANÇA: Validar entropia mínima do SESSION_SECRET
+if (sessionSecret.length < 32) {
+  console.error('\n⚠️  AVISO DE SEGURANÇA ⚠️');
+  console.error(`SESSION_SECRET muito curto (${sessionSecret.length} caracteres).`);
+  console.error('Recomendado: mínimo 32 caracteres com alta entropia.');
+  console.error('Use: openssl rand -base64 32 para gerar um secret seguro.\n');
+  
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('SESSION_SECRET muito curto para produção (mínimo 32 caracteres).');
+  }
+}
+
+log(`🔒 SESSION_SECRET configurado (${sessionSecret.length} caracteres)`);
+
 app.use(session({
-  secret: sessionSecret || 'dev-secret-only-for-local-development',
+  secret: sessionSecret, // SEM FALLBACK - sempre usa a variável de ambiente
   resave: false,
   saveUninitialized: false,
   proxy: process.env.NODE_ENV === 'production',
