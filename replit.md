@@ -72,6 +72,18 @@ Implemented `client/src/components/ui/date-picker.tsx` using Flatpickr for profe
 3. **Phone Field**: Enforced as NOT NULL in both schema and database to maintain business logic integrity (uniquePhonePerTenant constraint, getClientByPhone queries).
 4. **Duration Calculation**: `insertAppointmentSchema` omits `duration` field (auto-calculated server-side in `DbStorage.createAppointment`), preventing frontend from manually setting values.
 
+**Duration Persistence Bug Fix (Nov 19, 2025):**
+Fixed critical bug where `duration` was being calculated but NOT persisted to database:
+1. **Root Cause**: Code calculated `totalDuration` correctly but never included it in INSERT/UPDATE statements, resulting in `duration=NULL` in database.
+2. **createAppointment Fix** (line 589): Now spreads `duration: totalDuration` into INSERT payload, ensuring all new appointments have duration persisted.
+3. **updateAppointment Fix** (lines 611, 654): Strips incoming duration from payload, recalculates when date/time/services change, and only adds calculated duration to UPDATE payload when necessary.
+4. **Edge Cases Eliminated**:
+   - Empty serviceIds array: Validation now happens BEFORE duration calculation, preventing partial updates
+   - Metadata-only updates (notes/status): Duration not included in UPDATE, leaving stored value unchanged
+   - Service changes: Duration always recalculated and persisted
+   - Date/Time changes: Existing duration recalculated and persisted
+5. **Architecture Reviewed**: All scenarios validated by architect agent - no remaining paths can write NULL/undefined duration.
+
 ### Technical Implementations
 - **Multi-Tenant Architecture**: Data isolation enforced via `tenantId` and middleware.
 - **Authentication**: Secure login with `express-session` and `bcrypt` for web sessions, and token-based for API.
