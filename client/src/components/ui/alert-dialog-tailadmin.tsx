@@ -1,20 +1,95 @@
-import { useRef, useEffect } from "react";
-import { X, AlertTriangle } from "lucide-react";
+import { useRef, useEffect, useLayoutEffect, createContext, useContext, useState } from "react";
+import { AlertTriangle } from "lucide-react";
+
+// Context para compartilhar o className entre AlertDialog e AlertDialogContent
+interface AlertDialogContextValue {
+  containerClassName?: string;
+  setContainerClassName: (className: string) => void;
+}
+
+const AlertDialogContext = createContext<AlertDialogContextValue | null>(null);
+
+// Focus trap utility
+function useFocusTrap(ref: React.RefObject<HTMLElement>, isActive: boolean) {
+  useEffect(() => {
+    if (!isActive || !ref.current) return;
+
+    const element = ref.current;
+    const focusableSelector = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled])';
+    
+    const handleTabKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+
+      const focusableElements = Array.from(
+        element.querySelectorAll<HTMLElement>(focusableSelector)
+      );
+
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+
+    element.addEventListener('keydown', handleTabKey);
+    
+    // Focus first element on mount
+    const firstFocusable = element.querySelector<HTMLElement>(focusableSelector);
+    firstFocusable?.focus();
+
+    return () => {
+      element.removeEventListener('keydown', handleTabKey);
+    };
+  }, [isActive, ref]);
+}
 
 // TailAdmin Modal Base para AlertDialog
 interface AlertModalBaseProps {
   isOpen: boolean;
   onClose: () => void;
+  containerClassName?: string;
   children: React.ReactNode;
 }
 
 const AlertModalBase: React.FC<AlertModalBaseProps> = ({
   isOpen,
   onClose,
+  containerClassName,
   children,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
+  const previousActiveElement = useRef<HTMLElement | null>(null);
 
+  // Save focus BEFORE any focus shifts (useLayoutEffect runs synchronously before paint)
+  useLayoutEffect(() => {
+    if (isOpen) {
+      // Capture the element that was focused before the modal opened
+      previousActiveElement.current = document.activeElement as HTMLElement;
+    }
+  }, [isOpen]);
+
+  // Focus trap (runs after useLayoutEffect, so previousActiveElement is already saved)
+  useFocusTrap(modalRef, isOpen);
+
+  // Restore focus when closing
+  useEffect(() => {
+    if (!isOpen && previousActiveElement.current) {
+      previousActiveElement.current.focus();
+    }
+  }, [isOpen]);
+
+  // ESC key handler
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -46,15 +121,21 @@ const AlertModalBase: React.FC<AlertModalBaseProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center overflow-y-auto modal z-99999">
+    <div 
+      className="fixed inset-0 flex items-center justify-center overflow-y-auto modal z-99999"
+      role="alertdialog"
+      aria-modal="true"
+    >
       <div
         className="fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]"
         onClick={onClose}
+        aria-hidden="true"
       ></div>
       <div
         ref={modalRef}
-        className="relative w-full max-w-[400px] rounded-3xl bg-white dark:bg-gray-900"
+        className={`relative w-full rounded-3xl bg-white dark:bg-gray-900 ${containerClassName || 'max-w-[400px]'}`}
         onClick={(e) => e.stopPropagation()}
+        tabIndex={-1}
       >
         {children}
       </div>
@@ -70,13 +151,25 @@ interface AlertDialogProps {
 }
 
 export function AlertDialog({ open = false, onOpenChange, children }: AlertDialogProps) {
+  const [containerClassName, setContainerClassName] = useState<string>('');
+
+  // Reset className when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setContainerClassName('');
+    }
+  }, [open]);
+
   return (
-    <AlertModalBase 
-      isOpen={open} 
-      onClose={() => onOpenChange?.(false)}
-    >
-      {children}
-    </AlertModalBase>
+    <AlertDialogContext.Provider value={{ containerClassName, setContainerClassName }}>
+      <AlertModalBase 
+        isOpen={open} 
+        onClose={() => onOpenChange?.(false)}
+        containerClassName={containerClassName}
+      >
+        {children}
+      </AlertModalBase>
+    </AlertDialogContext.Provider>
   );
 }
 
@@ -86,6 +179,27 @@ interface AlertDialogContentProps {
 }
 
 export function AlertDialogContent({ children, className }: AlertDialogContentProps) {
+  const context = useContext(AlertDialogContext);
+  
+  // Extract size classes from className and set them on the container
+  useEffect(() => {
+    if (context) {
+      if (className) {
+        // Extract max-w-* classes
+        const maxWMatch = className.match(/(?:sm:|md:|lg:|xl:|2xl:)?max-w-\[[^\]]+\]|(?:sm:|md:|lg:|xl:|2xl:)?max-w-\w+/g);
+        if (maxWMatch) {
+          context.setContainerClassName(maxWMatch.join(' '));
+        } else {
+          // No width class found, reset to default
+          context.setContainerClassName('');
+        }
+      } else {
+        // No className at all, reset to default
+        context.setContainerClassName('');
+      }
+    }
+  }, [className, context]);
+
   return (
     <div className={`p-6 sm:p-8 ${className || ''}`}>
       {children}
