@@ -1008,11 +1008,23 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
 
   // POST /api/services/import - Import services from CSV
   // IMPORTANTE: Deve vir ANTES de /api/services/:id para não ser capturado como :id
+  // SEGURANÇA: Configuração de upload com limites rigorosos
+  const MAX_CSV_ROWS = 1000; // Máximo de 1000 serviços por upload
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+  
   const upload = multer({ 
     storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    limits: { 
+      fileSize: MAX_FILE_SIZE,
+      files: 1 // Apenas 1 arquivo por vez
+    },
     fileFilter: (req, file, cb) => {
-      if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+      // SEGURANÇA: Validar tipo de arquivo rigorosamente
+      const isCSV = file.mimetype === 'text/csv' || 
+                    file.mimetype === 'application/vnd.ms-excel' ||
+                    file.originalname.toLowerCase().endsWith('.csv');
+      
+      if (isCSV) {
         cb(null, true);
       } else {
         cb(new Error('Apenas arquivos CSV são permitidos'));
@@ -1029,8 +1041,21 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(400).json({ error: "Nenhum arquivo enviado" });
       }
 
+      // SEGURANÇA: Validar tamanho do arquivo
+      if (req.file.size > MAX_FILE_SIZE) {
+        return res.status(413).json({ 
+          error: `Arquivo muito grande. Tamanho máximo: ${MAX_FILE_SIZE / (1024 * 1024)}MB` 
+        });
+      }
+
       // Parse CSV
       const csvText = req.file.buffer.toString('utf-8');
+      
+      // SEGURANÇA: Validar que o conteúdo é texto válido
+      if (!csvText || csvText.trim().length === 0) {
+        return res.status(400).json({ error: "Arquivo CSV vazio" });
+      }
+      
       const parseResult = Papa.parse(csvText, {
         header: true,
         skipEmptyLines: true,
@@ -1045,6 +1070,19 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       }
 
       const rows = parseResult.data as any[];
+      
+      // SEGURANÇA: Limitar número de linhas para prevenir DoS
+      if (rows.length === 0) {
+        return res.status(400).json({ 
+          error: "CSV não contém dados válidos" 
+        });
+      }
+      
+      if (rows.length > MAX_CSV_ROWS) {
+        return res.status(413).json({ 
+          error: `Arquivo contém muitas linhas. Máximo permitido: ${MAX_CSV_ROWS} serviços` 
+        });
+      }
       const imported: any[] = [];
       const errors: any[] = [];
 
@@ -1094,6 +1132,19 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         }
       });
     } catch (error) {
+      // SEGURANÇA: Tratamento específico de erros do multer
+      if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({ 
+            error: `Arquivo muito grande. Tamanho máximo: ${MAX_FILE_SIZE / (1024 * 1024)}MB` 
+          });
+        }
+        return res.status(400).json({ 
+          error: 'Erro no upload', 
+          details: error.message 
+        });
+      }
+      
       console.error("Error importing services:", error);
       res.status(500).json({ error: "Erro ao importar serviços" });
     }
