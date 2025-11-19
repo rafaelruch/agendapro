@@ -565,3 +565,15 @@ aside, .sidebar, nav {
 header {
   z-index: 100 !important;
 }
+
+/* ============================================
+   TAILADMIN DATE/TIME INPUT CUSTOMIZATION
+   ============================================ */
+/* Ocultar ícones nativos de date/time */
+input[type="date"]::-webkit-inner-spin-button,
+input[type="time"]::-webkit-inner-spin-button,
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}

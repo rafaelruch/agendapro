@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus } from "lucide-react";
+import { Plus, Calendar, Clock } from "lucide-react";
 import { QuickClientDialog } from "./QuickClientDialog";
 import { TailAdminMultiSelect } from "./TailAdminMultiSelect";
 import { ClientSearchSelect } from "./ClientSearchSelect";
@@ -159,27 +159,37 @@ export function AppointmentDialog({
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="date">Data</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  data-testid="input-date"
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="date"
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    data-testid="input-date"
+                    required
+                  />
+                  <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
+                    <Calendar className="size-6" />
+                  </span>
+                </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="time">Horário (24h)</Label>
-                <Input
-                  id="time"
-                  type="time"
-                  value={formData.time}
-                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                  data-testid="input-time"
-                  step="60"
-                  required
-                  placeholder="14:00"
-                />
+                <div className="relative">
+                  <Input
+                    id="time"
+                    type="time"
+                    value={formData.time}
+                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                    data-testid="input-time"
+                    step="60"
+                    required
+                    placeholder="14:00"
+                  />
+                  <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
+                    <Clock className="size-6" />
+                  </span>
+                </div>
               </div>
             </div>
             <div className="grid gap-2">
