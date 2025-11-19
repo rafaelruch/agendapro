@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
 import { QuickClientDialog } from "./QuickClientDialog";
 import { TailAdminMultiSelect } from "./TailAdminMultiSelect";
+import { ClientSearchSelect } from "./ClientSearchSelect";
 import type { InsertAppointment } from "@shared/schema";
 
 // Frontend appointment data - tenantId is set by backend
@@ -62,7 +63,6 @@ export function AppointmentDialog({
 
   const [formData, setFormData] = useState(defaultFormData);
   const [showQuickClientDialog, setShowQuickClientDialog] = useState(false);
-  const [clientSearch, setClientSearch] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -80,11 +80,6 @@ export function AppointmentDialog({
       }
     }
   }, [open, initialData]);
-
-  // Filtrar clientes com base na busca
-  const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(clientSearch.toLowerCase())
-  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,47 +127,17 @@ export function AppointmentDialog({
             <div className="grid gap-2">
               <Label htmlFor="client">Cliente</Label>
               <div className="flex gap-2">
-                <div className="flex-1 space-y-2">
-                  <Input
-                    type="text"
-                    placeholder="Buscar cliente..."
-                    value={clientSearch}
-                    onChange={(e) => setClientSearch(e.target.value)}
-                    data-testid="input-search-client"
-                  />
-                  <Select
-                    value={formData.clientId}
-                    onValueChange={(value) => {
-                      setFormData({ ...formData, clientId: value });
-                      setClientSearch(""); // Limpa busca ao selecionar
-                    }}
-                  >
-                    <SelectTrigger data-testid="select-client">
-                      <SelectValue placeholder="Selecione um cliente..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Selecione um cliente...</SelectItem>
-                      {filteredClients.length > 0 ? (
-                        filteredClients.map((client) => (
-                          <SelectItem key={client.id} value={client.id} data-testid={`option-client-${client.id}`}>
-                            {client.name}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="" disabled>
-                          Nenhum cliente encontrado
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <ClientSearchSelect
+                  clients={clients}
+                  value={formData.clientId}
+                  onChange={(clientId) => setFormData({ ...formData, clientId })}
+                  placeholder="Buscar e selecionar cliente..."
+                />
                 <Button
                   type="button"
-                  variant="outline"
                   size="icon"
                   onClick={() => setShowQuickClientDialog(true)}
                   data-testid="button-add-client"
-                  className="self-start mt-[34px]"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
