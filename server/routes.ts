@@ -1410,11 +1410,35 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         ...req.body,
         tenantId
       });
+
+      // VALIDAÇÃO PRÉVIA: Verificar se o cliente existe e pertence ao tenant
+      const client = await storage.getClient(validatedData.clientId, tenantId);
+      if (!client) {
+        return res.status(404).json({ 
+          error: "Cliente não encontrado",
+          details: `O cliente com ID '${validatedData.clientId}' não existe ou não pertence ao seu tenant.`
+        });
+      }
+
+      // VALIDAÇÃO PRÉVIA: Verificar se todos os serviços existem e pertencem ao tenant
+      const servicePromises = validatedData.serviceIds.map(serviceId => 
+        storage.getService(serviceId, tenantId)
+      );
+      const services = await Promise.all(servicePromises);
+      
+      const invalidServices = validatedData.serviceIds.filter((id, index) => !services[index]);
+      if (invalidServices.length > 0) {
+        return res.status(400).json({ 
+          error: "Serviços inválidos",
+          details: `Os seguintes serviços não existem ou não pertencem ao seu tenant: ${invalidServices.join(', ')}`
+        });
+      }
+
       const appointment = await storage.createAppointment(validatedData);
-      const services = await storage.getAppointmentServices(appointment.id);
+      const appointmentServices = await storage.getAppointmentServices(appointment.id);
       res.status(201).json({
         ...appointment,
-        serviceIds: services.map(s => s.id),
+        serviceIds: appointmentServices.map(s => s.id),
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1431,7 +1455,13 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         }
       }
       
-      console.error("Error creating appointment:", error);
+      // Logging melhorado para debug
+      console.error("Error creating appointment:", {
+        error: error instanceof Error ? error.message : error,
+        tenantId: getTenantId(req),
+        clientId: req.body.clientId,
+        serviceIds: req.body.serviceIds,
+      });
       res.status(500).json({ error: "Erro ao criar agendamento" });
     }
   });
@@ -1447,6 +1477,34 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       }
 
       const validatedData = insertAppointmentSchema.partial().parse(req.body);
+
+      // VALIDAÇÃO PRÉVIA: Se estiver atualizando o cliente, verificar se existe
+      if (validatedData.clientId) {
+        const client = await storage.getClient(validatedData.clientId, tenantId);
+        if (!client) {
+          return res.status(404).json({ 
+            error: "Cliente não encontrado",
+            details: `O cliente com ID '${validatedData.clientId}' não existe ou não pertence ao seu tenant.`
+          });
+        }
+      }
+
+      // VALIDAÇÃO PRÉVIA: Se estiver atualizando os serviços, verificar se existem
+      if (validatedData.serviceIds && validatedData.serviceIds.length > 0) {
+        const servicePromises = validatedData.serviceIds.map(serviceId => 
+          storage.getService(serviceId, tenantId)
+        );
+        const services = await Promise.all(servicePromises);
+        
+        const invalidServices = validatedData.serviceIds.filter((id, index) => !services[index]);
+        if (invalidServices.length > 0) {
+          return res.status(400).json({ 
+            error: "Serviços inválidos",
+            details: `Os seguintes serviços não existem ou não pertencem ao seu tenant: ${invalidServices.join(', ')}`
+          });
+        }
+      }
+
       const appointment = await storage.updateAppointment(
         appointmentId,
         tenantId,
@@ -1456,10 +1514,10 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(404).json({ error: "Agendamento não encontrado" });
       }
       // Adicionar serviceIds
-      const services = await storage.getAppointmentServices(appointment.id);
+      const appointmentServices = await storage.getAppointmentServices(appointment.id);
       res.json({
         ...appointment,
-        serviceIds: services.map(s => s.id),
+        serviceIds: appointmentServices.map(s => s.id),
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1487,6 +1545,34 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       const tenantId = getTenantId(req)!;
 
       const validatedData = insertAppointmentSchema.partial().parse(req.body);
+
+      // VALIDAÇÃO PRÉVIA: Se estiver atualizando o cliente, verificar se existe
+      if (validatedData.clientId) {
+        const client = await storage.getClient(validatedData.clientId, tenantId);
+        if (!client) {
+          return res.status(404).json({ 
+            error: "Cliente não encontrado",
+            details: `O cliente com ID '${validatedData.clientId}' não existe ou não pertence ao seu tenant.`
+          });
+        }
+      }
+
+      // VALIDAÇÃO PRÉVIA: Se estiver atualizando os serviços, verificar se existem
+      if (validatedData.serviceIds && validatedData.serviceIds.length > 0) {
+        const servicePromises = validatedData.serviceIds.map(serviceId => 
+          storage.getService(serviceId, tenantId)
+        );
+        const services = await Promise.all(servicePromises);
+        
+        const invalidServices = validatedData.serviceIds.filter((id, index) => !services[index]);
+        if (invalidServices.length > 0) {
+          return res.status(400).json({ 
+            error: "Serviços inválidos",
+            details: `Os seguintes serviços não existem ou não pertencem ao seu tenant: ${invalidServices.join(', ')}`
+          });
+        }
+      }
+
       const appointment = await storage.updateAppointment(
         req.params.id,
         tenantId,
@@ -1496,10 +1582,10 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(404).json({ error: "Agendamento não encontrado" });
       }
       // Adicionar serviceIds
-      const services = await storage.getAppointmentServices(appointment.id);
+      const appointmentServices = await storage.getAppointmentServices(appointment.id);
       res.json({
         ...appointment,
-        serviceIds: services.map(s => s.id),
+        serviceIds: appointmentServices.map(s => s.id),
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
