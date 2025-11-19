@@ -1,9 +1,60 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// SEGURANÇA: Rate Limiting para prevenir ataques de força bruta
+// 1. Limitador para endpoints de autenticação (login, cadastro)
+export const authLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutos
+  max: 5, // 5 tentativas por janela
+  message: { 
+    error: 'Muitas tentativas de autenticação. Tente novamente em 10 minutos.' 
+  },
+  standardHeaders: true, // Headers RFC-compliant (RateLimit-*)
+  legacyHeaders: false, // Desabilitar headers antigos (X-RateLimit-*)
+  skipSuccessfulRequests: true, // Não contar logins bem-sucedidos
+  handler: (req, res) => {
+    log(`⚠️  Rate limit atingido: ${req.ip} em ${req.path}`);
+    res.status(429).json({
+      error: 'Muitas tentativas de autenticação. Tente novamente em 10 minutos.',
+      retryAfter: '10 minutos'
+    });
+  }
+});
+
+// 2. Limitador geral para API
+export const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // 100 requisições
+  message: { error: 'Muitas requisições. Tente novamente mais tarde.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    log(`⚠️  Rate limit API: ${req.ip} em ${req.path}`);
+    res.status(429).json({
+      error: 'Muitas requisições. Tente novamente mais tarde.'
+    });
+  }
+});
+
+// 3. Limitador para uploads (operações pesadas)
+export const uploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 10, // 10 uploads por hora
+  message: { error: 'Limite de uploads excedido. Tente novamente em 1 hora.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    log(`⚠️  Rate limit upload: ${req.ip} em ${req.path}`);
+    res.status(429).json({
+      error: 'Limite de uploads excedido. Tente novamente em 1 hora.'
+    });
+  }
+});
 
 declare module 'http' {
   interface IncomingMessage {

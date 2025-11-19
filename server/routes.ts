@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { authLimiter, uploadLimiter } from "./index";
 import { 
   insertClientSchema, 
   insertServiceSchema,
@@ -122,7 +123,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/setup - Instalar o sistema (criar primeiro admin master)
-  app.post("/api/setup", async (req, res) => {
+  // SEGURANÇA: Rate limiting para prevenir múltiplas tentativas
+  app.post("/api/setup", authLimiter, async (req, res) => {
     try {
       // Verificar se já foi instalado
       const hasAdmin = await storage.hasMasterAdmin();
@@ -173,7 +175,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===========================================
   
   // POST /api/auth/login - Login
-  app.post("/api/auth/login", async (req, res) => {
+  // SEGURANÇA: Rate limiting (5 tentativas a cada 10 minutos)
+  app.post("/api/auth/login", authLimiter, async (req, res) => {
     try {
       const { username, password } = req.body;
       
@@ -1018,7 +1021,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
-  app.post("/api/services/import", authenticateRequest, upload.single('file'), async (req, res) => {
+  // SEGURANÇA: Rate limiting para uploads (10 uploads por hora)
+  app.post("/api/services/import", uploadLimiter, authenticateRequest, upload.single('file'), async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
       
