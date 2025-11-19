@@ -10,7 +10,6 @@ import { ClientSelector } from "@/components/ClientSelector";
 import { Button } from "@/components/ui/button";
 import { LogOut, Search } from "lucide-react";
 import { HeaderDropdownNotification } from "@/components/HeaderDropdownNotification";
-import { HeaderDropdownMessage } from "@/components/HeaderDropdownMessage";
 import { HeaderDropdownProfile } from "@/components/HeaderDropdownProfile";
 import DashboardCRM from "@/pages/DashboardCRM";
 import CalendarPage from "@/pages/CalendarPage";
@@ -168,9 +167,6 @@ function AuthenticatedApp({ authData }: { authData: AuthData }) {
                   
                   {/* Notifications */}
                   <HeaderDropdownNotification />
-                  
-                  {/* Messages */}
-                  <HeaderDropdownMessage />
                 </div>
                 
                 {/* User Profile */}
