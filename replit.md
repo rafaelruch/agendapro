@@ -18,10 +18,22 @@ Always update the API documentation immediately after implementing new features,
 ## System Architecture
 The system employs a multi-tenant SaaS architecture with a distinct separation between frontend and backend.
 
-### UI/UX Decisions
-The frontend uses React, TypeScript, Wouter for routing, and Tailwind CSS with **ONLY TailAdmin components** for a modern, responsive design, including light and dark themes. All UI components, including the dashboard layout, modals, forms, header, sidebar, and stats cards, are exact replications from the TailAdmin CRM template.
+### UI/UX Decisions - REGRA CRÍTICA
+**🚨 COMPONENTES UI - SEM EXCEÇÕES:**
+TODOS os componentes UI (buttons, forms, tables, alerts, badges, images, dropdowns, videos, charts, modals, inputs, selects, etc.) DEVEM vir EXCLUSIVAMENTE de:
 
-**CRITICAL**: All UI components MUST be copied from TailAdmin (`attached_assets/free-react-tailwind-admin-dashboard-main/`). DO NOT use Shadcn, Material-UI, or any other component library without explicit approval.
+📂 **Fonte Única de Verdade:** `attached_assets/free-react-tailwind-admin-dashboard-main/`
+
+**ESTRUTURA COMPLETA DISPONÍVEL:**
+- `src/components/ui/` - Alert, Avatar, Badge, Button, Dropdown, Modal, Table
+- `src/components/form/` - Input, Label, Select, TextArea, Checkbox, Radio, Switch, DatePicker, MultiSelect
+- `src/components/common/` - ThemeToggle, ComponentCard, PageBreadCrumb, ScrollToTop
+- `src/components/charts/` - BarChart, LineChart (com ApexCharts)
+- `src/components/tables/` - BasicTable
+- `src/layout/` - AppHeader, AppSidebar, AppLayout, Backdrop
+
+**❌ PROIBIDO:** Shadcn/UI, Radix UI, Material-UI, ou qualquer outro component library
+**✅ PERMITIDO:** Apenas componentes copiados EXATAMENTE do TailAdmin (path acima)
 
 **TailAdmin Exact Colors (CSS Variables):**
 - Primary: `#3C50E0` (HSL: 231 71% 56%)
