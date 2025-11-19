@@ -28,6 +28,7 @@ export const clients = pgTable("clients", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   name: text("name").notNull(),
+  email: text("email"),
   phone: text("phone").notNull(),
   birthdate: text("birthdate"),
 }, (table) => ({
@@ -52,6 +53,7 @@ export const appointments = pgTable("appointments", {
   clientId: varchar("client_id").notNull().references(() => clients.id, { onDelete: 'cascade' }),
   date: text("date").notNull(),
   time: text("time").notNull(),
+  duration: integer("duration").notNull(),
   status: text("status").notNull().default("scheduled"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -165,6 +167,7 @@ export const updateServiceSchema = baseServiceSchema.partial().refine((data) => 
 export const insertAppointmentSchema = createInsertSchema(appointments).omit({
   id: true,
   createdAt: true,
+  duration: true, // Duration é calculado automaticamente no backend
 }).extend({
   serviceIds: z.array(z.string()).min(1, "Pelo menos um serviço deve ser selecionado"),
 });

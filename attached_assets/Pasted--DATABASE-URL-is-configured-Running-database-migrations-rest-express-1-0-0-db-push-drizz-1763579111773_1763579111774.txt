@@ -1,0 +1,499 @@
+✅ DATABASE_URL is configured
+📊 Running database migrations...
+
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/app/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[✓] Pulling schema from database...
+· You're about to add clients_tenant_id_phone_unique unique constraint to the table, which contains 33 items. If this statement fails, you will receive an error from the database. Do you want to truncate clients table?
+
+❯ No, add the constraint without truncating the table
+  Yes, truncate the table✅ Database migrations completed successfully
+✅ Starting application...
+Warning: connect.session() MemoryStore is not
+designed for a production environment, as it will leak
+memory, and will not scale past a single process.
+6:18:54 PM [express] ℹ️  Master Admin já existe
+6:18:54 PM [express] serving on port 80
+6:18:56 PM [express] GET /api/setup/status 304 in 5ms :: {"installed":true}
+6:18:56 PM [express] GET /api/auth/me 401 in 1ms :: {"error":"Não autenticado"}
+[LOGIN] User: elpidio, Role: admin, TenantId: 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, SessionID: t26aBmHh5fn-q-XNks0RPs9OyBygHbIo
+6:19:03 PM [express] POST /api/auth/login 200 in 63ms :: {"user":{"id":"5e28b06a-e10d-4200-b496-7d27…
+6:19:03 PM [express] GET /api/setup/status 304 in 4ms :: {"installed":true}
+6:19:03 PM [express] GET /api/auth/me 304 in 9ms :: {"user":{"id":"5e28b06a-e10d-4200-b496-7d2793aae…
+6:19:03 PM [express] GET /api/services 304 in 23ms :: [{"id":"c20a3e26-0d71-4ed9-8e22-289999ec51bf",…
+6:19:03 PM [express] GET /api/clients 304 in 100ms :: [{"id":"0d42510d-db47-404f-9b68-651c9a97f6b0",…
+6:19:03 PM [express] GET /api/appointments 304 in 133ms :: [{"id":"7fadbd60-b033-4fc1-859c-39f75d1fc…
+Error creating client: error: null value in column "email" of relation "clients" violates not-null constraint
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.createClient (file:///app/dist/index.js:334:24)
+    at async file:///app/dist/index.js:1433:22 {
+  length: 302,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (6c1f2664-b244-4456-86cd-781baba34c3b, 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, Celso Daniel, null, 556293852598, ).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'clients',
+  column: 'email',
+  dataType: undefined,
+  constraint: undefined,
+  file: 'execMain.c',
+  line: '1981',
+  routine: 'ExecConstraints'
+}
+6:19:19 PM [express] POST /api/clients 500 in 24ms :: {"error":"Erro ao criar cliente"}
+Error creating client: error: null value in column "email" of relation "clients" violates not-null constraint
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.createClient (file:///app/dist/index.js:334:24)
+    at async file:///app/dist/index.js:1433:22 {
+  length: 302,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (e6c3bec0-dda6-4e3c-ba32-3a68023c464d, 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, Celso Daniel, null, 556293852598, ).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'clients',
+  column: 'email',
+  dataType: undefined,
+  constraint: undefined,
+  file: 'execMain.c',
+  line: '1981',
+  routine: 'ExecConstraints'
+}
+6:19:20 PM [express] POST /api/clients 500 in 16ms :: {"error":"Erro ao criar cliente"}
+Error creating client: error: null value in column "email" of relation "clients" violates not-null constraint
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.createClient (file:///app/dist/index.js:334:24)
+    at async file:///app/dist/index.js:1433:22 {
+  length: 302,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (ff9a6b8b-6d2d-490a-9218-c887cdbd1153, 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, Celso Daniel, null, 556293852598, ).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+🚀 AgendaPro - Starting...
+✅ DATABASE_URL is configured
+📊 Running database migrations...
+
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/app/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[✓] Pulling schema from database...
+· You're about to add clients_tenant_id_phone_unique unique constraint to the table, which contains 33 items. If this statement fails, you will receive an error from the database. Do you want to truncate clients table?
+
+❯ No, add the constraint without truncating the table
+  Yes, truncate the table✅ Database migrations completed successfully
+✅ Starting application...
+🔒 Trust proxy habilitado (production mode)
+6:41:38 PM [express] 🔒 SESSION_SECRET configurado (32 caracteres)
+Warning: connect.session() MemoryStore is not
+designed for a production environment, as it will leak
+memory, and will not scale past a single process.
+6:41:39 PM [express] ℹ️  Master Admin já existe
+6:41:39 PM [express] serving on port 80
+6:41:42 PM [express] GET /api/setup/status 304 in 5ms :: {"installed":true}
+6:41:42 PM [express] GET /api/auth/me 401 in 1ms :: {"error":"Não autenticado"}
+[LOGIN] User: elpidio, Role: admin, TenantId: 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, SessionID: wlc2jttaS-7sv9ueLptQdTelGky-gKtj
+6:41:50 PM [express] POST /api/auth/login 200 in 61ms :: {"user":{"id":"5e28b06a-e10d-4200-b496-7d27…
+6:41:50 PM [express] GET /api/setup/status 304 in 3ms :: {"installed":true}
+6:41:50 PM [express] GET /api/auth/me 304 in 4ms :: {"user":{"id":"5e28b06a-e10d-4200-b496-7d2793aae…
+6:41:50 PM [express] GET /api/services 304 in 7ms :: [{"id":"c20a3e26-0d71-4ed9-8e22-289999ec51bf","…
+6:41:50 PM [express] GET /api/clients 304 in 91ms :: [{"id":"0d42510d-db47-404f-9b68-651c9a97f6b0","…
+6:41:50 PM [express] GET /api/appointments 200 in 112ms :: [{"id":"7fadbd60-b033-4fc1-859c-39f75d1fc…
+Error creating client: error: null value in column "email" of relation "clients" violates not-null constraint
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.createClient (file:///app/dist/index.js:346:24)
+    at async file:///app/dist/index.js:1445:22 {
+  length: 295,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (545e8a42-3cd6-4f99-924b-4a27000c592d, 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, Teste, null, 556293852598, ).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'clients',
+  column: 'email',
+  dataType: undefined,
+  constraint: undefined,
+  file: 'execMain.c',
+  line: '1981',
+  routine: 'ExecConstraints'
+}
+6:41:57 PM [express] POST /api/clients 500 in 8ms :: {"error":"Erro ao criar cliente"}
+Error creating appointment: error: null value in column "duration" of relation "appointments" violates not-null constraint
+    at /app/node_modules/pg/lib/client.js:535:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async file:///app/dist/index.js:541:26
+    at async NodePgSession.transaction (file:///app/node_modules/drizzle-orm/node-postgres/session.js:142:22)
+    at async DbStorage.createAppointment (file:///app/dist/index.js:540:16)
+    at async file:///app/dist/index.js:1867:27 {
+  length: 392,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (d55ac57f-8998-4ad1-b41b-b5a7d1eb928c, 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, 57dfbddf-4e08-486f-8b42-b07eca7e5195, null, 2025-12-25, 10:00, null, scheduled, , 2025-11-19 18:42:34.587595).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'appointments',
+  column: 'duration',
+  dataType: undefined,
+  constraint: undefined,
+  file: 'execMain.c',
+  line: '1981',
+  routine: 'ExecConstraints'
+}
+6:42:34 PM [express] POST /api/appointments 500 in 19ms :: {"error":"Erro ao criar agendamento"}
+6:42:46 PM [express] GET /api/setup/status 304 in 11ms :: {"installed":true}
+6:42:46 PM [express] GET /api/auth/me 304 in 5ms :: {"user":{"id":"5e28b06a-e10d-4200-b496-7d2793aae…
+6:42:46 PM [express] GET /api/clients 304 in 5ms :: [{"id":"0d42510d-db47-404f-9b68-651c9a97f6b0","t…
+6:42:46 PM [express] GET /api/services 304 in 11ms :: [{"id":"c20a3e26-0d71-4ed9-8e22-289999ec51bf",…
+6:42:46 PM [express] GET /api/appointments 304 in 109ms :: [{"id":"7fadbd60-b033-4fc1-859c-39f75d1fc…
+6:42:59 PM [express] GET /api/appointments/6e2a4df2-d6b5-435b-a9b8-f2d8fb8fa845 304 in 15ms :: {"id"…
+6:42:59 PM [express] GET /api/clients/61a5ee6c-888c-4ead-a007-f3cbd0e22486 304 in 3ms :: {"id":"61a5…
+6:43:19 PM [express] POST /api/services 201 in 17ms :: {"id":"52d4a252-7d57-4821-9240-fe74ac00e69c",…
+6:43:19 PM [express] GET /api/services 200 in 5ms :: [{"id":"c20a3e26-0d71-4ed9-8e22-289999ec51bf","…
+6:43:26 PM [express] DELETE /api/services/52d4a252-7d57-4821-9240-fe74ac00e69c 204 in 5ms
+6:43:26 PM [express] GET /api/services 200 in 3ms :: [{"id":"c20a3e26-0d71-4ed9-8e22-289999ec51bf","…
+6:43:43 PM [express] GET /api/setup/status 304 in 11ms :: {"installed":true}
+6:43:43 PM [express] GET /api/auth/me 304 in 3ms :: {"user":{"id":"5e28b06a-e10d-4200-b496-7d2793aae…
+6:43:43 PM [express] GET /api/services 304 in 4ms :: [{"id":"c20a3e26-0d71-4ed9-8e22-289999ec51bf","…
+6:43:43 PM [express] GET /api/clients 304 in 3ms :: [{"id":"0d42510d-db47-404f-9b68-651c9a97f6b0","t…
+6:43:44 PM [express] GET /api/appointments 304 in 100ms :: [{"id":"7fadbd60-b033-4fc1-859c-39f75d1fc…
+6:45:15 PM [express] POST /api/auth/logout 200 in 1ms :: {"message":"Logout realizado com sucesso"}
+6:45:15 PM [express] GET /api/appointments 401 in 0ms :: {"error":"Não autenticado"}
+6:45:15 PM [express] GET /api/clients 401 in 1ms :: {"error":"Não autenticado"}
+6:45:15 PM [express] GET /api/services 401 in 0ms :: {"error":"Não autenticado"}
+6:45:15 PM [express] GET /api/setup/status 304 in 10ms :: {"installed":true}
+6:45:15 PM [express] GET /api/auth/me 401 in 1ms :: {"error":"Não autenticado"}
+[LOGIN] User: rafaelruch, Role: master_admin, TenantId: null, SessionID: i_BWHvKsQybWSFC9zZOKKnfm2GWS3oDT
+6:45:21 PM [express] POST /api/auth/login 200 in 56ms :: {"user":{"id":"122af13f-9a5d-43dc-a04e-304b…
+6:45:21 PM [express] GET /api/setup/status 304 in 3ms :: {"installed":true}
+6:45:21 PM [express] GET /api/auth/me 200 in 16ms :: {"user":{"id":"122af13f-9a5d-43dc-a04e-304bd4ef…
+6:45:21 PM [express] GET /api/admin/tenants 200 in 2ms :: [{"id":"07ea94ce-20e7-4ce2-ae6d-e0fecc5e70…
+6:45:21 PM [express] GET /api/clients 400 in 1ms :: {"error":"Master admin deve especificar tenantId…
+6:45:21 PM [express] GET /api/admin/appointments 200 in 4ms :: [{"id":"7fadbd60-b033-4fc1-859c-39f75…
+6:50:59 PM [express] GET /api/setup/status 304 in 14ms :: {"installed":true}
+6:50:59 PM [express] GET /api/auth/me 401 in 0ms :: {"error":"Não autenticado"}
+[LOGIN] User: leticiachaveiro, Role: user, TenantId: 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, SessionID: kywxjHIptOcx4UGO5R1cGevblAK8685a
+6:51:01 PM [express] POST /api/auth/login 200 in 90ms :: {"user":{"id":"3475460d-cd00-4941-9aa3-aba5…
+6:51:01 PM [express] GET /api/setup/status 304 in 5ms :: {"installed":true}
+6:51:01 PM [express] GET /api/auth/me 304 in 8ms :: {"user":{"id":"3475460d-cd00-4941-9aa3-aba56530c…
+6:51:02 PM [express] GET /api/services 304 in 5ms :: [{"id":"c20a3e26-0d71-4ed9-8e22-289999ec51bf","…
+6:51:02 PM [express] GET /api/clients 304 in 139ms :: [{"id":"0d42510d-db47-404f-9b68-651c9a97f6b0",…
+6:51:02 PM [express] GET /api/appointments 304 in 166ms :: [{"id":"7fadbd60-b033-4fc1-859c-39f75d1fc…
+6:52:45 PM [express] GET /api/clients 200 in 125ms :: []
+6:52:46 PM [express] GET /api/appointments 200 in 234ms :: [{"id":"7fadbd60-b033-4fc1-859c-39f75d1fc…
+6:54:27 PM [express] GET /api/clients 200 in 125ms :: []
+6:54:27 PM [express] GET /api/appointments 200 in 272ms :: [{"id":"7fadbd60-b033-4fc1-859c-39f75d1fc…
+6:54:46 PM [express] GET /api/clients 200 in 134ms :: []
+6:54:46 PM [express] GET /api/appointments 200 in 257ms :: [{"id":"7fadbd60-b033-4fc1-859c-39f75d1fc…
+6:55:18 PM [express] GET /api/clients 200 in 127ms :: []
+6:55:18 PM [express] GET /api/appointments 200 in 279ms :: [{"id":"7fadbd60-b033-4fc1-859c-39f75d1fc…
+7:00:22 PM [express] GET /api/setup/status 304 in 14ms :: {"installed":true}
+7:00:22 PM [express] GET /api/auth/me 304 in 3ms :: {"user":{"id":"122af13f-9a5d-43dc-a04e-304bd4ef3…
+7:00:22 PM [express] GET /api/admin/tenants 304 in 3ms :: [{"id":"07ea94ce-20e7-4ce2-ae6d-e0fecc5e70…
+7:00:22 PM [express] GET /api/clients 400 in 1ms :: {"error":"Master admin deve especificar tenantId…
+7:00:22 PM [express] GET /api/admin/appointments 304 in 13ms :: [{"id":"7fadbd60-b033-4fc1-859c-39f7…
+🚀 AgendaPro - Starting...
+✅ DATABASE_URL is configured
+📊 Running database migrations...
+
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/app/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[✓] Pulling schema from database...
+· You're about to add clients_tenant_id_phone_unique unique constraint to the table, which contains 33 items. If this statement fails, you will receive an error from the database. Do you want to truncate clients table?
+
+❯ No, add the constraint without truncating the table
+  Yes, truncate the table✅ Database migrations completed successfully
+✅ Starting application...
+🔒 Trust proxy habilitado (production mode)
+7:02:30 PM [express] 🔒 SESSION_SECRET configurado (32 caracteres)
+Warning: connect.session() MemoryStore is not
+designed for a production environment, as it will leak
+memory, and will not scale past a single process.
+7:02:30 PM [express] ℹ️  Master Admin já existe
+7:02:30 PM [express] serving on port 80
+7:02:31 PM [express] GET /api/setup/status 304 in 5ms :: {"installed":true}
+7:02:31 PM [express] GET /api/auth/me 401 in 1ms :: {"error":"Não autenticado"}
+[LOGIN] User: elpidio, Role: admin, TenantId: 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, SessionID: eDfkHAgozHLIyispw_Rcfk1Scg-3Pb_h
+7:02:39 PM [express] POST /api/auth/login 200 in 60ms :: {"user":{"id":"5e28b06a-e10d-4200-b496-7d27…
+7:02:39 PM [express] GET /api/setup/status 304 in 4ms :: {"installed":true}
+7:02:39 PM [express] GET /api/auth/me 200 in 3ms :: {"user":{"id":"5e28b06a-e10d-4200-b496-7d2793aae…
+7:02:39 PM [express] GET /api/services 304 in 6ms :: [{"id":"c20a3e26-0d71-4ed9-8e22-289999ec51bf","…
+7:02:39 PM [express] GET /api/clients 200 in 127ms :: [{"id":"0d42510d-db47-404f-9b68-651c9a97f6b0",…
+7:02:39 PM [express] GET /api/appointments 304 in 153ms :: [{"id":"7fadbd60-b033-4fc1-859c-39f75d1fc…
+Error creating client: error: null value in column "email" of relation "clients" violates not-null constraint
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.createClient (file:///app/dist/index.js:346:24)
+    at async file:///app/dist/index.js:1445:22 {
+  length: 302,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (64a69f05-8023-437b-9f92-1ff884d32c87, 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, Celso Daniel, null, 556293852598, ).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'clients',
+  column: 'email',
+  dataType: undefined,
+  constraint: undefined,
+  file: 'execMain.c',
+  line: '1981',
+  routine: 'ExecConstraints'
+}
+7:03:06 PM [express] POST /api/clients 500 in 18ms :: {"error":"Erro ao criar cliente"}
+Error creating client: error: null value in column "email" of relation "clients" violates not-null constraint
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.createClient (file:///app/dist/index.js:346:24)
+    at async file:///app/dist/index.js:1445:22 {
+  length: 302,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (addebd1f-592c-4580-9bd8-6d854dbb6832, 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, Celso Daniel, null, 556293852598, ).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'clients',
+  column: 'email',
+  dataType: undefined,
+  constraint: undefined,
+  file: 'execMain.c',
+  line: '1981',
+  routine: 'ExecConstraints'
+}
+7:03:08 PM [express] POST /api/clients 500 in 14ms :: {"error":"Erro ao criar cliente"}
+Error creating client: error: null value in column "email" of relation "clients" violates not-null constraint
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.createClient (file:///app/dist/index.js:346:24)
+    at async file:///app/dist/index.js:1445:22 {
+  length: 302,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (a893775c-53b0-42e6-aa4f-23f924588fdb, 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, Celso Daniel, null, 556293852598, ).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'clients',
+  column: 'email',
+  dataType: undefined,
+  constraint: undefined,
+  file: 'execMain.c',
+  line: '1981',
+  routine: 'ExecConstraints'
+}
+7:03:09 PM [express] POST /api/clients 500 in 14ms :: {"error":"Erro ao criar cliente"}
+Error creating client: error: null value in column "email" of relation "clients" violates not-null constraint
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.createClient (file:///app/dist/index.js:346:24)
+    at async file:///app/dist/index.js:1445:22 {
+  length: 302,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (2e03d660-2aed-459f-a9b8-47bba1b2dc67, 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, Celso Daniel, null, 556293852598, ).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'clients',
+  column: 'email',
+  dataType: undefined,
+  constraint: undefined,
+  file: 'execMain.c',
+  line: '1981',
+  routine: 'ExecConstraints'
+}
+7:03:10 PM [express] POST /api/clients 500 in 14ms :: {"error":"Erro ao criar cliente"}
+Error creating client: error: null value in column "email" of relation "clients" violates not-null constraint
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.createClient (file:///app/dist/index.js:346:24)
+    at async file:///app/dist/index.js:1445:22 {
+  length: 302,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (c41d4d5a-65ac-46ae-a4b2-51003bdaf96a, 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, Celso Daniel, null, 556293852598, ).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'clients',
+  column: 'email',
+  dataType: undefined,
+  constraint: undefined,
+  file: 'execMain.c',
+  line: '1981',
+  routine: 'ExecConstraints'
+}
+7:03:27 PM [express] POST /api/clients 500 in 14ms :: {"error":"Erro ao criar cliente"}
+Error creating client: error: null value in column "email" of relation "clients" violates not-null constraint
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.createClient (file:///app/dist/index.js:346:24)
+    at async file:///app/dist/index.js:1445:22 {
+  length: 302,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (b25a9708-14d5-4353-8342-53cd291a0ada, 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, Celso Daniel, null, 556293852598, ).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'clients',
+  column: 'email',
+  dataType: undefined,
+  constraint: undefined,
+  file: 'execMain.c',
+  line: '1981',
+  routine: 'ExecConstraints'
+}
+7:03:28 PM [express] POST /api/clients 500 in 14ms :: {"error":"Erro ao criar cliente"}
+Error creating client: error: null value in column "email" of relation "clients" violates not-null constraint
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.createClient (file:///app/dist/index.js:346:24)
+    at async file:///app/dist/index.js:1445:22 {
+  length: 302,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (644aab1c-1584-40b4-9877-c231e23fa32b, 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, Celso Daniel, null, 556293852598, ).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'clients',
+  column: 'email',
+  dataType: undefined,
+  constraint: undefined,
+  file: 'execMain.c',
+  line: '1981',
+  routine: 'ExecConstraints'
+}
+7:03:28 PM [express] POST /api/clients 500 in 14ms :: {"error":"Erro ao criar cliente"}
+Error creating client: error: null value in column "email" of relation "clients" violates not-null constraint
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.createClient (file:///app/dist/index.js:346:24)
+    at async file:///app/dist/index.js:1445:22 {
+  length: 302,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (a68fd638-a4ba-4006-b559-45eac8f15b46, 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, Celso Daniel, null, 556293852598, ).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'clients',
+  column: 'email',
+  dataType: undefined,
+  constraint: undefined,
+  file: 'execMain.c',
+  line: '1981',
+  routine: 'ExecConstraints'
+}
+7:03:29 PM [express] POST /api/clients 500 in 13ms :: {"error":"Erro ao criar cliente"}
+Error creating client: error: null value in column "email" of relation "clients" violates not-null constraint
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.createClient (file:///app/dist/index.js:346:24)
+    at async file:///app/dist/index.js:1445:22 {
+  length: 312,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (e13a413c-b5ae-4d43-8f32-ca2f9cdbf267, 07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c, Celso Daniel, null, 556293852598, 2025-10-30).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'clients',
+  column: 'email',
+  dataType: undefined,
+  constraint: undefined,
+  file: 'execMain.c',
+  line: '1981',
+  routine: 'ExecConstraints'
+}
+7:03:33 PM [express] POST /api/clients 500 in 12ms :: {"error":"Erro ao criar cliente"}
+Error creating client: error: null value in column "email" of relation "clients" violates not-null constraint
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.createClient (file:///app/dist/index.js:346:24)
+    at async file:///app/dist/index.js:1445:22 {
+  length: 312,
+  severity: 'ERROR',
