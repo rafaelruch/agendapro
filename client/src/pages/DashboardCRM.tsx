@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import { TrendingUp, TrendingDown, Calendar as CalendarIcon, Users, CheckCircle2, DollarSign, Check, X, Eye } from "lucide-react";
-import { format, startOfMonth, endOfMonth, subMonths, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths, parseISO, startOfWeek, endOfWeek, subWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Badge from "@/components/ui/badge/Badge";
 import type { Appointment, Client, Service } from "@shared/schema";
@@ -11,6 +11,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { AppointmentDetailsDialog } from "@/components/AppointmentDetailsDialog";
+import LineChartOne from "@/components/charts/line/LineChartOne";
 
 type AppointmentWithServices = Appointment & {
   serviceIds?: string[];
@@ -158,6 +159,29 @@ export default function DashboardCRM() {
       percentage: total > 0 ? Math.round((s.count / total) * 100) : 0,
     }));
   }, [appointments, services]);
+
+  // Weekly appointments data (últimas 8 semanas)
+  const weeklyData = useMemo(() => {
+    const weeks = [];
+    const now = new Date();
+    
+    for (let i = 7; i >= 0; i--) {
+      const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 0 });
+      const weekEnd = endOfWeek(subWeeks(now, i), { weekStartsOn: 0 });
+      
+      const weekAppointments = appointments.filter(apt => {
+        const aptDate = parseISO(apt.date);
+        return aptDate >= weekStart && aptDate <= weekEnd;
+      });
+      
+      weeks.push({
+        label: format(weekStart, 'dd/MM', { locale: ptBR }),
+        count: weekAppointments.length,
+      });
+    }
+    
+    return weeks;
+  }, [appointments]);
 
   // Recent appointments REAIS (últimos 5)
   const recentAppointments = useMemo(() => {
@@ -344,6 +368,22 @@ export default function DashboardCRM() {
         </div>
       </div>
 
+      {/* Line Chart - Crescimento Semanal */}
+      <div className="rounded-2xl border border-gray-200 bg-white px-5 pb-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6" data-testid="card-line-chart">
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+            Crescimento de Agendamentos
+          </h3>
+          <p className="mt-1 text-gray-500 text-theme-sm dark:text-gray-400">
+            Últimas 8 semanas
+          </p>
+        </div>
+        <LineChartOne 
+          categories={weeklyData.map(w => w.label)} 
+          data={weeklyData.map(w => w.count)} 
+        />
+      </div>
+
       {/* Monthly Target Gauge + Top Services */}
       <div className="grid grid-cols-1 gap-4 md:gap-6 xl:grid-cols-2">
         {/* Monthly Target Gauge - TailAdmin EXATO */}
@@ -509,7 +549,7 @@ export default function DashboardCRM() {
                           setSelectedAppointmentId(apt.id);
                           setShowDetailsDialog(true);
                         }}
-                        className="w-8 h-8 text-brand-600 hover:bg-brand-50 hover:text-brand-700 dark:text-brand-500 dark:hover:bg-brand-500/10"
+                        className="w-8 h-8 text-brand-500 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-500/10"
                         data-testid={`button-view-${index}`}
                       >
                         <Eye className="w-4 h-4" />
