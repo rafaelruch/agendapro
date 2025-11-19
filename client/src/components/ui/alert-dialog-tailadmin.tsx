@@ -122,7 +122,7 @@ const AlertModalBase: React.FC<AlertModalBaseProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 flex items-center justify-center overflow-y-auto modal z-99999"
+      className="fixed inset-0 flex items-center justify-center overflow-y-auto modal z-999999"
       role="alertdialog"
       aria-modal="true"
     >
@@ -133,7 +133,7 @@ const AlertModalBase: React.FC<AlertModalBaseProps> = ({
       ></div>
       <div
         ref={modalRef}
-        className={`relative w-full rounded-3xl bg-white dark:bg-gray-900 ${containerClassName || 'max-w-[400px]'}`}
+        className={`relative w-full rounded-3xl bg-white dark:bg-gray-900 ${containerClassName || 'max-w-lg'}`}
         onClick={(e) => e.stopPropagation()}
         tabIndex={-1}
       >

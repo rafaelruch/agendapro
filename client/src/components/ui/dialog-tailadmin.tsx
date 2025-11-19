@@ -124,7 +124,7 @@ const ModalBase: React.FC<ModalBaseProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 flex items-center justify-center overflow-y-auto modal z-99999"
+      className="fixed inset-0 flex items-center justify-center overflow-y-auto modal z-999999"
       role="dialog"
       aria-modal="true"
     >
@@ -135,7 +135,7 @@ const ModalBase: React.FC<ModalBaseProps> = ({
       ></div>
       <div
         ref={modalRef}
-        className={`relative w-full rounded-3xl bg-white dark:bg-gray-900 ${containerClassName || 'max-w-[500px]'}`}
+        className={`relative w-full rounded-3xl bg-white dark:bg-gray-900 ${containerClassName || 'max-w-3xl'}`}
         onClick={(e) => e.stopPropagation()}
         tabIndex={-1}
       >

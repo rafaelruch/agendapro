@@ -4,7 +4,6 @@ import { Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import GridShape from "@/components/GridShape";
 import ThemeTogglerTwo from "@/components/ThemeTogglerTwo";
 
 export default function LoginPage() {
@@ -191,8 +190,6 @@ export default function LoginPage() {
         {/* Right Side - Brand Section (EXACT TailAdmin AuthLayout) */}
         <div className="items-center hidden w-full h-full lg:w-1/2 bg-brand-950 dark:bg-white/5 lg:grid">
           <div className="relative flex items-center justify-center z-1">
-            {/* Grid Shape - EXACT TailAdmin */}
-            <GridShape />
             <div className="flex flex-col items-center max-w-xs">
               {/* Logo Textual - Calendar Icon + AgendaPro v1.0 */}
               <Link href="/" className="flex items-center gap-3 mb-6">
@@ -216,7 +213,7 @@ export default function LoginPage() {
                 </div>
               </Link>
               <p className="text-center text-gray-400 dark:text-white/60">
-                Sistema de Gerenciamento de Agendas Multi-Tenant
+                Sistema de gerenciamento de clínicas inteligadas com Agente de IA
               </p>
             </div>
           </div>
