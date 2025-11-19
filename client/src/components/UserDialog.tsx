@@ -4,15 +4,8 @@ import { z } from "zod";
 import { useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -48,7 +41,14 @@ export function UserDialog({
   user,
   isPending = false,
 }: UserDialogProps) {
-  const form = useForm<UserFormData>({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
       username: "",
@@ -60,9 +60,11 @@ export function UserDialog({
     },
   });
 
+  const roleValue = watch("role");
+
   useEffect(() => {
     if (open) {
-      form.reset({
+      reset({
         username: user?.username || "",
         name: user?.name || "",
         email: user?.email || "",
@@ -71,9 +73,9 @@ export function UserDialog({
         password: "",
       });
     }
-  }, [open, user, form]);
+  }, [open, user, reset]);
 
-  const handleSubmit = (data: UserFormData) => {
+  const onFormSubmit = (data: UserFormData) => {
     const submitData = { ...data };
     if (!submitData.password) {
       delete submitData.password;
@@ -94,134 +96,114 @@ export function UserDialog({
         </p>
       </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Usuário</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="usuario"
-                      disabled={!!user}
-                      data-testid="input-username"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+      <form onSubmit={handleSubmit(onFormSubmit)}>
+        <div className="grid gap-4 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
+          <div className="grid gap-2">
+            <Label htmlFor="username">Usuário</Label>
+            <Input
+              id="username"
+              {...register("username") as any}
+              placeholder="usuario"
+              disabled={!!user}
+              data-testid="input-username"
             />
-
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome Completo</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="João da Silva"
-                      data-testid="input-name"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>E-mail</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="email"
-                      placeholder="usuario@email.com"
-                      data-testid="input-email"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    {user ? "Nova Senha (opcional)" : "Senha"}
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="password"
-                      placeholder="••••••••"
-                      data-testid="input-password"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Permissão</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger data-testid="select-role">
-                        <SelectValue placeholder="Selecione a permissão" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="user">
-                        Usuário - Acesso básico
-                      </SelectItem>
-                      <SelectItem value="admin">
-                        Administrador - Acesso total
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isPending}
-                data-testid="button-cancel"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={isPending}
-                data-testid="button-submit"
-              >
-                {isPending ? "Salvando..." : user ? "Atualizar" : "Criar"}
-              </Button>
+            {errors.username && (
+              <p className="text-sm text-error-600 dark:text-error-400">
+                {errors.username.message}
+              </p>
+            )}
           </div>
-        </form>
-      </Form>
+
+          <div className="grid gap-2">
+            <Label htmlFor="name">Nome Completo</Label>
+            <Input
+              id="name"
+              {...register("name") as any}
+              placeholder="João da Silva"
+              data-testid="input-name"
+            />
+            {errors.name && (
+              <p className="text-sm text-error-600 dark:text-error-400">
+                {errors.name.message}
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="email">E-mail</Label>
+            <Input
+              id="email"
+              type="email"
+              {...register("email") as any}
+              placeholder="usuario@email.com"
+              data-testid="input-email"
+            />
+            {errors.email && (
+              <p className="text-sm text-error-600 dark:text-error-400">
+                {errors.email.message}
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="password">
+              {user ? "Nova Senha (opcional)" : "Senha"}
+            </Label>
+            <Input
+              id="password"
+              type="password"
+              {...register("password") as any}
+              placeholder="••••••••"
+              data-testid="input-password"
+            />
+            {errors.password && (
+              <p className="text-sm text-error-600 dark:text-error-400">
+                {errors.password.message}
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="role">Permissão</Label>
+            <Select
+              value={roleValue}
+              onValueChange={(value) => setValue("role", value as "user" | "admin")}
+            >
+              <SelectTrigger id="role" data-testid="select-role">
+                <SelectValue placeholder="Selecione a permissão" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="user">Usuário - Acesso básico</SelectItem>
+                <SelectItem value="admin">Administrador - Acesso total</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.role && (
+              <p className="text-sm text-error-600 dark:text-error-400">
+                {errors.role.message}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isPending}
+            data-testid="button-cancel"
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            disabled={isPending}
+            data-testid="button-submit"
+          >
+            {isPending ? "Salvando..." : user ? "Atualizar" : "Criar"}
+          </Button>
+        </div>
+      </form>
     </Modal>
   );
 }

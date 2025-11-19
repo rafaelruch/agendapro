@@ -78,10 +78,9 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
-// Configurar trust proxy para funcionar com proxy reverso (Easypanel, etc)
-if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
-}
+// Configurar trust proxy para funcionar com proxy reverso (Replit, Easypanel, etc)
+// Replit sempre envia X-Forwarded-For, então precisamos confiar no proxy em todos os ambientes
+app.set('trust proxy', 1);
 
 // SEGURANÇA CRÍTICA: SESSION_SECRET obrigatório em TODOS os ambientes
 // Não há fallback - a aplicação DEVE falhar se SESSION_SECRET não estiver definido

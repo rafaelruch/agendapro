@@ -182,7 +182,7 @@ export function AppointmentDialog({
                     value={formData.time}
                     onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                     data-testid="input-time"
-                    step="60"
+                    step={60}
                     required
                     placeholder="14:00"
                   />
