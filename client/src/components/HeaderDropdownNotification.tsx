@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Bell } from "lucide-react";
 import {
   DropdownMenu,
@@ -8,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Appointment, Client } from "@shared/schema";
+import { AppointmentDetailsDialog } from "@/components/AppointmentDetailsDialog";
 
 interface AppointmentWithClient {
   id: string;
@@ -17,6 +19,8 @@ interface AppointmentWithClient {
 }
 
 export function HeaderDropdownNotification() {
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const today = format(new Date(), 'yyyy-MM-dd');
 
   const { data: appointments = [], isLoading: loadingAppointments } = useQuery<Appointment[]>({
@@ -28,6 +32,11 @@ export function HeaderDropdownNotification() {
   });
 
   const isLoading = loadingAppointments || loadingClients;
+
+  const handleAppointmentClick = (appointmentId: string) => {
+    setSelectedAppointmentId(appointmentId);
+    setShowDetailsDialog(true);
+  };
 
   const todayAppointments: AppointmentWithClient[] = appointments
     .filter(apt => apt.date === today)
@@ -78,7 +87,8 @@ export function HeaderDropdownNotification() {
             todayAppointments.map((apt, index) => (
               <div 
                 key={apt.id} 
-                className="border-t border-stroke dark:border-strokedark px-4.5 py-3 hover:bg-gray-2 dark:hover:bg-meta-4"
+                onClick={() => handleAppointmentClick(apt.id)}
+                className="border-t border-stroke dark:border-strokedark px-4.5 py-3 hover:bg-gray-2 dark:hover:bg-meta-4 cursor-pointer transition-colors"
                 data-testid={`notification-appointment-${index}`}
               >
                 <p className="text-sm">
@@ -94,6 +104,13 @@ export function HeaderDropdownNotification() {
           )}
         </div>
       </DropdownMenuContent>
+
+      {/* Dialog de Detalhes do Agendamento */}
+      <AppointmentDetailsDialog
+        appointmentId={selectedAppointmentId}
+        open={showDetailsDialog}
+        onOpenChange={setShowDetailsDialog}
+      />
     </DropdownMenu>
   );
 }
