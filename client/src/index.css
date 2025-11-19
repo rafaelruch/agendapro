@@ -132,83 +132,83 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  /* TailAdmin Exact Dark Mode Colors - Using Decimal Precision for Perfect Match */
-  /* gray-900: #101828 - Precise calculation */
-  --background: 220 42.9% 11%;
+  /* TailAdmin Exact Dark Mode Colors - Direct RGB for 100% Precision */
+  /* gray-900: #101828 = rgb(16, 24, 40) */
+  --background: 16 24 40;
 
-  /* white/90 opacity - handled via text-white/90 in components */
-  --foreground: 0 0% 90%;
+  /* white/90 opacity - text uses text-white/90 classes */
+  --foreground: 255 255 255;
 
-  /* gray-800: #1d2939 - Precise calculation */
-  --border: 220 32.5% 17%;
+  /* gray-800: #1d2939 = rgb(29, 41, 57) */
+  --border: 29 41 57;
 
-  /* gray-dark: #1a2231 - Precise calculation */
-  --card: 219 31% 15%;
+  /* gray-dark: #1a2231 = rgb(26, 34, 49) */
+  --card: 26 34 49;
 
-  /* white/90 opacity */
-  --card-foreground: 0 0% 90%;
+  /* white for foreground */
+  --card-foreground: 255 255 255;
 
   /* gray-800: #1d2939 */
-  --card-border: 220 32.5% 17%;
+  --card-border: 29 41 57;
 
   /* gray-dark: #1a2231 */
-  --sidebar: 219 31% 15%;
+  --sidebar: 26 34 49;
 
-  /* white/90 opacity */
-  --sidebar-foreground: 0 0% 90%;
+  /* white for foreground */
+  --sidebar-foreground: 255 255 255;
 
   /* gray-800: #1d2939 */
-  --sidebar-border: 220 32.5% 17%;
+  --sidebar-border: 29 41 57;
 
   --sidebar-primary: 231 71% 56%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  /* gray-700: #344054 - hover state */
-  --sidebar-accent: 217 18.5% 27%;
+  /* gray-700: #344054 = rgb(52, 64, 84) */
+  --sidebar-accent: 52 64 84;
 
-  /* white/90 */
-  --sidebar-accent-foreground: 0 0% 90%;
+  /* white for foreground */
+  --sidebar-accent-foreground: 255 255 255;
 
   --sidebar-ring: 231 71% 56%;
 
   /* gray-dark: #1a2231 */
-  --popover: 219 31% 15%;
+  --popover: 26 34 49;
 
-  /* white/90 */
-  --popover-foreground: 0 0% 90%;
+  /* white for foreground */
+  --popover-foreground: 255 255 255;
 
   /* gray-800: #1d2939 */
-  --popover-border: 220 32.5% 17%;
+  --popover-border: 29 41 57;
 
   --primary: 231 71% 56%;
 
   --primary-foreground: 0 0% 100%;
 
   /* gray-700: #344054 */
-  --secondary: 217 18.5% 27%;
+  --secondary: 52 64 84;
 
-  /* white/90 */
-  --secondary-foreground: 0 0% 90%;
+  /* white for foreground */
+  --secondary-foreground: 255 255 255;
 
   /* gray-800: #1d2939 - muted backgrounds */
-  --muted: 220 32.5% 17%;
+  --muted: 29 41 57;
 
-  /* gray-400: #98a2b3 - muted text */
-  --muted-foreground: 220 13.5% 65%;
+  /* gray-400: #98a2b3 = rgb(152, 162, 179) */
+  --muted-foreground: 152 162 179;
 
-  /* gray-700: #344054 - accent */
-  --accent: 217 18.5% 27%;
+  /* gray-700: #344054 */
+  --accent: 52 64 84;
 
-  /* white/90 */
-  --accent-foreground: 0 0% 90%;
+  /* white for foreground */
+  --accent-foreground: 255 255 255;
 
   --destructive: 0 84% 60%;
 
   --destructive-foreground: 0 0% 100%;
 
-  /* gray-600: #475467 - input borders */
-  --input: 215 15.5% 34%;
+  /* gray-600: #475467 = rgb(71, 84, 103) */
+  --input: 71 84 103;
   --ring: 231 71% 56%;
   --chart-1: 231 71% 70%;
   --chart-2: 142 76% 56%;
