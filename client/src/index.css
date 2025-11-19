@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* LIGHT MODE */
+/* LIGHT MODE - TailAdmin Exact Colors (RGB format) */
 :root {
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);
@@ -14,61 +14,82 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  --background: 0 0% 100%;
+  /* Light mode: white background */
+  --background: 255 255 255;
 
-  --foreground: 220 13% 13%;
+  /* #101828 = rgb(16, 24, 40) - gray-900 text */
+  --foreground: 16 24 40;
 
-  --border: 220 13% 91%;
+  /* #e4e7ec = rgb(228, 231, 236) - gray-200 borders */
+  --border: 228 231 236;
 
-  --card: 220 9% 98%;
+  /* #f9fafb = rgb(249, 250, 251) - gray-50 card background */
+  --card: 249 250 251;
 
-  --card-foreground: 220 13% 13%;
+  /* #101828 = rgb(16, 24, 40) - gray-900 text */
+  --card-foreground: 16 24 40;
 
-  --card-border: 220 13% 94%;
+  /* #e4e7ec = rgb(228, 231, 236) - gray-200 */
+  --card-border: 228 231 236;
 
-  --sidebar: 220 9% 96%;
+  /* #ffffff = white sidebar in light mode */
+  --sidebar: 255 255 255;
 
-  --sidebar-foreground: 220 13% 13%;
+  /* #101828 = rgb(16, 24, 40) - gray-900 text */
+  --sidebar-foreground: 16 24 40;
 
-  --sidebar-border: 220 13% 88%;
+  /* #e4e7ec = rgb(228, 231, 236) - gray-200 */
+  --sidebar-border: 228 231 236;
 
   --sidebar-primary: 231 71% 56%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 220 13% 91%;
+  /* #f2f4f7 = rgb(242, 244, 247) - gray-100 */
+  --sidebar-accent: 242 244 247;
 
-  --sidebar-accent-foreground: 220 13% 13%;
+  /* #101828 = rgb(16, 24, 40) */
+  --sidebar-accent-foreground: 16 24 40;
 
   --sidebar-ring: 231 71% 56%;
 
-  --popover: 220 13% 94%;
+  /* #f9fafb = rgb(249, 250, 251) - gray-50 */
+  --popover: 249 250 251;
 
-  --popover-foreground: 220 13% 13%;
+  /* #101828 = rgb(16, 24, 40) */
+  --popover-foreground: 16 24 40;
 
-  --popover-border: 220 13% 88%;
+  /* #e4e7ec = rgb(228, 231, 236) - gray-200 */
+  --popover-border: 228 231 236;
 
   --primary: 231 71% 56%;
 
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 220 13% 91%;
+  /* #f2f4f7 = rgb(242, 244, 247) - gray-100 */
+  --secondary: 242 244 247;
 
-  --secondary-foreground: 220 13% 13%;
+  /* #101828 = rgb(16, 24, 40) */
+  --secondary-foreground: 16 24 40;
 
-  --muted: 220 13% 95%;
+  /* #f9fafb = rgb(249, 250, 251) - gray-50 */
+  --muted: 249 250 251;
 
-  --muted-foreground: 220 9% 46%;
+  /* #667085 = rgb(102, 112, 133) - gray-500 */
+  --muted-foreground: 102 112 133;
 
-  --accent: 217 20% 94%;
+  /* #f2f4f7 = rgb(242, 244, 247) - gray-100 */
+  --accent: 242 244 247;
 
-  --accent-foreground: 220 13% 13%;
+  /* #101828 = rgb(16, 24, 40) */
+  --accent-foreground: 16 24 40;
 
   --destructive: 0 84% 60%;
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 220 13% 80%;
+  /* #d0d5dd = rgb(208, 213, 221) - gray-300 */
+  --input: 208 213 221;
   --ring: 231 71% 56%;
   --chart-1: 231 71% 56%;
   --chart-2: 142 76% 36%;
@@ -370,7 +391,7 @@
   @apply gap-2;
 }
 .fc-button-group .fc-button {
-  @apply flex h-10 w-10 items-center justify-center !rounded-lg border border-gray-200 bg-transparent hover:border-gray-200 hover:bg-gray-50 focus:shadow-none active:!border-gray-200 active:!bg-transparent active:!shadow-none dark:border-gray-800 dark:hover:border-gray-800 dark:hover:bg-gray-900 dark:active:border-gray-800!;
+  @apply flex h-10 w-10 items-center justify-center !rounded-lg border border-gray-200 bg-transparent hover:border-gray-200 hover:bg-gray-50 focus:shadow-none active:!border-gray-200 active:!bg-transparent active:!shadow-none dark:border-gray-800 dark:hover:border-gray-800 dark:hover:bg-gray-900 dark:active:!border-gray-800;
 }
 
 .fc-button-group .fc-button.fc-prev-button:before {
