@@ -229,6 +229,31 @@ export default function Dashboard() {
     }));
   }, [appointments]);
 
+  // Dados para o gráfico semanal (últimas 8 semanas)
+  const weeklyChartData = useMemo(() => {
+    const weeks = [];
+    const today = new Date();
+    
+    for (let i = 7; i >= 0; i--) {
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - (i * 7 + 6));
+      const weekEnd = new Date(today);
+      weekEnd.setDate(today.getDate() - (i * 7));
+      
+      const weekAppointments = appointments.filter(apt => {
+        const aptDate = new Date(apt.date);
+        return aptDate >= weekStart && aptDate <= weekEnd;
+      });
+      
+      weeks.push({
+        semana: `Sem ${8 - i}`,
+        agendamentos: weekAppointments.length,
+      });
+    }
+    
+    return weeks;
+  }, [appointments]);
+
   // Serviços mais populares
   const topServices = useMemo(() => {
     const serviceCounts = new Map<string, number>();
@@ -340,8 +365,8 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      {/* Stats Cards - EXATAMENTE como TailAdmin com Gradientes */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-4 2xl:gap-7.5">
+      {/* Stats Cards - 3 Boxes Principais */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 2xl:gap-7.5">
         {/* Card 1 - Agendamentos Hoje */}
         <div className="relative rounded-sm bg-gradient-to-r from-[#3C50E0] to-[#6571F3] dark:from-[#1F2B6C] dark:to-[#2E3AA8] px-7.5 py-6 shadow-default overflow-hidden">
           {/* Texture Overlay - TailAdmin Style */}
@@ -408,36 +433,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Card 3 - Clientes Ativos */}
-        <div className="relative rounded-sm bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] dark:from-[#92400E] dark:to-[#B45309] px-7.5 py-6 shadow-default overflow-hidden">
-          {/* Texture Overlay - TailAdmin Style */}
-          <div className="absolute top-0 right-0 bottom-0 left-1/3 opacity-5" style={{
-            backgroundImage: 'radial-gradient(circle at 2px 2px, white 1.5px, transparent 0)',
-            backgroundSize: '16px 16px',
-            maskImage: 'linear-gradient(to right, transparent, white 20%)',
-            WebkitMaskImage: 'linear-gradient(to right, transparent, white 20%)'
-          }}></div>
-          
-          <div className="relative flex h-11.5 w-11.5 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
-            <Users className="h-5 w-5 text-white" />
-          </div>
-
-          <div className="relative mt-4 flex items-end justify-between">
-            <div>
-              <h4 className="text-title-md font-bold text-white" data-testid="stat-active-clients">
-                {stats.activeClients}
-              </h4>
-              <span className="text-sm font-medium text-white/90">Clientes Ativos</span>
-            </div>
-
-            <span className="flex items-center gap-1 text-sm font-medium text-white">
-              +0.43%
-              <TrendingUp className="h-3.5 w-3.5" />
-            </span>
-          </div>
-        </div>
-
-        {/* Card 4 - Concluídos */}
+        {/* Card 3 - Taxa de Conclusão */}
         <div className="relative rounded-sm bg-gradient-to-r from-[#8B5CF6] to-[#A78BFA] dark:from-[#5B21B6] dark:to-[#6D28D9] px-7.5 py-6 shadow-default overflow-hidden">
           {/* Texture Overlay - TailAdmin Style */}
           <div className="absolute top-0 right-0 bottom-0 left-1/3 opacity-5" style={{
@@ -476,42 +472,26 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Charts Row - EXATAMENTE como TailAdmin */}
-      <div className="mt-4 grid grid-cols-12 gap-4 md:mt-6 md:gap-6 2xl:mt-7.5 2xl:gap-7.5">
-        {/* Statistics Chart */}
-        <div className="col-span-12 xl:col-span-8">
-          <div className="rounded-sm border border-stroke bg-white px-5 pb-5 pt-7.5 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5">
-            <div className="flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap">
-              <div className="flex w-full flex-wrap gap-3 sm:gap-5">
-                <div className="flex min-w-47.5">
-                  <span className="mr-2 mt-1 flex h-4 w-full max-w-4 items-center justify-center rounded-full border border-primary">
-                    <span className="block h-2.5 w-full max-w-2.5 rounded-full bg-primary"></span>
-                  </span>
-                  <div className="w-full">
-                    <p className="font-semibold text-primary">Total de Agendamentos</p>
-                    <p className="text-sm font-medium">12 Nov 2024 - 18 Nov 2024</p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex w-full max-w-45 justify-end">
-                <div className="inline-flex items-center rounded-md bg-whiter p-1.5 dark:bg-meta-4">
-                  <button className="rounded bg-white px-3 py-1 text-xs font-medium text-black shadow-card hover:bg-white hover:shadow-card dark:bg-boxdark dark:text-white dark:hover:bg-boxdark">
-                    Dia
-                  </button>
-                  <button className="rounded px-3 py-1 text-xs font-medium text-black hover:bg-white hover:shadow-card dark:text-white dark:hover:bg-boxdark">
-                    Semana
-                  </button>
-                  <button className="rounded px-3 py-1 text-xs font-medium text-black hover:bg-white hover:shadow-card dark:text-white dark:hover:bg-boxdark">
-                    Mês
-                  </button>
-                </div>
+      {/* Gráfico de Crescimento Semanal */}
+      <div className="rounded-sm border border-stroke bg-white px-5 pb-5 pt-7.5 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5">
+        <div className="flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap">
+          <div className="flex w-full flex-wrap gap-3 sm:gap-5">
+            <div className="flex min-w-47.5">
+              <span className="mr-2 mt-1 flex h-4 w-full max-w-4 items-center justify-center rounded-full border border-primary">
+                <span className="block h-2.5 w-full max-w-2.5 rounded-full bg-primary"></span>
+              </span>
+              <div className="w-full">
+                <p className="font-semibold text-black dark:text-white">Crescimento de Agendamentos</p>
+                <p className="text-sm font-medium text-bodydark2">Últimas 8 semanas</p>
               </div>
             </div>
+          </div>
+        </div>
 
-            <div>
-              <div id="chartOne" className="-ml-5 mt-5">
-                <ResponsiveContainer width="100%" height={350}>
-                  <AreaChart data={chartData}>
+        <div>
+          <div id="chartWeekly" className="-ml-5 mt-5">
+            <ResponsiveContainer width="100%" height={350}>
+              <AreaChart data={weeklyChartData.length > 0 ? weeklyChartData : [{semana: "Sem dados", agendamentos: 0}]}>
                     <defs>
                       <linearGradient id="colorAgendamentos" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#3C50E0" stopOpacity={0.3}/>
@@ -520,7 +500,7 @@ export default function Dashboard() {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
                     <XAxis 
-                      dataKey="date" 
+                      dataKey="semana" 
                       className="text-xs"
                       tick={{ fill: '#64748B', fontSize: 12 }}
                       axisLine={{ stroke: '#E2E8F0' }}
@@ -548,13 +528,14 @@ export default function Dashboard() {
                       fill="url(#colorAgendamentos)"
                       strokeWidth={2}
                     />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
+      </div>
 
+      {/* Bottom Row - Próximos Agendamentos e Serviços */}
+      <div className="mt-4 grid grid-cols-12 gap-4 md:mt-6 md:gap-6 2xl:mt-7.5 2xl:gap-7.5">
         {/* Top Services */}
         <div className="col-span-12 xl:col-span-4">
           <div className="rounded-sm border border-stroke bg-white px-5 pb-5 pt-7.5 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5">

@@ -1,21 +1,11 @@
 import { useState, useRef } from "react";
-import { Plus, Search, MoreVertical, Download, Upload } from "lucide-react";
+import { Plus, Search, Download, Upload, Edit2, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { TableHead } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { ServiceDialog } from "@/components/ServiceDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +16,8 @@ export default function ServicesPage() {
   const [showServiceDialog, setShowServiceDialog] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -194,6 +186,10 @@ export default function ServicesPage() {
       service.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedServices = filteredServices.slice(startIndex, startIndex + itemsPerPage);
+
   const formatCurrency = (value: string) => {
     const numValue = parseFloat(value);
     return new Intl.NumberFormat("pt-BR", {
@@ -202,23 +198,43 @@ export default function ServicesPage() {
     }).format(numValue);
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <p className="text-bodydark2">Carregando...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold">Serviços</h1>
-        <p className="text-muted-foreground">
-          Gerencie os serviços oferecidos
-        </p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold text-black dark:text-white">Serviços</h1>
+          <p className="text-bodydark2">Gerencie os serviços oferecidos</p>
+        </div>
+        <Button onClick={() => {
+          setEditingService(null);
+          setShowServiceDialog(true);
+        }} data-testid="button-new-service">
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Serviço
+        </Button>
       </div>
 
+      {/* Search Bar & Import Buttons */}
       <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative max-w-md">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-bodydark2" />
           <Input
-            placeholder="Buscar serviços..."
+            placeholder="Buscar serviços por nome..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1); // Reset to first page on search
+            }}
+            className="pl-12"
             data-testid="input-search-services"
           />
         </div>
@@ -248,114 +264,187 @@ export default function ServicesPage() {
             <Upload className="h-4 w-4 mr-2" />
             {importServicesMutation.isPending ? "Importando..." : "Importar CSV"}
           </Button>
-          <Button
-            onClick={() => {
-              setEditingService(null);
-              setShowServiceDialog(true);
-            }}
-            data-testid="button-new-service"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Serviço
-          </Button>
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center p-8">
-          <p className="text-muted-foreground">Carregando serviços...</p>
-        </div>
-      ) : filteredServices.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-8 border rounded-lg">
-          <p className="text-muted-foreground">
-            {searchQuery
-              ? "Nenhum serviço encontrado."
-              : "Nenhum serviço cadastrado ainda."}
+      {/* TailAdmin DataTable */}
+      {filteredServices.length === 0 ? (
+        <div className="rounded-sm border border-stroke bg-white px-5 py-12 text-center shadow-default dark:border-strokedark dark:bg-boxdark">
+          <p className="text-bodydark2 mb-4">
+            {searchQuery ? "Nenhum serviço encontrado para sua busca." : "Nenhum serviço cadastrado."}
           </p>
+          {!searchQuery && (
+            <Button onClick={() => setShowServiceDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Adicionar Primeiro Serviço
+            </Button>
+          )}
         </div>
       ) : (
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableCell isHeader={true}>Nome</TableCell>
-                <TableCell isHeader={true}>Categoria</TableCell>
-                <TableCell isHeader={true}>Valor</TableCell>
-                <TableCell isHeader={true} className="w-[70px]"> </TableCell>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredServices.map((service) => {
-                const inPromotion = isServiceInPromotion(service);
-                const effectiveValue = getServiceEffectiveValue(service);
-                return (
-                  <TableRow key={service.id} data-testid={`row-service-${service.id}`}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        {service.name}
-                        {inPromotion && (
-                          <span className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-0.5 rounded">
-                            Promoção
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{service.category}</TableCell>
-                    <TableCell>
-                      <div>
-                        {inPromotion && (
-                          <span className="text-xs text-muted-foreground line-through block">
-                            {formatCurrency(service.value)}
-                          </span>
-                        )}
-                        <span className={inPromotion ? 'text-green-600 dark:text-green-400 font-semibold' : ''}>
-                          {formatCurrency(String(effectiveValue))}
-                        </span>
-                      </div>
-                    </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          data-testid={`button-service-menu-${service.id}`}
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setEditingService(service);
-                            setShowServiceDialog(true);
-                          }}
-                        >
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            if (
-                              confirm(
-                                `Tem certeza que deseja excluir ${service.name}?`
-                              )
-                            ) {
-                              deleteServiceMutation.mutate(service.id);
-                            }
-                          }}
-                          className="text-destructive"
-                        >
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+        <>
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+            <div className="max-w-full overflow-x-auto">
+              <Table>
+                {/* Table Header */}
+                <thead className="border-b border-gray-100 dark:border-white/[0.05]">
+                  <tr>
+                    <TableHead className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                      Serviço
+                    </TableHead>
+                    <TableHead className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                      Duração
+                    </TableHead>
+                    <TableHead className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                      Preço
+                    </TableHead>
+                    <TableHead className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                      Status
+                    </TableHead>
+                    <TableHead className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400">
+                      Ações
+                    </TableHead>
+                  </tr>
+                </thead>
+
+                {/* Table Body */}
+                <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+                  {paginatedServices.map((service) => {
+                    const inPromotion = isServiceInPromotion(service);
+                    const effectiveValue = getServiceEffectiveValue(service);
+
+                    return (
+                      <TableRow key={service.id} data-testid={`row-service-${service.id}`}>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start">
+                          <div>
+                            <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                              {service.name}
+                            </span>
+                            <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
+                              {service.category}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                          {service.duration} min
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-start">
+                          <div>
+                            {inPromotion && (
+                              <span className="block text-xs text-gray-400 line-through dark:text-gray-500">
+                                {formatCurrency(service.value)}
+                              </span>
+                            )}
+                            <span className={`block text-theme-sm ${inPromotion ? 'text-meta-3 font-semibold dark:text-green-400' : 'text-gray-800 dark:text-white/90'}`}>
+                              {formatCurrency(String(effectiveValue))}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-start">
+                          {inPromotion ? (
+                            <Badge variant="default" className="bg-meta-3 text-xs">
+                              Promoção
+                            </Badge>
+                          ) : (
+                            <Badge variant="default" className="text-xs">
+                              Ativo
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditingService(service);
+                                setShowServiceDialog(true);
+                              }}
+                              data-testid={`button-edit-service-${service.id}`}
+                              className="hover-elevate"
+                            >
+                              <Edit2 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                const confirmed = confirm(`Tem certeza que deseja excluir ${service.name}?`);
+                                if (!confirmed) return;
+                                deleteServiceMutation.mutate(service.id);
+                              }}
+                              data-testid={`button-delete-service-${service.id}`}
+                              className="hover-elevate"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500 dark:text-red-400" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-b-xl dark:border-white/[0.05] dark:bg-white/[0.03]">
+              <div className="flex flex-1 justify-between sm:hidden">
+                <Button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  variant="outline"
+                  size="sm"
+                >
+                  Anterior
+                </Button>
+                <Button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  variant="outline"
+                  size="sm"
+                >
+                  Próxima
+                </Button>
+              </div>
+              <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    Mostrando <span className="font-medium">{startIndex + 1}</span> a{' '}
+                    <span className="font-medium">{Math.min(startIndex + itemsPerPage, filteredServices.length)}</span> de{' '}
+                    <span className="font-medium">{filteredServices.length}</span> resultados
+                  </p>
+                </div>
+                <div>
+                  <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                    <Button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-r-none"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-gray-700">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <Button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-l-none"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <ServiceDialog
