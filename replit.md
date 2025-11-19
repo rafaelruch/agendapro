@@ -32,19 +32,25 @@ The dashboard layout and styling are EXACTLY replicated from TailAdmin CRM templ
 - Boxdark: `#24303F`
 - All color tokens updated in `client/src/index.css` for both light and dark modes
 
-**Header (EXACT TailAdmin):**
-- Search bar on the left side
-- Notifications, Messages, and Profile dropdowns on the right side
-- TailAdmin classes: `border-stroke dark:border-strokedark bg-white dark:bg-boxdark`
-- Sticky positioning with z-index 999
-- Shadow and border styling matching TailAdmin exactly
+**Header (EXACT TailAdmin - `client/src/App.tsx`):**
+- **Structure**: `sticky top-0 z-99999 flex-col lg:flex-row lg:border-b`
+- **Colors**: `bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800`
+- **Toggle button**: Single `<SidebarTrigger>` responsive: `w-10 h-10 lg:h-11 lg:w-11 lg:border`
+- **Search bar**: `h-11 w-full xl:w-[430px]` with ⌘K shortcut badge (text "⌘" and "K")
+- **Focus states**: `focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10`
+- **Right side**: Dark mode toggle, notifications, messages, profile (gap-2 2xsm:gap-3)
 
-**Sidebar (EXACT TailAdmin):**
-- Logo with version badge "v1.0"
-- Menu groups: MENU, GESTÃO, ADMINISTRAÇÃO (uppercase labels)
-- TailAdmin exact spacing: `px-4 py-4`, `px-6 py-5.5`
-- Hover states: `hover:bg-graydark dark:hover:bg-meta-4`
-- Active state highlighting with `bg-sidebar-accent`
+**Sidebar (EXACT TailAdmin - `client/src/components/AppSidebar.tsx`):**
+- **Colors**: `bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800`
+- **Logo header**: `px-5 py-8` with Calendar icon `text-brand-500`
+- **Title**: `text-gray-800 dark:text-white/90` with version `text-gray-500 dark:text-gray-400`
+- **MENU label**: `text-xs uppercase text-gray-400 mb-4`
+- **Content padding**: `px-5` with `space-y-4` between items
+- **Menu items**:
+  - Default: `text-gray-700 dark:text-gray-400`
+  - Hover: `hover:bg-gray-100 dark:hover:bg-white/5`
+  - Active: `bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400`
+  - Icons: `h-5 w-5`, padding: `px-4 py-2`, gap: `gap-2.5`, rounded: `rounded-lg`
 
 **Dashboard Stats Cards (EXACT TailAdmin with Gradients):**
 - 4 gradient cards with EXACT TailAdmin color schemes:
