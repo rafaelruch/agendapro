@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Calendar, Users, CheckCircle2, Clock, Plus, TrendingUp, TrendingDown, DollarSign, Activity, Edit, Check } from "lucide-react";
+import { Calendar, Users, CheckCircle2, Clock, Plus, TrendingUp, TrendingDown, DollarSign, Activity, Edit2, Check } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -698,7 +698,7 @@ export default function Dashboard() {
                         data-testid={`button-edit-appointment-${apt.id}`}
                         className="hover-elevate"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit2 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                       </Button>
                       {apt.status === "scheduled" && (
                         <Button
@@ -710,7 +710,7 @@ export default function Dashboard() {
                           data-testid={`button-complete-appointment-${apt.id}`}
                           className="hover-elevate"
                         >
-                          <Check className="h-4 w-4 text-meta-3" />
+                          <Check className="h-4 w-4 text-meta-3 dark:text-green-400" />
                         </Button>
                       )}
                     </div>

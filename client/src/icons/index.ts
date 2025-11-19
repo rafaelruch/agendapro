@@ -1,3 +1,4 @@
+import { type SVGProps, type FC } from "react";
 import { ReactComponent as PlusIcon } from "./plus.svg?react";
 import { ReactComponent as CloseIcon } from "./close.svg?react";
 import { ReactComponent as BoxIcon } from "./box.svg?react";
@@ -24,8 +25,8 @@ import { ReactComponent as AngleUpIcon } from "./angle-up.svg?react";
 import { ReactComponent as AngleDownIcon } from "./angle-down.svg?react";
 import { ReactComponent as AngleLeftIcon } from "./angle-left.svg?react";
 import { ReactComponent as AngleRightIcon } from "./angle-right.svg?react";
-import { ReactComponent as PencilIcon } from "./pencil.svg?react";
-import { ReactComponent as CheckLineIcon } from "./check-line.svg?react";
+import { ReactComponent as PencilIconSVG } from "./pencil.svg?react";
+import { ReactComponent as CheckLineIconSVG } from "./check-line.svg?react";
 import { ReactComponent as CloseLineIcon } from "./close-line.svg?react";
 import { ReactComponent as ChevronDownIcon } from "./chevron-down.svg?react";
 import { ReactComponent as ChevronUpIcon } from "./chevron-up.svg?react";
@@ -54,6 +55,15 @@ import { ReactComponent as ChatIcon } from "./chat.svg?react";
 import { ReactComponent as MoreDotIcon } from "./moredot.svg?react";
 import { ReactComponent as AlertHexaIcon } from "./alert-hexa.svg?react";
 import { ReactComponent as ErrorHexaIcon } from "./info-hexa.svg?react";
+
+// Wrappers para ícones que precisam receber className
+const PencilIcon: FC<SVGProps<SVGSVGElement>> = (props) => {
+  return <PencilIconSVG {...props} />;
+};
+
+const CheckLineIcon: FC<SVGProps<SVGSVGElement>> = (props) => {
+  return <CheckLineIconSVG {...props} />;
+};
 
 export {
   ErrorHexaIcon,
