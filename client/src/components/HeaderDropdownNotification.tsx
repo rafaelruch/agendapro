@@ -1,10 +1,6 @@
 import { useState } from "react";
 import { Bell } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,6 +15,7 @@ interface AppointmentWithClient {
 }
 
 export function HeaderDropdownNotification() {
+  const [isOpen, setIsOpen] = useState(false);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -36,6 +33,7 @@ export function HeaderDropdownNotification() {
   const handleAppointmentClick = (appointmentId: string) => {
     setSelectedAppointmentId(appointmentId);
     setShowDetailsDialog(true);
+    setIsOpen(false);
   };
 
   const todayAppointments: AppointmentWithClient[] = appointments
@@ -55,10 +53,11 @@ export function HeaderDropdownNotification() {
   const notificationCount = todayAppointments.length;
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <>
+      <div className="relative">
         <button 
-          className="relative flex h-10 w-10 items-center justify-center rounded-full border border-stroke hover:bg-gray-2 dark:border-strokedark dark:hover:bg-meta-4"
+          onClick={() => setIsOpen(!isOpen)}
+          className="relative flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-meta-4 dropdown-toggle"
           data-testid="button-notifications"
         >
           <Bell className="h-4 w-4" />
@@ -68,42 +67,47 @@ export function HeaderDropdownNotification() {
             </span>
           )}
         </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 border-stroke dark:border-strokedark mt-2.5">
-        <div className="px-4.5 py-3">
-          <h5 className="text-sm font-medium">Agendamentos de Hoje</h5>
-        </div>
 
-        <div className="flex flex-col">
-          {isLoading ? (
-            <div className="border-t border-stroke dark:border-strokedark px-4.5 py-3">
-              <p className="text-sm text-muted-foreground">Carregando...</p>
-            </div>
-          ) : todayAppointments.length === 0 ? (
-            <div className="border-t border-stroke dark:border-strokedark px-4.5 py-3">
-              <p className="text-sm text-muted-foreground">Nenhum agendamento para hoje</p>
-            </div>
-          ) : (
-            todayAppointments.map((apt, index) => (
-              <div 
-                key={apt.id} 
-                onClick={() => handleAppointmentClick(apt.id)}
-                className="border-t border-stroke dark:border-strokedark px-4.5 py-3 hover:bg-gray-2 dark:hover:bg-meta-4 cursor-pointer transition-colors"
-                data-testid={`notification-appointment-${index}`}
-              >
-                <p className="text-sm">
-                  <span className="font-medium">{apt.time}</span> - {apt.clientName}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {apt.status === "scheduled" ? "Agendado" : 
-                   apt.status === "completed" ? "Concluído" : 
-                   "Cancelado"}
-                </p>
+        <Dropdown
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          className="w-80 p-0"
+        >
+          <div className="px-4.5 py-3 border-b border-gray-200 dark:border-gray-800">
+            <h5 className="text-sm font-medium text-gray-700 dark:text-white">Agendamentos de Hoje</h5>
+          </div>
+
+          <div className="flex flex-col max-h-80 overflow-y-auto">
+            {isLoading ? (
+              <div className="px-4.5 py-3">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Carregando...</p>
               </div>
-            ))
-          )}
-        </div>
-      </DropdownMenuContent>
+            ) : todayAppointments.length === 0 ? (
+              <div className="px-4.5 py-3">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Nenhum agendamento para hoje</p>
+              </div>
+            ) : (
+              todayAppointments.map((apt, index) => (
+                <div 
+                  key={apt.id} 
+                  onClick={() => handleAppointmentClick(apt.id)}
+                  className="border-t border-gray-200 dark:border-gray-800 px-4.5 py-3 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer transition-colors"
+                  data-testid={`notification-appointment-${index}`}
+                >
+                  <p className="text-sm text-gray-700 dark:text-white">
+                    <span className="font-medium">{apt.time}</span> - {apt.clientName}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {apt.status === "scheduled" ? "Agendado" : 
+                     apt.status === "completed" ? "Concluído" : 
+                     "Cancelado"}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </Dropdown>
+      </div>
 
       {/* Dialog de Detalhes do Agendamento */}
       <AppointmentDetailsDialog
@@ -111,6 +115,6 @@ export function HeaderDropdownNotification() {
         open={showDetailsDialog}
         onOpenChange={setShowDetailsDialog}
       />
-    </DropdownMenu>
+    </>
   );
 }

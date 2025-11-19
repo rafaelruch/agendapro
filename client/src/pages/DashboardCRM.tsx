@@ -5,7 +5,7 @@ import { ApexOptions } from "apexcharts";
 import { TrendingUp, TrendingDown, Calendar as CalendarIcon, Users, CheckCircle2, DollarSign, Check, X, Eye } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import Badge from "@/components/ui/badge-tailadmin";
+import Badge from "@/components/ui/badge/Badge";
 import type { Appointment, Client, Service } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
