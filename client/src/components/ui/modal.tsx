@@ -1,4 +1,5 @@
 import { useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 interface ModalProps {
   isOpen: boolean;
@@ -51,10 +52,10 @@ export const Modal: React.FC<ModalProps> = ({
 
   const contentClasses = isFullscreen
     ? "w-full h-full"
-    : "relative w-full rounded-3xl bg-white dark:bg-gray-900";
+    : "relative w-full max-w-3xl rounded-3xl bg-white dark:bg-gray-900 shadow-xl";
 
-  return (
-    <div className="fixed inset-0 flex items-center justify-center overflow-y-auto modal z-99999">
+  const modalContent = (
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center overflow-y-auto p-4">
       {!isFullscreen && (
         <div
           className="fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]"
@@ -69,7 +70,7 @@ export const Modal: React.FC<ModalProps> = ({
         {showCloseButton && (
           <button
             onClick={onClose}
-            className="absolute right-3 top-3 z-999 flex h-9.5 w-9.5 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white sm:right-6 sm:top-6 sm:h-11 sm:w-11"
+            className="absolute right-3 top-3 z-[999] flex h-9.5 w-9.5 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white sm:right-6 sm:top-6 sm:h-11 sm:w-11"
           >
             <svg
               width="24"
@@ -91,4 +92,12 @@ export const Modal: React.FC<ModalProps> = ({
       </div>
     </div>
   );
+
+  const modalRoot = document.getElementById("modal-root");
+  if (!modalRoot) {
+    console.error("Modal root element not found. Add <div id='modal-root'></div> to your HTML.");
+    return null;
+  }
+
+  return createPortal(modalContent, modalRoot);
 };
