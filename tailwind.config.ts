@@ -105,6 +105,23 @@ export default {
         success: "#10B981",
         warning: "#FFA500",
         danger: "#DC3545",
+        // TailAdmin Badge Colors
+        brand: {
+          50: "#EEF2FF",
+          400: "#818CF8",
+          500: "#3C50E0",
+        },
+        "success-50": "#ECFDF5",
+        "success-500": "#10B981",
+        "success-600": "#059669",
+        "error-50": "#FEF2F2",
+        "error-500": "#EF4444",
+        "error-600": "#DC2626",
+        "warning-50": "#FFF7ED",
+        "warning-500": "#F59E0B",
+        "warning-600": "#D97706",
+        "blue-light-50": "#EFF6FF",
+        "blue-light-500": "#3B82F6",
       },
       dropShadow: {
         '1': '0px 1px 0px #E2E8F0',
