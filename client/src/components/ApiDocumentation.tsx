@@ -1,12 +1,8 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
-import { Copy, Check } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { Copy, Check, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface EndpointExample {
   method: "GET" | "POST" | "PUT" | "DELETE";
@@ -21,473 +17,6 @@ interface EndpointExample {
 }
 
 const endpoints: { [key: string]: EndpointExample[] } = {
-  setup: [
-    {
-      method: "GET",
-      path: "/api/setup/status",
-      description: "Verificar se o sistema já foi instalado",
-      auth: "None",
-      responseExample: `{
-  "installed": true
-}`,
-      curlExample: `curl -X GET "https://seudominio.com/api/setup/status"`
-    },
-    {
-      method: "POST",
-      path: "/api/setup",
-      description: "Instalar o sistema (criar primeiro Master Admin)",
-      auth: "None",
-      requestBody: `{
-  "username": "admin",
-  "name": "Administrador",
-  "email": "admin@empresa.com",
-  "password": "senha_segura_aqui"
-}`,
-      responseExample: `{
-  "success": true,
-  "message": "Sistema instalado com sucesso",
-  "user": {
-    "id": "user-001",
-    "username": "admin",
-    "name": "Administrador"
-  }
-}`,
-      curlExample: `curl -X POST "https://seudominio.com/api/setup" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "username": "admin",
-    "name": "Administrador",
-    "email": "admin@empresa.com",
-    "password": "senha_segura_aqui"
-  }'`
-    }
-  ],
-  masteradmin: [
-    {
-      method: "GET",
-      path: "/api/admin/tenants",
-      description: "Listar todos os tenants (Master Admin apenas)",
-      auth: "Master Admin",
-      responseExample: `[
-  {
-    "id": "tenant-123",
-    "name": "Empresa XYZ",
-    "email": "contato@empresaxyz.com",
-    "phone": "(11) 99999-9999",
-    "active": true,
-    "createdAt": "2025-01-15T10:00:00.000Z"
-  }
-]`,
-      curlExample: `curl -X GET "https://seudominio.com/api/admin/tenants" \\
-  -H "Cookie: connect.sid=SESSION_ID_MASTER_ADMIN"`
-    },
-    {
-      method: "POST",
-      path: "/api/admin/tenants",
-      description: "Criar novo tenant (Master Admin apenas)",
-      auth: "Master Admin",
-      requestBody: `{
-  "name": "Nova Empresa",
-  "email": "contato@novaempresa.com",
-  "phone": "(11) 98888-8888",
-  "active": true
-}`,
-      responseExample: `{
-  "id": "tenant-456",
-  "name": "Nova Empresa",
-  "email": "contato@novaempresa.com",
-  "phone": "(11) 98888-8888",
-  "active": true,
-  "createdAt": "2025-01-21T09:00:00.000Z"
-}`,
-      curlExample: `curl -X POST "https://seudominio.com/api/admin/tenants" \\
-  -H "Content-Type: application/json" \\
-  -H "Cookie: connect.sid=SESSION_ID_MASTER_ADMIN" \\
-  -d '{
-    "name": "Nova Empresa",
-    "email": "contato@novaempresa.com",
-    "phone": "(11) 98888-8888",
-    "active": true
-  }'`
-    },
-    {
-      method: "PUT",
-      path: "/api/admin/tenants/:id",
-      description: "Atualizar um tenant (Master Admin apenas)",
-      auth: "Master Admin",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do tenant" }
-      ],
-      requestBody: `{
-  "name": "Empresa XYZ Atualizada",
-  "active": false
-}`,
-      responseExample: `{
-  "id": "tenant-123",
-  "name": "Empresa XYZ Atualizada",
-  "email": "contato@empresaxyz.com",
-  "phone": "(11) 99999-9999",
-  "active": false,
-  "createdAt": "2025-01-15T10:00:00.000Z"
-}`,
-      curlExample: `curl -X PUT "https://seudominio.com/api/admin/tenants/tenant-123" \\
-  -H "Content-Type: application/json" \\
-  -H "Cookie: connect.sid=SESSION_ID_MASTER_ADMIN" \\
-  -d '{
-    "name": "Empresa XYZ Atualizada",
-    "active": false
-  }'`
-    },
-    {
-      method: "DELETE",
-      path: "/api/admin/tenants/:id",
-      description: "Deletar um tenant (Master Admin apenas)",
-      auth: "Master Admin",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do tenant" }
-      ],
-      responseExample: "204 No Content",
-      curlExample: `curl -X DELETE "https://seudominio.com/api/admin/tenants/tenant-123" \\
-  -H "Cookie: connect.sid=SESSION_ID_MASTER_ADMIN"`
-    },
-    {
-      method: "POST",
-      path: "/api/admin/tenants/:tenantId/users",
-      description: "Criar usuário para um tenant (Master Admin apenas)",
-      auth: "Master Admin",
-      parameters: [
-        { name: "tenantId", type: "string", required: true, description: "ID do tenant" }
-      ],
-      requestBody: `{
-  "username": "joao",
-  "name": "João Silva",
-  "email": "joao@empresaxyz.com",
-  "password": "senha123",
-  "role": "admin",
-  "active": true
-}`,
-      responseExample: `{
-  "id": "user-789",
-  "username": "joao",
-  "name": "João Silva",
-  "email": "joao@empresaxyz.com",
-  "role": "admin",
-  "active": true,
-  "tenantId": "tenant-123",
-  "createdAt": "2025-01-21T09:30:00.000Z"
-}`,
-      curlExample: `curl -X POST "https://seudominio.com/api/admin/tenants/tenant-123/users" \\
-  -H "Content-Type: application/json" \\
-  -H "Cookie: connect.sid=SESSION_ID_MASTER_ADMIN" \\
-  -d '{
-    "username": "joao",
-    "name": "João Silva",
-    "email": "joao@empresaxyz.com",
-    "password": "senha123",
-    "role": "admin",
-    "active": true
-  }'`
-    },
-    {
-      method: "GET",
-      path: "/api/admin/tenants/:tenantId/api-tokens",
-      description: "Listar tokens de API de um tenant (Master Admin apenas)",
-      auth: "Master Admin",
-      parameters: [
-        { name: "tenantId", type: "string", required: true, description: "ID do tenant" }
-      ],
-      responseExample: `[
-  {
-    "id": "token-123",
-    "label": "N8N Produção",
-    "createdAt": "2025-01-15T10:00:00Z",
-    "lastUsedAt": "2025-01-20T14:30:00Z",
-    "createdBy": "user-123",
-    "tenantId": "tenant-123"
-  }
-]`,
-      curlExample: `curl -X GET "https://seudominio.com/api/admin/tenants/tenant-123/api-tokens" \\
-  -H "Cookie: connect.sid=SESSION_ID_MASTER_ADMIN"`
-    },
-    {
-      method: "POST",
-      path: "/api/admin/tenants/:tenantId/api-tokens",
-      description: "Criar token de API para um tenant (Master Admin apenas)",
-      auth: "Master Admin",
-      parameters: [
-        { name: "tenantId", type: "string", required: true, description: "ID do tenant" }
-      ],
-      requestBody: `{
-  "label": "N8N Desenvolvimento"
-}`,
-      responseExample: `{
-  "id": "token-456",
-  "label": "N8N Desenvolvimento",
-  "token": "apt_1234567890abcdef...",
-  "createdAt": "2025-01-21T09:00:00Z",
-  "lastUsedAt": null,
-  "createdBy": "master-admin-123",
-  "tenantId": "tenant-123"
-}`,
-      curlExample: `curl -X POST "https://seudominio.com/api/admin/tenants/tenant-123/api-tokens" \\
-  -H "Content-Type: application/json" \\
-  -H "Cookie: connect.sid=SESSION_ID_MASTER_ADMIN" \\
-  -d '{
-    "label": "N8N Desenvolvimento"
-  }'`
-    },
-    {
-      method: "DELETE",
-      path: "/api/admin/api-tokens/:id",
-      description: "Revogar token de API de qualquer tenant (Master Admin apenas)",
-      auth: "Master Admin",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do token" }
-      ],
-      responseExample: "204 No Content",
-      curlExample: `curl -X DELETE "https://seudominio.com/api/admin/api-tokens/token-456" \\
-  -H "Cookie: connect.sid=SESSION_ID_MASTER_ADMIN"`
-    }
-  ],
-  autenticacao: [
-    {
-      method: "POST",
-      path: "/api/auth/login",
-      description: "Fazer login no sistema",
-      auth: "None",
-      requestBody: `{
-  "username": "seu_usuario",
-  "password": "sua_senha"
-}`,
-      responseExample: `{
-  "user": {
-    "id": "user-123",
-    "username": "joao",
-    "name": "João Silva",
-    "role": "admin",
-    "tenantId": "tenant-123"
-  },
-  "tenant": {
-    "id": "tenant-123",
-    "name": "Empresa XYZ"
-  }
-}`,
-      curlExample: `curl -X POST "https://seudominio.com/api/auth/login" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "username": "seu_usuario",
-    "password": "sua_senha"
-  }'`
-    },
-    {
-      method: "POST",
-      path: "/api/auth/logout",
-      description: "Fazer logout do sistema",
-      auth: "Session",
-      responseExample: `{
-  "message": "Logout realizado com sucesso"
-}`,
-      curlExample: `curl -X POST "https://seudominio.com/api/auth/logout" \\
-  -H "Cookie: connect.sid=SESSION_ID"`
-    },
-    {
-      method: "GET",
-      path: "/api/auth/me",
-      description: "Obter dados do usuário autenticado",
-      auth: "Session",
-      responseExample: `{
-  "user": {
-    "id": "user-123",
-    "username": "joao",
-    "name": "João Silva",
-    "role": "admin",
-    "tenantId": "tenant-123"
-  },
-  "tenant": {
-    "id": "tenant-123",
-    "name": "Empresa XYZ"
-  }
-}`,
-      curlExample: `curl -X GET "https://seudominio.com/api/auth/me" \\
-  -H "Cookie: connect.sid=SESSION_ID"`
-    }
-  ],
-  usuarios: [
-    {
-      method: "GET",
-      path: "/api/users",
-      description: "Listar todos os usuários do tenant (Admin apenas)",
-      auth: "Tenant Admin",
-      responseExample: `[
-  {
-    "id": "user-123",
-    "username": "joao",
-    "name": "João Silva",
-    "email": "joao@exemplo.com",
-    "role": "admin",
-    "active": true,
-    "tenantId": "tenant-123",
-    "createdAt": "2025-01-15T10:00:00.000Z"
-  }
-]`,
-      curlExample: `curl -X GET "https://seudominio.com/api/users" \\
-  -H "Cookie: connect.sid=SESSION_ID"`
-    },
-    {
-      method: "GET",
-      path: "/api/users/:id",
-      description: "Buscar um usuário específico (Admin apenas)",
-      auth: "Tenant Admin",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do usuário" }
-      ],
-      responseExample: `{
-  "id": "user-123",
-  "username": "joao",
-  "name": "João Silva",
-  "email": "joao@exemplo.com",
-  "role": "admin",
-  "active": true,
-  "tenantId": "tenant-123",
-  "createdAt": "2025-01-15T10:00:00.000Z"
-}`,
-      curlExample: `curl -X GET "https://seudominio.com/api/users/user-123" \\
-  -H "Cookie: connect.sid=SESSION_ID"`
-    },
-    {
-      method: "POST",
-      path: "/api/users",
-      description: "Criar novo usuário no tenant (Admin apenas)",
-      auth: "Tenant Admin",
-      requestBody: `{
-  "username": "maria",
-  "name": "Maria Santos",
-  "email": "maria@exemplo.com",
-  "password": "senha_segura",
-  "role": "user",
-  "active": true
-}`,
-      responseExample: `{
-  "id": "user-456",
-  "username": "maria",
-  "name": "Maria Santos",
-  "email": "maria@exemplo.com",
-  "role": "user",
-  "active": true,
-  "tenantId": "tenant-123",
-  "createdAt": "2025-01-21T09:15:00.000Z"
-}`,
-      curlExample: `curl -X POST "https://seudominio.com/api/users" \\
-  -H "Content-Type: application/json" \\
-  -H "Cookie: connect.sid=SESSION_ID" \\
-  -d '{
-    "username": "maria",
-    "name": "Maria Santos",
-    "email": "maria@exemplo.com",
-    "password": "senha_segura",
-    "role": "user",
-    "active": true
-  }'`
-    },
-    {
-      method: "PUT",
-      path: "/api/users/:id",
-      description: "Atualizar um usuário (Admin apenas)",
-      auth: "Tenant Admin",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do usuário" }
-      ],
-      requestBody: `{
-  "name": "Maria Santos Oliveira",
-  "active": false
-}`,
-      responseExample: `{
-  "id": "user-456",
-  "username": "maria",
-  "name": "Maria Santos Oliveira",
-  "email": "maria@exemplo.com",
-  "role": "user",
-  "active": false,
-  "tenantId": "tenant-123",
-  "createdAt": "2025-01-21T09:15:00.000Z"
-}`,
-      curlExample: `curl -X PUT "https://seudominio.com/api/users/user-456" \\
-  -H "Content-Type: application/json" \\
-  -H "Cookie: connect.sid=SESSION_ID" \\
-  -d '{
-    "name": "Maria Santos Oliveira",
-    "active": false
-  }'`
-    },
-    {
-      method: "DELETE",
-      path: "/api/users/:id",
-      description: "Deletar um usuário (Admin apenas)",
-      auth: "Tenant Admin",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do usuário" }
-      ],
-      responseExample: "204 No Content",
-      curlExample: `curl -X DELETE "https://seudominio.com/api/users/user-456" \\
-  -H "Cookie: connect.sid=SESSION_ID"`
-    }
-  ],
-  tokens: [
-    {
-      method: "GET",
-      path: "/api/settings/api-tokens",
-      description: "Listar tokens de API do tenant atual",
-      auth: "Bearer Token",
-      responseExample: `[
-  {
-    "id": "token-123",
-    "label": "N8N Produção",
-    "createdAt": "2025-01-15T10:00:00Z",
-    "lastUsedAt": "2025-01-20T14:30:00Z",
-    "createdBy": "user-123",
-    "tenantId": "tenant-123"
-  }
-]`,
-      curlExample: `curl -X GET "https://seudominio.com/api/settings/api-tokens" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
-    },
-    {
-      method: "POST",
-      path: "/api/settings/api-tokens",
-      description: "Criar novo token de API",
-      auth: "Bearer Token",
-      requestBody: `{
-  "label": "N8N Desenvolvimento"
-}`,
-      responseExample: `{
-  "id": "token-456",
-  "label": "N8N Desenvolvimento",
-  "token": "apt_1234567890abcdef...",
-  "createdAt": "2025-01-21T09:00:00Z",
-  "lastUsedAt": null,
-  "createdBy": "user-123",
-  "tenantId": "tenant-123"
-}`,
-      curlExample: `curl -X POST "https://seudominio.com/api/settings/api-tokens" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "label": "N8N Desenvolvimento"
-  }'`
-    },
-    {
-      method: "DELETE",
-      path: "/api/settings/api-tokens/:id",
-      description: "Revogar um token de API",
-      auth: "Bearer Token",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do token" }
-      ],
-      responseExample: "204 No Content",
-      curlExample: `curl -X DELETE "https://seudominio.com/api/settings/api-tokens/token-456" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
-    }
-  ],
   clientes: [
     {
       method: "GET",
@@ -495,7 +24,7 @@ const endpoints: { [key: string]: EndpointExample[] } = {
       description: "Listar todos os clientes do tenant",
       auth: "Bearer Token",
       queryParams: [
-        { name: "search", type: "string", required: false, description: "Buscar clientes por nome ou telefone (ex: ?search=11999999999 ou ?search=João)" }
+        { name: "search", type: "string", required: false, description: "Buscar clientes por nome ou telefone" }
       ],
       responseExample: `[
   {
@@ -507,24 +36,6 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   }
 ]`,
       curlExample: `curl -X GET "https://seudominio.com/api/clients?search=11999999999" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
-    },
-    {
-      method: "GET",
-      path: "/api/clients/:id",
-      description: "Buscar um cliente específico",
-      auth: "Bearer Token",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do cliente" }
-      ],
-      responseExample: `{
-  "id": "123e4567-e89b-12d3-a456-426614174000",
-  "name": "João Silva",
-  "phone": "11999999999",
-  "birthdate": "1990-05-15",
-  "tenantId": "tenant-123"
-}`,
-      curlExample: `curl -X GET "https://seudominio.com/api/clients/123e4567-e89b-12d3-a456-426614174000" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     },
     {
@@ -563,8 +74,7 @@ const endpoints: { [key: string]: EndpointExample[] } = {
       ],
       requestBody: `{
   "name": "Maria Santos Oliveira",
-  "phone": "11988888888",
-  "birthdate": "1985-03-20"
+  "phone": "11988888888"
 }`,
       responseExample: `{
   "id": "456e7890-e89b-12d3-a456-426614174111",
@@ -592,54 +102,13 @@ const endpoints: { [key: string]: EndpointExample[] } = {
       responseExample: "204 No Content",
       curlExample: `curl -X DELETE "https://seudominio.com/api/clients/456e7890-e89b-12d3-a456-426614174111" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
-    },
-    {
-      method: "GET",
-      path: "/api/clients/:id/appointments",
-      description: "Listar agendamentos de um cliente",
-      auth: "Bearer Token",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do cliente" }
-      ],
-      responseExample: `[
-  {
-    "id": "apt-123",
-    "clientId": "123e4567-e89b-12d3-a456-426614174000",
-    "serviceId": "svc-789",
-    "date": "2025-01-15",
-    "time": "14:00",
-    "duration": 60,
-    "status": "scheduled",
-    "notes": "Consulta marcada",
-    "tenantId": "tenant-123",
-    "createdAt": "2025-01-15T12:00:00.000Z"
-  }
-]`,
-      curlExample: `curl -X GET "https://seudominio.com/api/clients/123e4567-e89b-12d3-a456-426614174000/appointments" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
-    },
-    {
-      method: "GET",
-      path: "/api/clients/:id/stats",
-      description: "Obter estatísticas de um cliente",
-      auth: "Bearer Token",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do cliente" }
-      ],
-      responseExample: `{
-  "totalAppointments": 15,
-  "completedAppointments": 12,
-  "pendingAppointments": 3
-}`,
-      curlExample: `curl -X GET "https://seudominio.com/api/clients/123e4567-e89b-12d3-a456-426614174000/stats" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     }
   ],
   servicos: [
     {
       method: "GET",
       path: "/api/services",
-      description: "Listar todos os serviços do tenant",
+      description: "Listar todos os serviços do tenant (inclui isPromotionActive e effectiveValue)",
       auth: "Bearer Token",
       queryParams: [
         { name: "search", type: "string", required: false, description: "Buscar serviços por nome ou categoria" }
@@ -648,23 +117,14 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   {
     "id": "svc-123",
     "name": "Corte de Cabelo",
-    "category": "Estética",
+    "category": "Beleza",
     "value": "50.00",
     "duration": 30,
-    "promotionalValue": null,
-    "promotionStartDate": null,
-    "promotionEndDate": null,
-    "tenantId": "tenant-123"
-  },
-  {
-    "id": "svc-124",
-    "name": "Hidratação Capilar",
-    "category": "Tratamentos",
-    "value": "120.00",
-    "duration": 60,
-    "promotionalValue": "89.90",
-    "promotionStartDate": "2024-01-01",
-    "promotionEndDate": "2025-12-31",
+    "promotionalValue": "35.00",
+    "promotionStartDate": "2025-11-15",
+    "promotionEndDate": "2025-11-30",
+    "isPromotionActive": true,
+    "effectiveValue": 35.00,
     "tenantId": "tenant-123"
   }
 ]`,
@@ -672,957 +132,460 @@ const endpoints: { [key: string]: EndpointExample[] } = {
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     },
     {
-      method: "GET",
-      path: "/api/services/:id",
-      description: "Buscar um serviço específico",
-      auth: "Bearer Token",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do serviço" }
-      ],
-      responseExample: `{
-  "id": "svc-123",
-  "name": "Corte de Cabelo",
-  "category": "Estética",
-  "value": "50.00",
-  "duration": 30,
-  "promotionalValue": null,
-  "promotionStartDate": null,
-  "promotionEndDate": null,
-  "tenantId": "tenant-123"
-}`,
-      curlExample: `curl -X GET "https://seudominio.com/api/services/svc-123" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
-    },
-    {
       method: "POST",
       path: "/api/services",
-      description: "Criar um novo serviço (com promoção opcional)",
+      description: "Criar um novo serviço",
       auth: "Bearer Token",
-      requestBody: `// Serviço SEM promoção
-{
+      requestBody: `{
   "name": "Manicure",
-  "category": "Estética",
+  "category": "Beleza",
   "value": "35.00",
-  "duration": 30
-}
-
-// Serviço COM promoção (todos os 3 campos obrigatórios)
-{
-  "name": "Pedicure Promocional",
-  "category": "Estética",
-  "value": "50.00",
-  "duration": 45,
-  "promotionalValue": "39.90",
-  "promotionStartDate": "2024-01-01",
-  "promotionEndDate": "2024-12-31"
+  "duration": 45
 }`,
       responseExample: `{
   "id": "svc-456",
-  "name": "Pedicure Promocional",
-  "category": "Estética",
-  "value": "50.00",
+  "name": "Manicure",
+  "category": "Beleza",
+  "value": "35.00",
   "duration": 45,
-  "promotionalValue": "39.90",
-  "promotionStartDate": "2024-01-01",
-  "promotionEndDate": "2024-12-31",
   "tenantId": "tenant-123"
 }`,
-      curlExample: `# Criar serviço SEM promoção
-curl -X POST "https://seudominio.com/api/services" \\
+      curlExample: `curl -X POST "https://seudominio.com/api/services" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
   -H "Content-Type: application/json" \\
   -d '{
     "name": "Manicure",
-    "category": "Estética",
+    "category": "Beleza",
     "value": "35.00",
-    "duration": 30
-  }'
-
-# Criar serviço COM promoção
-curl -X POST "https://seudominio.com/api/services" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "name": "Pedicure Promocional",
-    "category": "Estética",
-    "value": "50.00",
-    "duration": 45,
-    "promotionalValue": "39.90",
-    "promotionStartDate": "2024-01-01",
-    "promotionEndDate": "2024-12-31"
+    "duration": 45
   }'`
-    },
-    {
-      method: "PUT",
-      path: "/api/services/:id",
-      description: "Atualizar um serviço existente (incluindo promoção)",
-      auth: "Bearer Token",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do serviço" }
-      ],
-      requestBody: `// Atualizar apenas valor normal
-{
-  "value": "40.00"
-}
-
-// ADICIONAR promoção (todos os 3 campos obrigatórios)
-{
-  "promotionalValue": "35.00",
-  "promotionStartDate": "2024-06-01",
-  "promotionEndDate": "2024-12-31"
-}
-
-// REMOVER promoção (enviar todos como null)
-{
-  "promotionalValue": null,
-  "promotionStartDate": null,
-  "promotionEndDate": null
-}
-
-// IMPORTANTE: Não envie apenas 1 ou 2 campos promocionais
-// Isso resultará em erro 400. Use todos os 3 ou nenhum.`,
-      responseExample: `{
-  "id": "svc-456",
-  "name": "Manicure",
-  "category": "Estética",
-  "value": "40.00",
-  "duration": 30,
-  "promotionalValue": "35.00",
-  "promotionStartDate": "2024-06-01",
-  "promotionEndDate": "2024-12-31",
-  "tenantId": "tenant-123"
-}`,
-      curlExample: `# Adicionar promoção a serviço existente
-curl -X PUT "https://seudominio.com/api/services/svc-456" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "promotionalValue": "35.00",
-    "promotionStartDate": "2024-06-01",
-    "promotionEndDate": "2024-12-31"
-  }'
-
-# Remover promoção
-curl -X PUT "https://seudominio.com/api/services/svc-456" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "promotionalValue": null,
-    "promotionStartDate": null,
-    "promotionEndDate": null
-  }'`
-    },
-    {
-      method: "DELETE",
-      path: "/api/services/:id",
-      description: "Deletar um serviço",
-      auth: "Bearer Token",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do serviço" }
-      ],
-      responseExample: "204 No Content",
-      curlExample: `curl -X DELETE "https://seudominio.com/api/services/svc-456" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
-    },
-    {
-      method: "GET",
-      path: "/api/services/:id/appointments",
-      description: "Listar agendamentos de um serviço",
-      auth: "Bearer Token",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do serviço" }
-      ],
-      responseExample: `[
-  {
-    "id": "apt-789",
-    "clientId": "cli-456",
-    "serviceId": "svc-123",
-    "date": "2025-01-20",
-    "time": "10:00",
-    "duration": 45,
-    "status": "scheduled",
-    "notes": "Agendamento para corte",
-    "tenantId": "tenant-123",
-    "createdAt": "2025-01-20T09:00:00.000Z"
-  }
-]`,
-      curlExample: `curl -X GET "https://seudominio.com/api/services/svc-123/appointments" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     }
   ],
   agendamentos: [
     {
       method: "GET",
       path: "/api/appointments",
-      description: "Listar todos os agendamentos (com filtros opcionais via query parameters)",
+      description: "Listar todos os agendamentos do tenant",
       auth: "Bearer Token",
       queryParams: [
-        { name: "id", type: "string", required: false, description: "Buscar agendamento específico por ID (ideal para N8N)" },
-        { name: "clientId", type: "string", required: false, description: "Filtrar por ID do cliente" },
-        { name: "serviceId", type: "string", required: false, description: "Filtrar por ID do serviço" },
-        { name: "status", type: "string", required: false, description: "Filtrar por status (scheduled ou completed)" },
-        { name: "startDate", type: "string", required: false, description: "Data inicial (YYYY-MM-DD)" },
-        { name: "endDate", type: "string", required: false, description: "Data final (YYYY-MM-DD)" },
-        { name: "date", type: "string", required: false, description: "Verificar disponibilidade em data específica" },
-        { name: "time", type: "string", required: false, description: "Verificar disponibilidade em horário específico" }
+        { name: "date", type: "string", required: false, description: "Filtrar por data (YYYY-MM-DD)" },
+        { name: "status", type: "string", required: false, description: "Filtrar por status (scheduled, completed, cancelled)" }
       ],
       responseExample: `[
   {
     "id": "apt-123",
-    "clientId": "cli-456",
-    "serviceId": "svc-789",
-    "date": "2025-01-15",
+    "clientId": "client-456",
+    "date": "2025-11-20",
     "time": "14:00",
     "duration": 60,
     "status": "scheduled",
-    "notes": "Cliente novo",
-    "tenantId": "tenant-123",
-    "createdAt": "2025-01-15T12:00:00.000Z"
+    "notes": "Cliente preferencial",
+    "services": ["svc-123", "svc-456"],
+    "tenantId": "tenant-123"
   }
 ]`,
-      curlExample: `# Buscar agendamento específico por ID via query (IDEAL PARA N8N)
-curl -X GET "https://seudominio.com/api/appointments?id=apt-123" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"
-
-# Filtrar agendamentos de um cliente com status "scheduled" (IDEAL PARA N8N)
-curl -X GET "https://seudominio.com/api/appointments?clientId=cli-456&status=scheduled" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"
-
-# Filtrar apenas agendamentos completados
-curl -X GET "https://seudominio.com/api/appointments?status=completed" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"
-
-# Filtrar por cliente
-curl -X GET "https://seudominio.com/api/appointments?clientId=cli-456" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"
-
-# Filtrar por serviço
-curl -X GET "https://seudominio.com/api/appointments?serviceId=svc-789" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"
-
-# Filtrar por período
-curl -X GET "https://seudominio.com/api/appointments?startDate=2025-01-01&endDate=2025-01-31" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"
-
-# Combinar múltiplos filtros
-curl -X GET "https://seudominio.com/api/appointments?clientId=cli-456&status=scheduled&startDate=2025-01-01&endDate=2025-01-31" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
-    },
-    {
-      method: "GET",
-      path: "/api/appointments/:id",
-      description: "Buscar um agendamento específico (alternativa usando path parameter)",
-      auth: "Bearer Token",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do agendamento" }
-      ],
-      responseExample: `{
-  "id": "apt-123",
-  "clientId": "cli-456",
-  "serviceId": "svc-789",
-  "date": "2025-01-15",
-  "time": "14:00",
-  "duration": 60,
-  "status": "scheduled",
-  "notes": "Cliente novo",
-  "tenantId": "tenant-123",
-  "createdAt": "2025-01-15T12:00:00.000Z"
-}`,
-      curlExample: `# Nota: Preferir usar ?id=apt-123 (query param) ao invés de /apt-123 (path param)
-curl -X GET "https://seudominio.com/api/appointments/apt-123" \\
+      curlExample: `curl -X GET "https://seudominio.com/api/appointments?date=2025-11-20" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     },
     {
       method: "POST",
       path: "/api/appointments",
-      description: "Criar um novo agendamento. IMPORTANTE: (1) serviceIds é obrigatório - pelo menos 1 serviço deve ser informado; (2) O sistema valida automaticamente conflitos de horário. Se houver sobreposição com outro agendamento no mesmo dia, retorna erro 409. Agendamentos adjacentes (ex: 10:00-11:00 seguido de 11:00-12:00) são permitidos; (3) A duração total é calculada automaticamente somando as durações de todos os serviços.",
+      description: "Criar um novo agendamento (duration calculado automaticamente)",
       auth: "Bearer Token",
       requestBody: `{
-  "clientId": "cli-456",
-  "serviceIds": ["svc-789"],
-  "date": "2025-01-20",
-  "time": "15:00",
+  "clientId": "client-456",
+  "serviceIds": ["svc-123", "svc-456"],
+  "date": "2025-11-20",
+  "time": "14:00",
   "status": "scheduled",
-  "notes": "Observações opcionais"
+  "notes": "Cliente preferencial"
 }`,
-      responseExample: `# Sucesso (201 Created):
-{
-  "id": "apt-999",
-  "clientId": "cli-456",
-  "serviceIds": ["svc-789"],
-  "date": "2025-01-20",
-  "time": "15:00",
+      responseExample: `{
+  "id": "apt-789",
+  "clientId": "client-456",
+  "date": "2025-11-20",
+  "time": "14:00",
+  "duration": 75,
   "status": "scheduled",
-  "notes": "Observações opcionais",
-  "tenantId": "tenant-123",
-  "createdAt": "2025-01-20T12:00:00.000Z"
-}
-
-# Erro - Conflito de Horário (409 Conflict):
-{
-  "error": "Horário indisponível",
-  "code": "APPOINTMENT_CONFLICT",
-  "details": {
-    "conflictingAppointmentId": "apt-123",
-    "conflictStart": "14:30",
-    "conflictEnd": "16:00",
-    "message": "Já existe um agendamento das 14:30 às 16:00. Próximo horário disponível: 16:00"
-  }
+  "notes": "Cliente preferencial",
+  "tenantId": "tenant-123"
 }`,
       curlExample: `curl -X POST "https://seudominio.com/api/appointments" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "clientId": "cli-456",
-    "serviceIds": ["svc-789"],
-    "date": "2025-01-20",
-    "time": "15:00",
-    "status": "scheduled",
-    "notes": "Observações opcionais"
+    "clientId": "client-456",
+    "serviceIds": ["svc-123", "svc-456"],
+    "date": "2025-11-20",
+    "time": "14:00",
+    "status": "scheduled"
   }'`
-    },
-    {
-      method: "PUT",
-      path: "/api/appointments",
-      description: "Atualizar um agendamento via query parameter (IDEAL PARA N8N). IMPORTANTE: Ao alterar data, horário ou serviços, o sistema valida conflitos automaticamente. Retorna erro 409 se houver sobreposição com outro agendamento.",
-      auth: "Bearer Token",
-      queryParams: [
-        { name: "id", type: "string", required: true, description: "ID do agendamento" }
-      ],
-      requestBody: `{
-  "date": "2025-01-25",
-  "time": "16:30",
-  "clientId": "cli-789",
-  "serviceIds": ["svc-456"],
-  "status": "completed",
-  "notes": "Reagendado para novo horário"
-}`,
-      responseExample: `# Sucesso (200 OK):
-{
-  "id": "apt-999",
-  "clientId": "cli-789",
-  "serviceIds": ["svc-456"],
-  "date": "2025-01-25",
-  "time": "16:30",
-  "status": "completed",
-  "notes": "Reagendado para novo horário",
-  "tenantId": "tenant-123",
-  "createdAt": "2025-01-20T12:00:00.000Z"
-}
-
-# Erro - Conflito de Horário (409 Conflict):
-{
-  "error": "Horário indisponível",
-  "code": "APPOINTMENT_CONFLICT",
-  "details": {
-    "conflictingAppointmentId": "apt-555",
-    "conflictStart": "16:00",
-    "conflictEnd": "17:30",
-    "message": "Já existe um agendamento das 16:00 às 17:30. Próximo horário disponível: 17:30"
-  }
-}`,
-      curlExample: `# IDEAL PARA N8N - ID via query parameter
-curl -X PUT "https://seudominio.com/api/appointments?id=apt-999" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "date": "2025-01-25",
-    "time": "16:30",
-    "clientId": "cli-789",
-    "serviceIds": ["svc-456"],
-    "status": "completed",
-    "notes": "Reagendado para novo horário"
-  }'`
-    },
-    {
-      method: "PUT",
-      path: "/api/appointments/:id",
-      description: "Atualizar um agendamento via path parameter (alternativa). IMPORTANTE: Valida conflitos de horário ao alterar data/horário/serviços. Retorna erro 409 se houver sobreposição.",
-      auth: "Bearer Token",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do agendamento" }
-      ],
-      requestBody: `{
-  "date": "2025-01-25",
-  "time": "16:30",
-  "status": "completed"
-}`,
-      responseExample: `{
-  "id": "apt-999",
-  "clientId": "cli-789",
-  "serviceId": "svc-456",
-  "date": "2025-01-25",
-  "time": "16:30",
-  "duration": 90,
-  "status": "completed",
-  "notes": "Reagendado para novo horário",
-  "tenantId": "tenant-123",
-  "createdAt": "2025-01-20T12:00:00.000Z"
-}`,
-      curlExample: `# Nota: Preferir usar ?id=apt-999 (query param) ao invés de /apt-999 (path param)
-curl -X PUT "https://seudominio.com/api/appointments/apt-999" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "date": "2025-01-25",
-    "time": "16:30",
-    "status": "completed"
-  }'`
-    },
-    {
-      method: "DELETE",
-      path: "/api/appointments/:id",
-      description: "Deletar um agendamento",
-      auth: "Bearer Token",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do agendamento" }
-      ],
-      responseExample: "204 No Content",
-      curlExample: `curl -X DELETE "https://seudominio.com/api/appointments/apt-999" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     }
   ],
-  horarios: [
-    {
-      method: "GET",
-      path: "/api/business-hours",
-      description: "Listar horários de funcionamento do tenant",
-      auth: "Bearer Token",
-      responseExample: `[
-  {
-    "id": "bh-123",
-    "tenantId": "tenant-123",
-    "dayOfWeek": 1,
-    "startTime": "09:00",
-    "endTime": "12:00",
-    "active": true
-  },
-  {
-    "id": "bh-124",
-    "tenantId": "tenant-123",
-    "dayOfWeek": 1,
-    "startTime": "14:00",
-    "endTime": "18:00",
-    "active": true
-  }
-]`,
-      curlExample: `curl -X GET "https://seudominio.com/api/business-hours" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
-    },
+  tokens: [
     {
       method: "POST",
-      path: "/api/business-hours",
-      description: "Criar novo horário de funcionamento (Admin apenas)",
-      auth: "Tenant Admin",
+      path: "/api/settings/api-tokens",
+      description: "Criar um novo token de API",
+      auth: "Bearer Token",
       requestBody: `{
-  "dayOfWeek": 1,
-  "startTime": "09:00",
-  "endTime": "12:00",
-  "active": true
+  "label": "N8N Produção"
 }`,
       responseExample: `{
-  "id": "bh-125",
-  "tenantId": "tenant-123",
-  "dayOfWeek": 1,
-  "startTime": "09:00",
-  "endTime": "12:00",
-  "active": true
+  "id": "token-123",
+  "label": "N8N Produção",
+  "token": "apt_1234567890abcdef...",
+  "createdAt": "2025-11-19T10:00:00Z"
 }`,
-      curlExample: `curl -X POST "https://seudominio.com/api/business-hours" \\
+      curlExample: `curl -X POST "https://seudominio.com/api/settings/api-tokens" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "dayOfWeek": 1,
-    "startTime": "09:00",
-    "endTime": "12:00",
-    "active": true
-  }'`
-    },
-    {
-      method: "PUT",
-      path: "/api/business-hours/:id",
-      description: "Atualizar horário de funcionamento (Admin apenas)",
-      auth: "Tenant Admin",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "ID do horário de funcionamento" }
-      ],
-      requestBody: `{
-  "active": false
-}`,
-      responseExample: `{
-  "id": "bh-125",
-  "tenantId": "tenant-123",
-  "dayOfWeek": 1,
-  "startTime": "09:00",
-  "endTime": "12:00",
-  "active": false
-}`,
-      curlExample: `curl -X PUT "https://seudominio.com/api/business-hours/bh-125" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "active": false
+    "label": "N8N Produção"
   }'`
     },
     {
       method: "DELETE",
-      path: "/api/business-hours/:id",
-      description: "Deletar horário de funcionamento (Admin apenas)",
-      auth: "Tenant Admin",
+      path: "/api/settings/api-tokens/:id",
+      description: "Revogar um token de API",
+      auth: "Bearer Token",
       parameters: [
-        { name: "id", type: "string", required: true, description: "ID do horário de funcionamento" }
+        { name: "id", type: "string", required: true, description: "ID do token" }
       ],
       responseExample: "204 No Content",
-      curlExample: `curl -X DELETE "https://seudominio.com/api/business-hours/bh-125" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
-    }
-  ],
-  disponibilidade: [
-    {
-      method: "GET",
-      path: "/api/availability",
-      description: "Consultar disponibilidade de agendamentos",
-      auth: "Bearer Token",
-      queryParams: [
-        { name: "startDate", type: "string", required: false, description: "Data inicial (YYYY-MM-DD). Padrão: hoje" },
-        { name: "endDate", type: "string", required: false, description: "Data final (YYYY-MM-DD). Padrão: 30 dias após startDate" },
-        { name: "clientId", type: "string", required: false, description: "Filtrar agendamentos por cliente" },
-        { name: "serviceId", type: "string", required: false, description: "Filtrar agendamentos por serviço" }
-      ],
-      responseExample: `[
-  {
-    "date": "2025-01-20",
-    "dayOfWeek": 1,
-    "businessHours": [
-      {
-        "id": "bh-123",
-        "startTime": "09:00",
-        "endTime": "12:00",
-        "active": true
-      },
-      {
-        "id": "bh-124",
-        "startTime": "14:00",
-        "endTime": "18:00",
-        "active": true
-      }
-    ],
-    "appointments": [
-      {
-        "id": "apt-123",
-        "clientId": "cli-456",
-        "serviceId": "svc-789",
-        "date": "2025-01-20",
-        "time": "10:00",
-        "duration": 60,
-        "status": "scheduled"
-      }
-    ]
-  }
-]`,
-      curlExample: `curl -X GET "https://seudominio.com/api/availability?startDate=2025-01-20&endDate=2025-01-27" \\
+      curlExample: `curl -X DELETE "https://seudominio.com/api/settings/api-tokens/token-123" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     }
   ]
 };
 
-function MethodBadge({ method }: { method: string }) {
-  const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-    GET: "secondary",
-    POST: "default",
-    PUT: "outline",
-    DELETE: "destructive"
+const sections = [
+  { id: "overview", label: "Visão Geral" },
+  { id: "authentication", label: "Autenticação" },
+  { id: "clientes", label: "Clientes" },
+  { id: "servicos", label: "Serviços" },
+  { id: "agendamentos", label: "Agendamentos" },
+  { id: "tokens", label: "Tokens de API" }
+];
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
-  
+
   return (
-    <Badge variant={variants[method]} data-testid={`badge-method-${method.toLowerCase()}`}>
-      {method}
-    </Badge>
+    <Button
+      size="sm"
+      variant="ghost"
+      onClick={handleCopy}
+      className="absolute top-2 right-2 h-8 px-2 text-xs"
+      data-testid="button-copy-code"
+    >
+      {copied ? (
+        <>
+          <Check className="h-3 w-3 mr-1" />
+          Copiado!
+        </>
+      ) : (
+        <>
+          <Copy className="h-3 w-3 mr-1" />
+          Copiar
+        </>
+      )}
+    </Button>
   );
 }
 
-function EndpointCard({ endpoint, baseUrl }: { endpoint: EndpointExample; baseUrl: string }) {
-  const [copied, setCopied] = useState(false);
-  const { toast } = useToast();
-  
-  // Substituir placeholder de URL pelo baseUrl real
-  const curlExample = endpoint.curlExample.replace(/https:\/\/seudominio\.com/g, baseUrl);
-  
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(curlExample);
-      setCopied(true);
-      toast({
-        title: "Copiado!",
-        description: "Exemplo cURL copiado para a área de transferência",
-      });
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível copiar o exemplo",
-        variant: "destructive",
-      });
-    }
+function MethodBadge({ method }: { method: string }) {
+  const colors = {
+    GET: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30",
+    POST: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30",
+    PUT: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/30",
+    DELETE: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/30"
   };
-  
+
   return (
-    <Card className="mb-4" data-testid={`card-endpoint-${endpoint.method}-${endpoint.path.replace(/[/:]/g, '-')}`}>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <MethodBadge method={endpoint.method} />
-              <code className="text-sm font-mono bg-muted px-2 py-1 rounded">{endpoint.path}</code>
-            </div>
-            <CardDescription>{endpoint.description}</CardDescription>
-          </div>
-          <Badge variant="outline" data-testid={`badge-auth-${endpoint.auth.replace(/\s+/g, '-').toLowerCase()}`}>
-            {endpoint.auth}
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold border ${colors[method as keyof typeof colors]}`}>
+      {method}
+    </span>
+  );
+}
+
+function EndpointCard({ endpoint }: { endpoint: EndpointExample }) {
+  return (
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg mb-6 overflow-hidden bg-white dark:bg-gray-900">
+      {/* Header */}
+      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-3 mb-2">
+          <MethodBadge method={endpoint.method} />
+          <code className="text-sm font-mono text-gray-900 dark:text-gray-100">{endpoint.path}</code>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400">{endpoint.description}</p>
+        
+        {/* Auth Badge */}
+        <div className="mt-3">
+          <Badge variant="outline" className="text-xs">
+            🔐 {endpoint.auth}
           </Badge>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {endpoint.parameters && endpoint.parameters.length > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold mb-2">Parâmetros da URL:</h4>
-            <div className="space-y-1">
-              {endpoint.parameters.map((param) => (
-                <div key={param.name} className="text-sm">
-                  <code className="bg-muted px-2 py-0.5 rounded">{param.name}</code>
-                  <span className="text-muted-foreground ml-2">({param.type})</span>
-                  {param.required && <Badge variant="outline" className="ml-2">Required</Badge>}
-                  <p className="text-muted-foreground ml-6 mt-1">{param.description}</p>
-                </div>
-              ))}
+      </div>
+
+      {/* Body: Two Columns */}
+      <div className="grid md:grid-cols-2 gap-0">
+        {/* Left Column: Parameters & Request Body */}
+        <div className="p-6 border-r border-gray-200 dark:border-gray-700">
+          {/* Parameters */}
+          {endpoint.parameters && endpoint.parameters.length > 0 && (
+            <div className="mb-4">
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Path Parameters</h4>
+              <div className="space-y-2">
+                {endpoint.parameters.map((param) => (
+                  <div key={param.name} className="text-sm">
+                    <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+                      {param.name}
+                    </code>
+                    <span className="text-gray-600 dark:text-gray-400 ml-2">{param.type}</span>
+                    {param.required && <span className="text-red-500 ml-1">*</span>}
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{param.description}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {endpoint.queryParams && endpoint.queryParams.length > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold mb-2">Query Parameters:</h4>
-            <div className="space-y-1">
-              {endpoint.queryParams.map((param) => (
-                <div key={param.name} className="text-sm">
-                  <code className="bg-muted px-2 py-0.5 rounded">{param.name}</code>
-                  <span className="text-muted-foreground ml-2">({param.type})</span>
-                  {param.required && <Badge variant="outline" className="ml-2">Required</Badge>}
-                  <p className="text-muted-foreground ml-6 mt-1">{param.description}</p>
-                </div>
-              ))}
+          {/* Query Params */}
+          {endpoint.queryParams && endpoint.queryParams.length > 0 && (
+            <div className="mb-4">
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Query Parameters</h4>
+              <div className="space-y-2">
+                {endpoint.queryParams.map((param) => (
+                  <div key={param.name} className="text-sm">
+                    <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+                      {param.name}
+                    </code>
+                    <span className="text-gray-600 dark:text-gray-400 ml-2">{param.type}</span>
+                    {param.required && <span className="text-red-500 ml-1">*</span>}
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{param.description}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {endpoint.requestBody && (
-          <div>
-            <h4 className="text-sm font-semibold mb-2">Request Body:</h4>
-            <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
-              <code>{endpoint.requestBody}</code>
-            </pre>
-          </div>
-        )}
-
-        {endpoint.responseExample && (
-          <div>
-            <h4 className="text-sm font-semibold mb-2">Response Example:</h4>
-            <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
-              <code>{endpoint.responseExample}</code>
-            </pre>
-          </div>
-        )}
-
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-semibold">Exemplo cURL:</h4>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={copyToClipboard}
-              data-testid="button-copy-curl"
-            >
-              {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
-              {copied ? "Copiado!" : "Copiar"}
-            </Button>
-          </div>
-          <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
-            <code>{curlExample}</code>
-          </pre>
+          {/* Request Body */}
+          {endpoint.requestBody && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Request Body</h4>
+              <pre className="text-xs bg-gray-50 dark:bg-gray-800 p-3 rounded-lg overflow-x-auto border border-gray-200 dark:border-gray-700">
+                <code>{endpoint.requestBody}</code>
+              </pre>
+            </div>
+          )}
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Right Column: Code Example */}
+        <div className="p-6 bg-gray-50 dark:bg-gray-800/50">
+          {/* cURL Example */}
+          <div className="mb-4">
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Exemplo cURL</h4>
+            <div className="relative">
+              <pre className="text-xs bg-gray-900 dark:bg-gray-950 text-gray-100 p-4 rounded-lg overflow-x-auto">
+                <code>{endpoint.curlExample}</code>
+              </pre>
+              <CopyButton text={endpoint.curlExample} />
+            </div>
+          </div>
+
+          {/* Response Example */}
+          {endpoint.responseExample && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Exemplo de Resposta</h4>
+              <div className="relative">
+                <pre className="text-xs bg-gray-900 dark:bg-gray-950 text-green-400 p-4 rounded-lg overflow-x-auto">
+                  <code>{endpoint.responseExample}</code>
+                </pre>
+                <CopyButton text={endpoint.responseExample} />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
 export function ApiDocumentation() {
+  const [activeSection, setActiveSection] = useState("overview");
+  const contentRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  // Scroll to section
+  const scrollToSection = (sectionId: string) => {
+    setActiveSection(sectionId);
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  // Detect active section on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = document.querySelectorAll("[data-section]");
+      let current = "overview";
+
+      sections.forEach((section) => {
+        const rect = section.getBoundingClientRect();
+        if (rect.top <= 100 && rect.bottom >= 100) {
+          current = section.getAttribute("data-section") || "overview";
+        }
+      });
+
+      setActiveSection(current);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const baseUrl = window.location.origin;
-  
+
   return (
-    <div className="container mx-auto py-6 max-w-5xl">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-2" data-testid="text-api-doc-title">Documentação da API REST</h2>
-        <p className="text-muted-foreground">
-          Documentação completa de todos os endpoints disponíveis para integração com N8N e outras ferramentas.
-        </p>
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
+      {/* Sidebar */}
+      <aside className="hidden lg:block w-64 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 fixed h-screen overflow-y-auto">
+        <div className="p-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Documentação da API</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">AgendaPro REST API</p>
 
-        {/* GUIA DE TESTE PRÁTICO */}
-        <div className="mt-6 p-6 bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/20 rounded-lg space-y-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Badge className="text-base px-3 py-1">🚀 GUIA DE TESTE PRÁTICO</Badge>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-bold text-lg mb-2">📝 Passo 1: Gerar Token de API</h3>
-              <ol className="list-decimal ml-6 space-y-2 text-sm">
-                <li>Faça login como <strong>Admin do Tenant</strong> (ex: <code className="bg-background/80 px-1.5 py-0.5 rounded">teste/Teste@123</code>)</li>
-                <li>No menu lateral, clique em <strong>"Configurações"</strong></li>
-                <li>Na aba <strong>"Tokens de API"</strong>, clique em <strong>"Criar Token"</strong></li>
-                <li>Dê um nome (ex: "Teste API") e copie o token gerado</li>
-                <li className="text-destructive font-semibold">⚠️ IMPORTANTE: O token só é exibido UMA VEZ! Salve em local seguro</li>
-              </ol>
-            </div>
-
-            <Separator />
-
-            <div>
-              <h3 className="font-bold text-lg mb-2">🧪 Passo 2: Testar Criação de Cliente</h3>
-              <p className="text-sm mb-3">Use o comando cURL abaixo substituindo <code className="bg-background/80 px-1.5 py-0.5 rounded">SEU_TOKEN_AQUI</code> pelo token copiado:</p>
-              
-              <div className="relative">
-                <pre className="bg-background/80 p-4 rounded-lg text-xs overflow-x-auto border border-primary/30">
-<code>{`# Criar um novo cliente
-curl -X POST "${baseUrl}/api/clients" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "name": "João Silva Teste",
-    "phone": "11999887766",
-    "birthdate": "1990-05-15"
-  }'
-
-# Resposta esperada (201 Created):
-{
-  "id": "...",
-  "name": "João Silva Teste",
-  "phone": "11999887766",
-  "birthdate": "1990-05-15",
-  "tenantId": "..."
-}`}</code>
-                </pre>
-              </div>
-            </div>
-
-            <Separator />
-
-            <div>
-              <h3 className="font-bold text-lg mb-2">✅ Passo 3: Listar Clientes</h3>
-              <p className="text-sm mb-3">Verifique se o cliente foi criado:</p>
-              
-              <div className="relative">
-                <pre className="bg-background/80 p-4 rounded-lg text-xs overflow-x-auto border border-primary/30">
-<code>{`# Listar todos os clientes
-curl -X GET "${baseUrl}/api/clients" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"`}</code>
-                </pre>
-              </div>
-            </div>
-
-            <Separator />
-
-            <div>
-              <h3 className="font-bold text-lg mb-2">🔍 Passo 4: Buscar Cliente por Telefone</h3>
-              <p className="text-sm mb-3">Use o parâmetro <code className="bg-background/80 px-1.5 py-0.5 rounded">search</code> para filtrar:</p>
-              
-              <div className="relative">
-                <pre className="bg-background/80 p-4 rounded-lg text-xs overflow-x-auto border border-primary/30">
-<code>{`# Buscar por telefone
-curl -X GET "${baseUrl}/api/clients?search=11999887766" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"
-
-# Buscar por nome
-curl -X GET "${baseUrl}/api/clients?search=João" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"`}</code>
-                </pre>
-              </div>
-            </div>
-
-            <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
-              <h4 className="font-semibold mb-2 flex items-center gap-2">
-                💡 Dicas de Teste
-              </h4>
-              <ul className="text-sm space-y-1.5 ml-4">
-                <li>✓ Use <strong>Postman</strong>, <strong>Insomnia</strong> ou <strong>cURL</strong> para testar</li>
-                <li>✓ Telefones devem ser <strong>únicos por tenant</strong> (não pode duplicar)</li>
-                <li>✓ Todos os campos <strong>name, email, phone</strong> são <strong>obrigatórios</strong></li>
-                <li>✓ Token de API é <strong>específico por tenant</strong> (isolamento de dados)</li>
-                <li>✓ Para N8N, use <strong>HTTP Request node</strong> com método Bearer Token</li>
-              </ul>
-            </div>
-          </div>
+          <nav className="space-y-1">
+            {sections.map((section) => (
+              <button
+                key={section.id}
+                onClick={() => scrollToSection(section.id)}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeSection === section.id
+                    ? "bg-brand-500/10 text-brand-700 dark:text-brand-400"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                }`}
+                data-testid={`nav-${section.id}`}
+              >
+                <div className="flex items-center justify-between">
+                  {section.label}
+                  {activeSection === section.id && <ChevronRight className="h-4 w-4" />}
+                </div>
+              </button>
+            ))}
+          </nav>
         </div>
+      </aside>
 
-        <div className="mt-4 p-4 bg-muted rounded-lg space-y-4">
-          <div>
-            <h3 className="font-semibold mb-2">Base URL</h3>
-            <code className="text-xs bg-background px-2 py-1 rounded block break-all">
-              {baseUrl}
-            </code>
-          </div>
-          
-          <Separator />
-          
-          <div>
-            <h3 className="font-semibold mb-3">🔐 Autenticação via Bearer Token (Recomendado para N8N/Zapier)</h3>
-            <p className="text-sm text-muted-foreground mb-3">
-              Use Bearer Token para integrar com N8N, Zapier ou outras ferramentas de automação. 
-              Ideal para endpoints de <strong>Clientes</strong>, <strong>Serviços</strong> e <strong>Agendamentos</strong>.
+      {/* Main Content */}
+      <main className="flex-1 lg:ml-64">
+        <div className="max-w-6xl mx-auto p-6 lg:p-10" ref={contentRef}>
+          {/* Overview */}
+          <section id="overview" data-section="overview" className="mb-16">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              API REST AgendaPro
+            </h1>
+            <p className="text-lg text-gray-600 dark:text-gray-400 mb-6">
+              Documentação completa para integração com N8N, Zapier e outras ferramentas de automação.
             </p>
-            
-            <div className="space-y-2 text-sm">
-              <p className="font-medium">Passo 1: Gerar um Token de API</p>
-              <ol className="list-decimal ml-5 space-y-1 text-muted-foreground">
-                <li>Acesse o painel Admin (Master Admin ou Settings)</li>
-                <li>Vá para a aba "Tokens de API"</li>
-                <li>Clique em "Criar Token" e dê um nome (ex: "N8N Produção")</li>
-                <li>Copie o token gerado (ex: <code className="bg-background px-1 rounded">apt_1234567890abcdef...</code>)</li>
-                <li>⚠️ <strong>Guarde em local seguro</strong> - o token só é exibido uma vez!</li>
-              </ol>
-              
-              <p className="font-medium mt-3">Passo 2: Usar o Token nas Requisições</p>
-              <p className="text-muted-foreground">Adicione o header em todas as requisições:</p>
-              <code className="text-xs bg-background px-2 py-1 rounded block mt-1">
-                Authorization: Bearer apt_1234567890abcdef...
+
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg p-6">
+              <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">🔗 Base URL</h3>
+              <code className="text-sm bg-white dark:bg-gray-900 px-3 py-1.5 rounded border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400">
+                {baseUrl}
               </code>
-              
-              <p className="text-muted-foreground mt-2">Exemplo prático:</p>
-              <pre className="bg-background p-2 rounded text-xs mt-1 overflow-auto">
-{`curl -X GET "${baseUrl}/api/clients" \\
-  -H "Authorization: Bearer apt_1234567890abcdef..."`}
-              </pre>
             </div>
-          </div>
-          
-          <Separator />
-          
-          <div>
-            <h3 className="font-semibold mb-3">🍪 Autenticação via Session Cookie (Admin Web)</h3>
-            <p className="text-sm text-muted-foreground mb-3">
-              Use cookies de sessão para acessar endpoints administrativos via navegador ou scripts que gerenciam cookies.
-              Necessário para endpoints de <strong>Usuários</strong>, <strong>Tenants</strong> e operações <strong>Master Admin</strong>.
+          </section>
+
+          {/* Authentication */}
+          <section id="authentication" data-section="authentication" className="mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Autenticação</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              A API AgendaPro utiliza tokens Bearer para autenticação. Você pode gerar tokens na página de Configurações.
             </p>
-            
-            <div className="space-y-2 text-sm">
-              <p className="font-medium">Passo 1: Fazer Login</p>
-              <p className="text-muted-foreground">Faça uma requisição POST para /api/auth/login:</p>
-              <pre className="bg-background p-2 rounded text-xs mt-1 overflow-auto">
-{`curl -X POST "${baseUrl}/api/auth/login" \\
-  -H "Content-Type: application/json" \\
-  -c cookies.txt \\
-  -d '{
-    "username": "seu_usuario",
-    "password": "sua_senha"
-  }'`}
-              </pre>
-              
-              <p className="font-medium mt-3">Passo 2: Usar o Cookie nas Requisições</p>
-              <p className="text-muted-foreground">O cookie <code className="bg-background px-1 rounded">connect.sid</code> será salvo automaticamente. Use-o nas próximas requisições:</p>
-              <pre className="bg-background p-2 rounded text-xs mt-1 overflow-auto">
-{`curl -X GET "${baseUrl}/api/users" \\
-  -b cookies.txt`}
-              </pre>
-              
-              <p className="text-muted-foreground mt-2 text-xs">
-                💡 <strong>Dica:</strong> Em ferramentas como Postman ou Insomnia, o cookie é gerenciado automaticamente após o login.
-              </p>
+
+            <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-900 rounded-lg p-6 mb-6">
+              <h3 className="text-sm font-semibold text-yellow-900 dark:text-yellow-300 mb-3">📝 Como Gerar um Token</h3>
+              <ol className="list-decimal ml-5 space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                <li>Faça login como <strong>Admin do Tenant</strong></li>
+                <li>Navegue até <strong>Configurações → Tokens de API</strong></li>
+                <li>Clique em <strong>"Criar Token"</strong></li>
+                <li>Dê um nome (ex: "N8N Produção") e copie o token gerado</li>
+                <li className="text-red-600 dark:text-red-400 font-semibold">⚠️ O token só é exibido UMA VEZ! Salve em local seguro</li>
+              </ol>
             </div>
-          </div>
+
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-white dark:bg-gray-900">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Exemplo de Requisição</h3>
+              <div className="relative">
+                <pre className="text-xs bg-gray-900 dark:bg-gray-950 text-gray-100 p-4 rounded-lg overflow-x-auto">
+                  <code>{`curl -X GET "${baseUrl}/api/clients" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`}</code>
+                </pre>
+                <CopyButton text={`curl -X GET "${baseUrl}/api/clients" \\\n  -H "Authorization: Bearer SEU_TOKEN_AQUI"`} />
+              </div>
+            </div>
+          </section>
+
+          {/* Clientes */}
+          <section id="clientes" data-section="clientes" className="mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Clientes</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Gerencie clientes do seu tenant. Campos: <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">name</code>, <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">phone</code> (obrigatório), <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">birthdate</code> (opcional).
+            </p>
+            {endpoints.clientes.map((endpoint, idx) => (
+              <EndpointCard key={idx} endpoint={endpoint} />
+            ))}
+          </section>
+
+          {/* Serviços */}
+          <section id="servicos" data-section="servicos" className="mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Serviços</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Gerencie serviços oferecidos. A API retorna automaticamente <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">isPromotionActive</code> e <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">effectiveValue</code> para facilitar integrações.
+            </p>
+            {endpoints.servicos.map((endpoint, idx) => (
+              <EndpointCard key={idx} endpoint={endpoint} />
+            ))}
+          </section>
+
+          {/* Agendamentos */}
+          <section id="agendamentos" data-section="agendamentos" className="mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Agendamentos</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Crie e gerencie agendamentos. O campo <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">duration</code> é calculado automaticamente com base nos serviços selecionados.
+            </p>
+            {endpoints.agendamentos.map((endpoint, idx) => (
+              <EndpointCard key={idx} endpoint={endpoint} />
+            ))}
+          </section>
+
+          {/* Tokens de API */}
+          <section id="tokens" data-section="tokens" className="mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Tokens de API</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Gerencie tokens de autenticação para integração com ferramentas externas.
+            </p>
+            {endpoints.tokens.map((endpoint, idx) => (
+              <EndpointCard key={idx} endpoint={endpoint} />
+            ))}
+          </section>
+
+          {/* Footer */}
+          <footer className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-800">
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+              © 2025 AgendaPro • Documentação da API REST
+            </p>
+          </footer>
         </div>
-      </div>
-
-      <Tabs defaultValue="setup" className="w-full">
-        <div className="flex flex-col gap-2">
-          <TabsList className="grid w-full grid-cols-4" data-testid="tabs-api-categories-1">
-            <TabsTrigger value="setup" data-testid="tab-setup">Setup</TabsTrigger>
-            <TabsTrigger value="masteradmin" data-testid="tab-masteradmin">Master Admin</TabsTrigger>
-            <TabsTrigger value="autenticacao" data-testid="tab-autenticacao">Autenticação</TabsTrigger>
-            <TabsTrigger value="usuarios" data-testid="tab-usuarios">Usuários</TabsTrigger>
-          </TabsList>
-          <TabsList className="grid w-full grid-cols-4" data-testid="tabs-api-categories-2">
-            <TabsTrigger value="tokens" data-testid="tab-tokens">Tokens API</TabsTrigger>
-            <TabsTrigger value="clientes" data-testid="tab-clientes">Clientes</TabsTrigger>
-            <TabsTrigger value="servicos" data-testid="tab-servicos">Serviços</TabsTrigger>
-            <TabsTrigger value="agendamentos" data-testid="tab-agendamentos">Agendamentos</TabsTrigger>
-          </TabsList>
-          <TabsList className="grid w-full grid-cols-2" data-testid="tabs-api-categories-3">
-            <TabsTrigger value="horarios" data-testid="tab-horarios">Horários</TabsTrigger>
-            <TabsTrigger value="disponibilidade" data-testid="tab-disponibilidade">Disponibilidade</TabsTrigger>
-          </TabsList>
-        </div>
-
-        <ScrollArea className="h-[calc(100vh-350px)] mt-4">
-          <TabsContent value="setup" className="space-y-4">
-            {endpoints.setup.map((endpoint, index) => (
-              <EndpointCard key={index} endpoint={endpoint} baseUrl={baseUrl} />
-            ))}
-          </TabsContent>
-
-          <TabsContent value="masteradmin" className="space-y-4">
-            {endpoints.masteradmin.map((endpoint, index) => (
-              <EndpointCard key={index} endpoint={endpoint} baseUrl={baseUrl} />
-            ))}
-          </TabsContent>
-
-          <TabsContent value="autenticacao" className="space-y-4">
-            {endpoints.autenticacao.map((endpoint, index) => (
-              <EndpointCard key={index} endpoint={endpoint} baseUrl={baseUrl} />
-            ))}
-          </TabsContent>
-
-          <TabsContent value="usuarios" className="space-y-4">
-            {endpoints.usuarios.map((endpoint, index) => (
-              <EndpointCard key={index} endpoint={endpoint} baseUrl={baseUrl} />
-            ))}
-          </TabsContent>
-
-          <TabsContent value="tokens" className="space-y-4">
-            {endpoints.tokens.map((endpoint, index) => (
-              <EndpointCard key={index} endpoint={endpoint} baseUrl={baseUrl} />
-            ))}
-          </TabsContent>
-
-          <TabsContent value="clientes" className="space-y-4">
-            {endpoints.clientes.map((endpoint, index) => (
-              <EndpointCard key={index} endpoint={endpoint} baseUrl={baseUrl} />
-            ))}
-          </TabsContent>
-
-          <TabsContent value="servicos" className="space-y-4">
-            {endpoints.servicos.map((endpoint, index) => (
-              <EndpointCard key={index} endpoint={endpoint} baseUrl={baseUrl} />
-            ))}
-          </TabsContent>
-
-          <TabsContent value="agendamentos" className="space-y-4">
-            {endpoints.agendamentos.map((endpoint, index) => (
-              <EndpointCard key={index} endpoint={endpoint} baseUrl={baseUrl} />
-            ))}
-          </TabsContent>
-
-          <TabsContent value="horarios" className="space-y-4">
-            {endpoints.horarios.map((endpoint, index) => (
-              <EndpointCard key={index} endpoint={endpoint} baseUrl={baseUrl} />
-            ))}
-          </TabsContent>
-
-          <TabsContent value="disponibilidade" className="space-y-4">
-            {endpoints.disponibilidade.map((endpoint, index) => (
-              <EndpointCard key={index} endpoint={endpoint} baseUrl={baseUrl} />
-            ))}
-          </TabsContent>
-        </ScrollArea>
-      </Tabs>
+      </main>
     </div>
   );
 }
