@@ -78,7 +78,7 @@ export function DatePicker({
   }, [value]);
 
   return (
-    <div>
+    <div className="grid gap-2">
       {label && <Label htmlFor={id}>{label}</Label>}
 
       <div className="relative">
