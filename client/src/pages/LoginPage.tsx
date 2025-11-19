@@ -213,7 +213,7 @@ export default function LoginPage() {
                 </div>
               </Link>
               <p className="text-center text-gray-400 dark:text-white/60">
-                Sistema de gerenciamento de clínicas inteligadas com Agente de IA
+                Sistema de gerenciamento de clínicas integradas com Agentes de IA
               </p>
             </div>
           </div>
