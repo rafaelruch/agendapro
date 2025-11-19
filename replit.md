@@ -1,5 +1,16 @@
 # AgendaPro - Sistema SaaS Multi-Tenant de Gerenciamento de Agendas
 
+## 🚨 REGRA DE OURO - USAR SOMENTE TAILADMIN
+
+**TODO O LAYOUT VISUAL É PARA SEGUIR O TAILADMIN SEM EXCEÇÃO**
+
+- **Fonte única**: `attached_assets/free-react-tailwind-admin-dashboard-main/`
+- **Componentes**: Usar SOMENTE componentes do TailAdmin
+- **Código**: Copiar código EXATAMENTE como está nos arquivos do TailAdmin
+- **Assets**: Usar SOMENTE imagens, SVGs e ícones do TailAdmin
+- **Sem outras bibliotecas**: NÃO usar Shadcn, Material-UI, ou qualquer outra biblioteca de UI sem aprovação prévia
+- **Documentação completa**: Ver `TAILADMIN_STRUCTURE.md` para estrutura completa do TailAdmin
+
 ## Overview
 AgendaPro is a multi-tenant SaaS system for appointment management. It enables businesses to manage clients, services, appointments, and users with complete data isolation. The platform includes a comprehensive REST API for integration with N8N and other automation tools, aiming to provide a robust, scalable, and secure solution for efficient scheduling in the service industry.
 
@@ -19,7 +30,9 @@ Always update the API documentation immediately after implementing new features,
 The system employs a multi-tenant SaaS architecture with a distinct separation between frontend and backend.
 
 ### UI/UX Decisions
-The frontend uses React, TypeScript, Wouter for routing, and Tailwind CSS with Shadcn UI for a modern, responsive design, including light and dark themes. Key UI components include dedicated pages for authentication, administration, dashboards, calendar views, client/service/user management, and system settings.
+The frontend uses React, TypeScript, Wouter for routing, and Tailwind CSS with **ONLY TailAdmin components** for a modern, responsive design, including light and dark themes. Key UI components include dedicated pages for authentication, administration, dashboards, calendar views, client/service/user management, and system settings.
+
+**CRITICAL**: All UI components MUST be copied from TailAdmin (`attached_assets/free-react-tailwind-admin-dashboard-main/`). DO NOT use Shadcn, Material-UI, or any other component library without explicit approval.
 
 **IMPORTANT: TailAdmin CRM EXACT Replication:**
 The dashboard layout and styling are EXACTLY replicated from TailAdmin CRM template, not just "inspired". This ensures professional, production-ready UI/UX.
@@ -30,7 +43,15 @@ The dashboard layout and styling are EXACTLY replicated from TailAdmin CRM templ
 - Warning/meta-2: `#FFA500`
 - Stroke: `#E2E8F0`
 - Boxdark: `#24303F`
+- Auth Background: `#1C2434` (brand-950) - Azul escuro exato
 - All color tokens updated in `client/src/index.css` for both light and dark modes
+
+**Componentes TailAdmin EXATOS Implementados:**
+1. ✅ `GridShape.tsx` - Grid pattern para backgrounds (copiado de `attached_assets/.../src/components/common/GridShape.tsx`)
+2. ✅ `ThemeTogglerTwo.tsx` - Toggle de tema circular (copiado de `attached_assets/.../src/components/common/ThemeTogglerTwo.tsx`)
+3. ✅ `LoginPage.tsx` - Baseado em SignInForm + AuthPageLayout EXATOS
+4. ✅ `auth-logo.svg` - Logo customizada mantendo estilo TailAdmin
+5. ✅ `grid-01.svg` - Grid pattern SVG (copiado de `attached_assets/.../public/images/shape/grid-01.svg`)
 
 **Header (EXACT TailAdmin - `client/src/App.tsx`):**
 - **Structure**: `sticky top-0 z-99999 flex-col lg:flex-row lg:border-b`
@@ -99,6 +120,11 @@ The dashboard layout and styling are EXACTLY replicated from TailAdmin CRM templ
 - **Structure**: Two-column layout (form on left, brand section on right)
 - **NO back button** (removed as per TailAdmin design)
 - **NO social logins** (Google/X buttons removed)
+- **Brand Section Right Side**:
+  - Background: `bg-brand-950 dark:bg-white/5` (#1C2434 - azul escuro exato do TailAdmin)
+  - GridShape: Componente com grid-01.svg nos cantos (top-right e bottom-left)
+  - Logo: `auth-logo.svg` customizada para AgendaPro (231x48px)
+  - Texto: "Sistema de Gerenciamento de Agendas Multi-Tenant" em `text-gray-400 dark:text-white/60`
 - **Form Fields**:
   - Usuário (username): `h-11` input with `shadow-sm` and focus states
   - Senha (password): `h-11` input with accessible toggle button (Eye/EyeOff icons)
@@ -107,12 +133,12 @@ The dashboard layout and styling are EXACTLY replicated from TailAdmin CRM templ
   - Fale com o administrador: WhatsApp link (external)
 - **Accessibility**: Password toggle is a `<button>` (not span) with dynamic `aria-label` ("Mostrar senha" / "Ocultar senha")
 - **TailAdmin Classes**: All classes are valid Tailwind (shadow-sm, focus:ring-2, focus:outline-none, focus:ring-brand-500/10)
-- **Theme Toggle**: Fixed bottom-right corner (TailAdmin AuthLayout pattern)
-- **Brand Section**: Grid pattern background with AgendaPro logo and description (hidden on mobile, visible on lg+)
+- **Theme Toggle**: Fixed bottom-right corner (TailAdmin ThemeTogglerTwo - circular, size-14, bg-brand-500)
 - **Test IDs**: input-username, input-password, button-toggle-password, checkbox-keep-logged-in, button-forgot-password, link-whatsapp-admin, button-login
 
 **Calendar Page (EXACT TailAdmin + Full CRUD Integration):**
 - **Visual**: FullCalendar component with TailAdmin styling (month/week/day views)
+- **Text Truncation**: CSS `truncate overflow-hidden` para evitar textos ultrapassarem células
 - **CRUD Operations**:
   - CREATE: Click date → AppointmentDialog → Validate → Create appointment → Toast
   - READ: Appointments displayed as events on calendar
@@ -146,10 +172,13 @@ The dashboard layout and styling are EXACTLY replicated from TailAdmin CRM templ
 - **ORM**: Drizzle ORM.
 - **Backend Framework**: Express.js.
 - **Frontend Framework**: React.
-- **Styling**: Tailwind CSS, Shadcn UI, Radix UI.
+- **Styling**: Tailwind CSS, TailAdmin UI (SOMENTE).
 - **State Management**: TanStack Query.
 - **Routing**: Wouter.
 - **Password Hashing**: Bcrypt.
 - **Session Management**: Express-session.
 - **Data Validation**: Zod.
 - **Integration**: N8N.
+
+## TailAdmin Reference
+Para detalhes completos da estrutura do TailAdmin, consulte: **`TAILADMIN_STRUCTURE.md`**
