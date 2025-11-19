@@ -80,23 +80,31 @@ Utilizes FullCalendar with TailAdmin styling, supporting full CRUD operations fo
    - RFC-compliant headers (RateLimit-*)
    - Skip successful auth attempts
 
-3. **Input Validation** (Zod):
+3. **Trust Proxy Configuration** (CRITICAL):
+   - **Development**: Trust proxy DISABLED (prevents IP spoofing)
+   - **Production**: Trust proxy AUTO-ENABLED (NODE_ENV=production)
+   - **Manual Override**: Set ENABLE_TRUST_PROXY=true if needed
+   - Prevents rate limit bypass via X-Forwarded-For spoofing
+   - Only trusts proxy headers when behind real reverse proxy
+
+4. **Input Validation** (Zod):
    - All POST/PUT endpoints validated
    - Login: loginSchema (username, password)
    - Setup: setupSchema (username, name, email, password min 6 chars)
    - Structured error responses with details
 
-4. **File Upload Security** (CSV):
+5. **File Upload Security** (CSV):
    - Max file size: 5MB
    - Max rows: 1000 services per upload
    - Strict type validation (CSV only)
    - Empty file detection
    - MulterError handling
 
-5. **Environment Variables**:
+6. **Environment Variables**:
    - SESSION_SECRET (required, min 32 chars)
    - NODE_ENV (production/development)
    - DATABASE_URL (PostgreSQL connection)
+   - ENABLE_TRUST_PROXY (optional, auto-enabled in production)
 
 **Deployment Checklist:**
 - [ ] Set SESSION_SECRET environment variable (≥32 chars)
