@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Building2, Users, Trash2, Key, Copy, AlertCircle, Pencil, Calendar as CalendarIcon, Eye, Check, X } from "lucide-react";
+import { Plus, Building2, Users, Trash2, Key, Copy, AlertCircle, Pencil, Calendar as CalendarIcon, Eye, Check, X, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -42,6 +42,9 @@ export default function AdminPage() {
   const [correctionTenantId, setCorrectionTenantId] = useState<string>("");
   const [defaultServiceId, setDefaultServiceId] = useState<string>("");
   const [orphanCount, setOrphanCount] = useState<number | null>(null);
+  const [appointmentsSearch, setAppointmentsSearch] = useState("");
+  const [appointmentsPage, setAppointmentsPage] = useState(1);
+  const appointmentsPerPage = 10;
 
   const { data: tenants = [], isLoading } = useQuery<Tenant[]>({
     queryKey: ["/api/admin/tenants"],
@@ -391,113 +394,225 @@ export default function AdminPage() {
 
         <TabsContent value="appointments" className="space-y-6 mt-6">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">Visualize e edite agendamentos de todos os tenants</p>
+            <p className="text-sm text-bodydark2">Visualize e edite agendamentos de todos os tenants</p>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative max-w-md">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-bodydark2" />
+            <Input
+              placeholder="Buscar por cliente, tenant ou status..."
+              value={appointmentsSearch}
+              onChange={(e) => {
+                setAppointmentsSearch(e.target.value);
+                setAppointmentsPage(1);
+              }}
+              className="pl-12"
+              data-testid="input-search-appointments"
+            />
           </div>
 
           {appointmentsLoading ? (
             <div className="flex items-center justify-center p-8">
-              <p className="text-muted-foreground">Carregando agendamentos...</p>
+              <p className="text-bodydark2">Carregando agendamentos...</p>
             </div>
-          ) : allAppointments.length === 0 ? (
-            <Card>
-              <CardContent className="flex items-center justify-center p-8">
-                <p className="text-muted-foreground">Nenhum agendamento encontrado</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableCell isHeader={true}>Data</TableCell>
-                    <TableCell isHeader={true}>Horário</TableCell>
-                    <TableCell isHeader={true}>Cliente ID</TableCell>
-                    <TableCell isHeader={true}>Status</TableCell>
-                    <TableCell isHeader={true}>Tenant</TableCell>
-                    <TableCell isHeader={true}>Ações</TableCell>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allAppointments.map((appointment) => {
-                    const tenant = tenants.find(t => t.id === appointment.tenantId);
-                    const formatDate = (dateStr: string) => {
-                      const [year, month, day] = dateStr.split('-');
-                      return `${day}/${month}/${year}`;
-                    };
-                    return (
-                      <TableRow key={appointment.id}>
-                        <TableCell>{formatDate(appointment.date)}</TableCell>
-                        <TableCell>{appointment.time}</TableCell>
-                        <TableCell className="font-mono text-xs">{appointment.clientId.substring(0, 8)}...</TableCell>
-                        <TableCell>
-                          <Badge variant={appointment.status === 'completed' ? 'secondary' : 'default'}>
-                            {appointment.status === 'completed' ? 'Concluído' : appointment.status === 'scheduled' ? 'Agendado' : 'Cancelado'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {tenant?.name || appointment.tenantId.substring(0, 8)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => {
-                                setEditingAppointment(appointment);
-                                setAppointmentDialogOpen(true);
-                              }}
-                              className="text-brand-500 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-500/10"
-                              data-testid={`button-view-${appointment.id}`}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            {appointment.status !== "completed" && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={async () => {
-                                  try {
-                                    await apiRequest("PATCH", `/api/admin/appointments/${appointment.id}/status`, { status: "completed" });
-                                    queryClient.invalidateQueries({ queryKey: ["/api/admin/appointments"] });
-                                    toast({ title: "Sucesso", description: "Agendamento concluído com sucesso!" });
-                                  } catch (error) {
-                                    toast({ title: "Erro", description: "Erro ao concluir agendamento", variant: "destructive" });
+          ) : (() => {
+            const formatDate = (dateStr: string) => {
+              const [year, month, day] = dateStr.split('-');
+              return `${day}/${month}/${year}`;
+            };
+
+            const filteredAppointments = allAppointments.filter((apt) => {
+              const tenant = tenants.find(t => t.id === apt.tenantId);
+              const searchLower = appointmentsSearch.toLowerCase();
+              return (
+                apt.clientId.toLowerCase().includes(searchLower) ||
+                (tenant?.name || "").toLowerCase().includes(searchLower) ||
+                apt.status.toLowerCase().includes(searchLower) ||
+                formatDate(apt.date).includes(searchLower)
+              );
+            });
+
+            const totalPages = Math.ceil(filteredAppointments.length / appointmentsPerPage);
+            const startIndex = (appointmentsPage - 1) * appointmentsPerPage;
+            const paginatedAppointments = filteredAppointments.slice(startIndex, startIndex + appointmentsPerPage);
+
+            if (filteredAppointments.length === 0) {
+              return (
+                <div className="rounded-sm border border-stroke bg-white px-5 py-12 text-center shadow-default dark:border-strokedark dark:bg-boxdark">
+                  <p className="text-bodydark2 mb-4">
+                    {appointmentsSearch ? "Nenhum agendamento encontrado para sua busca." : "Nenhum agendamento encontrado."}
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <>
+                {/* TailAdmin DataTable */}
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+                  <div className="max-w-full overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="border-b border-gray-100 dark:border-white/[0.05]">
+                        <tr>
+                          <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                            Data
+                          </th>
+                          <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                            Horário
+                          </th>
+                          <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                            Cliente ID
+                          </th>
+                          <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                            Status
+                          </th>
+                          <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                            Tenant
+                          </th>
+                          <th className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400">
+                            Ações
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+                        {paginatedAppointments.map((appointment) => {
+                          const tenant = tenants.find(t => t.id === appointment.tenantId);
+                          
+                          return (
+                            <tr key={appointment.id} data-testid={`row-appointment-${appointment.id}`}>
+                              <td className="px-5 py-4 sm:px-6">
+                                <span className="text-gray-800 text-theme-sm dark:text-white/90">
+                                  {formatDate(appointment.date)}
+                                </span>
+                              </td>
+                              <td className="px-5 py-4 sm:px-6">
+                                <span className="text-gray-800 text-theme-sm dark:text-white/90">
+                                  {appointment.time}
+                                </span>
+                              </td>
+                              <td className="px-5 py-4 sm:px-6">
+                                <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
+                                  {appointment.clientId.substring(0, 8)}...
+                                </span>
+                              </td>
+                              <td className="px-5 py-4 sm:px-6">
+                                <Badge
+                                  color={
+                                    appointment.status === "completed" ? "success" :
+                                    appointment.status === "scheduled" ? "warning" :
+                                    "error"
                                   }
-                                }}
-                                className="text-success-600 hover:bg-success-50 hover:text-success-700 dark:text-success-500 dark:hover:bg-success-500/10"
-                                data-testid={`button-complete-${appointment.id}`}
-                              >
-                                <Check className="w-4 h-4" />
-                              </Button>
-                            )}
-                            {appointment.status !== "cancelled" && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={async () => {
-                                  try {
-                                    await apiRequest("PATCH", `/api/admin/appointments/${appointment.id}/status`, { status: "cancelled" });
-                                    queryClient.invalidateQueries({ queryKey: ["/api/admin/appointments"] });
-                                    toast({ title: "Sucesso", description: "Agendamento cancelado com sucesso!" });
-                                  } catch (error) {
-                                    toast({ title: "Erro", description: "Erro ao cancelar agendamento", variant: "destructive" });
-                                  }
-                                }}
-                                className="text-error-600 hover:bg-error-50 hover:text-error-700 dark:text-error-500 dark:hover:bg-error-500/10"
-                                data-testid={`button-cancel-${appointment.id}`}
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </Card>
-          )}
+                                  size="sm"
+                                >
+                                  {appointment.status === "completed" ? "Concluído" :
+                                   appointment.status === "scheduled" ? "Agendado" :
+                                   "Cancelado"}
+                                </Badge>
+                              </td>
+                              <td className="px-5 py-4 sm:px-6">
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  {tenant?.name || appointment.tenantId.substring(0, 8)}
+                                </span>
+                              </td>
+                              <td className="px-5 py-4 sm:px-6">
+                                <div className="flex justify-center gap-2">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      setEditingAppointment(appointment);
+                                      setAppointmentDialogOpen(true);
+                                    }}
+                                    className="text-brand-500 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-500/10"
+                                    data-testid={`button-view-${appointment.id}`}
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                  {appointment.status !== "completed" && (
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={async () => {
+                                        try {
+                                          await apiRequest("PATCH", `/api/admin/appointments/${appointment.id}/status`, { status: "completed" });
+                                          queryClient.invalidateQueries({ queryKey: ["/api/admin/appointments"] });
+                                          toast({ title: "Sucesso", description: "Agendamento concluído com sucesso!" });
+                                        } catch (error) {
+                                          toast({ title: "Erro", description: "Erro ao concluir agendamento", variant: "destructive" });
+                                        }
+                                      }}
+                                      className="text-success-600 hover:bg-success-50 hover:text-success-700 dark:text-success-500 dark:hover:bg-success-500/10"
+                                      data-testid={`button-complete-${appointment.id}`}
+                                    >
+                                      <Check className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                  {appointment.status !== "cancelled" && (
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={async () => {
+                                        try {
+                                          await apiRequest("PATCH", `/api/admin/appointments/${appointment.id}/status`, { status: "cancelled" });
+                                          queryClient.invalidateQueries({ queryKey: ["/api/admin/appointments"] });
+                                          toast({ title: "Sucesso", description: "Agendamento cancelado com sucesso!" });
+                                        } catch (error) {
+                                          toast({ title: "Erro", description: "Erro ao cancelar agendamento", variant: "destructive" });
+                                        }
+                                      }}
+                                      className="text-error-600 hover:bg-error-50 hover:text-error-700 dark:text-error-500 dark:hover:bg-error-500/10"
+                                      data-testid={`button-cancel-${appointment.id}`}
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between border-t border-gray-200 bg-white px-5 py-4 dark:border-white/[0.05] dark:bg-white/[0.03] rounded-b-xl">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Mostrando {startIndex + 1} a {Math.min(startIndex + appointmentsPerPage, filteredAppointments.length)} de {filteredAppointments.length} agendamentos
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAppointmentsPage(p => Math.max(1, p - 1))}
+                        disabled={appointmentsPage === 1}
+                        data-testid="button-prev-page"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm text-gray-800 dark:text-white/90">
+                        Página {appointmentsPage} de {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAppointmentsPage(p => Math.min(totalPages, p + 1))}
+                        disabled={appointmentsPage === totalPages}
+                        data-testid="button-next-page"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="tokens" className="space-y-6 mt-6">
