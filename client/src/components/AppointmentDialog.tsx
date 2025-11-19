@@ -127,7 +127,7 @@ export function AppointmentDialog({
 
   return (
     <>
-      <Modal isOpen={open} onClose={() => onOpenChange(false)} className="sm:max-w-[500px]">
+      <Modal isOpen={open} onClose={() => onOpenChange(false)}>
       <form onSubmit={handleSubmit}>
         <div className="px-6 pt-6 pb-4 sm:px-9.5 sm:pt-9.5 sm:pb-6">
           <h3 className="text-xl font-semibold text-gray-800 dark:text-white">

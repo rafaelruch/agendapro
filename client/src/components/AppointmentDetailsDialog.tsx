@@ -49,7 +49,7 @@ export function AppointmentDetailsDialog({
 
   if (isLoading) {
     return (
-      <Modal isOpen={open} onClose={() => onOpenChange(false)} className="max-w-md" data-testid="dialog-appointment-details">
+      <Modal isOpen={open} onClose={() => onOpenChange(false)} data-testid="dialog-appointment-details">
         <div className="px-6 pt-6 pb-4 sm:px-9.5 sm:pt-9.5 sm:pb-6">
           <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
             Detalhes do Agendamento
@@ -111,7 +111,7 @@ export function AppointmentDetailsDialog({
 
   return (
     <>
-      <Modal isOpen={open} onClose={() => onOpenChange(false)} className="max-w-md">
+      <Modal isOpen={open} onClose={() => onOpenChange(false)}>
         <div className="px-6 pt-6 pb-4 sm:px-9.5 sm:pt-9.5 sm:pb-6">
           <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
             Detalhes do Agendamento
@@ -271,7 +271,7 @@ export function AppointmentDetailsDialog({
           )}
         </Modal>
 
-        <Modal isOpen={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} className="max-w-lg">
+        <Modal isOpen={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)}>
           <div className="px-6 pt-6 pb-4 sm:px-9.5 sm:pt-9.5 sm:pb-6">
             <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
               Confirmar Exclusão

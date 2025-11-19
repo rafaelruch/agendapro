@@ -52,7 +52,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   const contentClasses = isFullscreen
     ? "w-full h-full"
-    : "relative w-full max-w-3xl rounded-3xl bg-white dark:bg-gray-900 shadow-xl";
+    : "relative w-full max-w-[600px] max-h-[85vh] rounded-3xl bg-white dark:bg-gray-900 shadow-xl overflow-hidden flex flex-col";
 
   const modalContent = (
     <div className="fixed inset-0 z-[99999] flex items-center justify-center overflow-y-auto p-4">
@@ -88,7 +88,7 @@ export const Modal: React.FC<ModalProps> = ({
             </svg>
           </button>
         )}
-        <div>{children}</div>
+        <div className="overflow-y-auto flex-1">{children}</div>
       </div>
     </div>
   );
