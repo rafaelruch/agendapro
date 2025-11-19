@@ -95,6 +95,19 @@ The dashboard layout and styling are EXACTLY replicated from TailAdmin CRM templ
 - Shadow variants: `shadow-default`, `shadow-card`, `shadow-drop-down`
 - All metrics update in real-time with proper date parsing and promotional price calculations
 
+**Calendar Page (EXACT TailAdmin + Full CRUD Integration):**
+- **Visual**: FullCalendar component with TailAdmin styling (month/week/day views)
+- **CRUD Operations**:
+  - CREATE: Click date → AppointmentDialog → Validate → Create appointment → Toast
+  - READ: Appointments displayed as events on calendar
+  - UPDATE: Click event → AppointmentDetailsDialog → Edit → Update appointment → Toast
+  - DELETE: AppointmentDetailsDialog → Delete → Confirm → Remove appointment → Toast
+- **Type Safety**: Uses `FrontendAppointmentData = Omit<InsertAppointment, 'tenantId'>` for frontend payloads (backend injects tenantId automatically from session)
+- **Frontend Validation**: AppointmentDialog validates required fields (clientId, serviceIds min 1, date, time) before submitting
+- **Backend Integration**: All mutations (create/update/delete) properly invalidate TanStack Query cache for real-time updates
+- **Multi-Service Support**: Appointments can have multiple services with total duration calculation
+- **Conflict Detection**: Backend prevents overlapping appointments based on calculated durations
+
 ### Technical Implementations
 - **Multi-Tenant Architecture**: Data isolation is enforced using a `tenantId` field and middleware.
 - **Authentication**: Secure login uses `express-session` and `bcrypt` for web sessions, and token-based authentication for API integrations.
