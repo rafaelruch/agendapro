@@ -8,8 +8,7 @@ import { AppointmentDialog } from "@/components/AppointmentDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import type { Appointment, Client, Service } from "@shared/schema";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, subMonths, parseISO } from 'date-fns';
@@ -574,13 +573,13 @@ export default function Dashboard() {
                       </div>
                       <span className="font-medium">{service.percentage}%</span>
                     </div>
-                    <div className="mt-1.5">
-                      <Progress 
-                        value={service.percentage} 
-                        className="h-1.5 bg-stroke dark:bg-strokedark"
-                        style={{ 
-                          ['--progress-background' as string]: service.color 
-                        } as React.CSSProperties}
+                    <div className="mt-1.5 h-1.5 w-full rounded-full bg-stroke dark:bg-strokedark overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${service.percentage}%`,
+                          backgroundColor: service.color
+                        }}
                       />
                     </div>
                     <p className="mt-1 text-xs font-medium text-bodydark2">
@@ -719,7 +718,7 @@ export default function Dashboard() {
         }}
         clients={clients.map(c => ({ id: c.id, name: c.name }))}
         services={services}
-        initialData={editingAppointment}
+        initialData={editingAppointment || undefined}
         onSave={(data) => {
           if (editingAppointment) {
             updateAppointmentMutation.mutate({ id: editingAppointment.id, data });

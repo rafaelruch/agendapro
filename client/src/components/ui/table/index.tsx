@@ -61,4 +61,12 @@ const TableCell: React.FC<TableCellProps> = ({
   return <CellTag className={` ${className}`}>{children}</CellTag>;
 };
 
-export { Table, TableHeader, TableBody, TableRow, TableCell };
+// TableHead Component (same as TableCell with isHeader=true, for semantic clarity)
+const TableHead: React.FC<Omit<TableCellProps, 'isHeader'>> = ({
+  children,
+  className,
+}) => {
+  return <th className={` ${className}`}>{children}</th>;
+};
+
+export { Table, TableHeader, TableBody, TableRow, TableCell, TableHead };
