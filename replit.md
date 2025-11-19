@@ -49,6 +49,14 @@ Replicates the TailAdmin SignInForm with a two-column layout (form on left, bran
 **Calendar Page:**
 Utilizes FullCalendar with TailAdmin styling, supporting full CRUD operations for appointments. It includes text truncation for events, frontend validation, backend integration with TanStack Query cache invalidation, multi-service support with duration calculation, and robust conflict detection to prevent overlapping bookings.
 
+**DatePicker Component (Flatpickr):**
+Implemented `client/src/components/ui/date-picker.tsx` using Flatpickr for professional date/time selection. Supports both `date` and `time` modes with 24-hour format and Brazilian localization. **Critical closure fix**: Separate useEffect updates onChange handler via `flatpickrRef.current.set("onChange", ...)` to prevent form field wiping when selecting dates. Integrated in ClientDialog and AppointmentDialog.
+
+**Production Bug Fixes (Nov 2025):**
+1. **Cache Invalidation Race Conditions**: All mutations in ClientsPage and CalendarPage now use `async/await queryClient.invalidateQueries()` to ensure cache updates complete before dialogs close, preventing stale data and "item disappeared" bugs.
+2. **Premature Dialog Closures**: Removed `onOpenChange(false)` from submit handlers in AppointmentDialog. Parent components now control dialog closure after mutation success, ensuring errors are properly displayed.
+3. **DatePicker Closure Bug**: Fixed critical issue where selecting dates would wipe other form fields. Solution: Second useEffect dynamically updates Flatpickr's onChange callback, preventing closure over stale form state.
+
 ### Technical Implementations
 - **Multi-Tenant Architecture**: Data isolation enforced via `tenantId` and middleware.
 - **Authentication**: Secure login with `express-session` and `bcrypt` for web sessions, and token-based for API.
