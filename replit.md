@@ -52,6 +52,26 @@ The dashboard layout and styling are EXACTLY replicated from TailAdmin CRM templ
 3. ✅ `LoginPage.tsx` - Baseado em SignInForm + AuthPageLayout EXATOS
 4. ✅ `auth-logo.svg` - Logo customizada mantendo estilo TailAdmin
 5. ✅ `grid-01.svg` - Grid pattern SVG (copiado de `attached_assets/.../public/images/shape/grid-01.svg`)
+6. ✅ **TailAdmin Modal System** - Wrappers que mantêm API Shadcn mas renderizam TailAdmin Modal
+
+**TailAdmin Modal Migration (Complete):**
+- **Approach**: Created wrapper components (`dialog-tailadmin.tsx`, `alert-dialog-tailadmin.tsx`) that expose Shadcn Dialog API but render TailAdmin Modal underneath
+- **Benefits**: Zero breaking changes - all existing dialogs work with simple import swap
+- **Components Migrated**: AppointmentDetailsDialog, AppointmentDialog, ClientDialog, ServiceDialog, UserDialog, QuickClientDialog, AdminPage dialogs
+- **Features Implemented**:
+  - ✅ Full keyboard accessibility (Tab/Shift+Tab focus trap)
+  - ✅ Focus management (captures trigger element, restores on close)
+  - ✅ Container width customization via className (extracts max-w-* classes)
+  - ✅ ARIA attributes (role, aria-modal, aria-label, aria-hidden)
+  - ✅ ESC + backdrop click to close
+  - ✅ Body scroll lock when open
+  - ✅ Smooth TailAdmin animations (fade-in/fade-out, backdrop blur)
+- **Technical Implementation**:
+  - useLayoutEffect for pre-focus capture (before focus trap)
+  - Context API for className propagation (Dialog → DialogContent)
+  - Custom focus trap utility with Tab loop
+  - Separate effects for ESC handler and focus restoration
+- **Files**: `client/src/components/ui/dialog-tailadmin.tsx`, `client/src/components/ui/alert-dialog-tailadmin.tsx`
 
 **Header (EXACT TailAdmin - `client/src/App.tsx`):**
 - **Structure**: `sticky top-0 z-99999 flex-col lg:flex-row lg:border-b`
