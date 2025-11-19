@@ -188,7 +188,16 @@ export default function LoginPage() {
         </div>
 
         {/* Right Side - Brand Section (EXACT TailAdmin AuthLayout) */}
-        <div className="items-center hidden w-full h-full lg:w-1/2 bg-brand-950 dark:bg-white/5 lg:grid">
+        <div className="items-center hidden w-full h-full lg:w-1/2 bg-brand-950 dark:bg-white/5 lg:grid relative overflow-hidden">
+          {/* Background Grid Pattern */}
+          <div 
+            className="absolute inset-0 opacity-20 dark:opacity-10"
+            style={{
+              backgroundImage: 'url(/images/shape/grid-01.svg)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          />
           <div className="relative flex items-center justify-center z-1">
             <div className="flex flex-col items-center max-w-xs">
               {/* Logo Textual - Calendar Icon + AgendaPro v1.0 */}
