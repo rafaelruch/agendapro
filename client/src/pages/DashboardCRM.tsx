@@ -549,7 +549,7 @@ export default function DashboardCRM() {
                           setSelectedAppointmentId(apt.id);
                           setShowDetailsDialog(true);
                         }}
-                        className="w-8 h-8 text-brand-500 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-500/10"
+                        className="text-brand-500 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-500/10"
                         data-testid={`button-view-${index}`}
                       >
                         <Eye className="w-4 h-4" />
@@ -560,7 +560,7 @@ export default function DashboardCRM() {
                           variant="ghost"
                           onClick={() => updateStatusMutation.mutate({ id: apt.id, status: "completed" })}
                           disabled={updateStatusMutation.isPending}
-                          className="w-8 h-8 text-success-600 hover:bg-success-50 hover:text-success-700 dark:text-success-500 dark:hover:bg-success-500/10"
+                          className="text-success-600 hover:bg-success-50 hover:text-success-700 dark:text-success-500 dark:hover:bg-success-500/10"
                           data-testid={`button-complete-${index}`}
                         >
                           <Check className="w-4 h-4" />
@@ -572,7 +572,7 @@ export default function DashboardCRM() {
                           variant="ghost"
                           onClick={() => updateStatusMutation.mutate({ id: apt.id, status: "cancelled" })}
                           disabled={updateStatusMutation.isPending}
-                          className="w-8 h-8 text-error-600 hover:bg-error-50 hover:text-error-700 dark:text-error-500 dark:hover:bg-error-500/10"
+                          className="text-error-600 hover:bg-error-50 hover:text-error-700 dark:text-error-500 dark:hover:bg-error-500/10"
                           data-testid={`button-cancel-${index}`}
                         >
                           <X className="w-4 h-4" />

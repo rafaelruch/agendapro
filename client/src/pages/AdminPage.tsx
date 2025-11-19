@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Building2, Users, Trash2, Key, Copy, AlertCircle, Pencil, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Building2, Users, Trash2, Key, Copy, AlertCircle, Pencil, Calendar as CalendarIcon, Eye, Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -414,7 +414,7 @@ export default function AdminPage() {
                     <TableCell isHeader={true}>Cliente ID</TableCell>
                     <TableCell isHeader={true}>Status</TableCell>
                     <TableCell isHeader={true}>Tenant</TableCell>
-                    <TableCell isHeader={true} className="w-[70px]"> </TableCell>
+                    <TableCell isHeader={true}>Ações</TableCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -438,17 +438,58 @@ export default function AdminPage() {
                           {tenant?.name || appointment.tenantId.substring(0, 8)}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setEditingAppointment(appointment);
-                              setAppointmentDialogOpen(true);
-                            }}
-                            data-testid={`button-edit-appointment-${appointment.id}`}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditingAppointment(appointment);
+                                setAppointmentDialogOpen(true);
+                              }}
+                              className="text-brand-500 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-500/10"
+                              data-testid={`button-view-${appointment.id}`}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            {appointment.status !== "completed" && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={async () => {
+                                  try {
+                                    await apiRequest("PATCH", `/api/admin/appointments/${appointment.id}/status`, { status: "completed" });
+                                    queryClient.invalidateQueries({ queryKey: ["/api/admin/appointments"] });
+                                    toast({ title: "Sucesso", description: "Agendamento concluído com sucesso!" });
+                                  } catch (error) {
+                                    toast({ title: "Erro", description: "Erro ao concluir agendamento", variant: "destructive" });
+                                  }
+                                }}
+                                className="text-success-600 hover:bg-success-50 hover:text-success-700 dark:text-success-500 dark:hover:bg-success-500/10"
+                                data-testid={`button-complete-${appointment.id}`}
+                              >
+                                <Check className="w-4 h-4" />
+                              </Button>
+                            )}
+                            {appointment.status !== "cancelled" && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={async () => {
+                                  try {
+                                    await apiRequest("PATCH", `/api/admin/appointments/${appointment.id}/status`, { status: "cancelled" });
+                                    queryClient.invalidateQueries({ queryKey: ["/api/admin/appointments"] });
+                                    toast({ title: "Sucesso", description: "Agendamento cancelado com sucesso!" });
+                                  } catch (error) {
+                                    toast({ title: "Erro", description: "Erro ao cancelar agendamento", variant: "destructive" });
+                                  }
+                                }}
+                                className="text-error-600 hover:bg-error-50 hover:text-error-700 dark:text-error-500 dark:hover:bg-error-500/10"
+                                data-testid={`button-cancel-${appointment.id}`}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
