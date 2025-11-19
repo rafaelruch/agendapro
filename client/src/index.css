@@ -412,7 +412,19 @@
   @apply hidden;
 }
 .fc-addEventButton-button {
-  @apply !rounded-lg !border-0 !bg-brand-500 !px-4 !py-2.5 !text-sm !font-medium hover:!bg-brand-600 focus:!shadow-none;
+  border-radius: 0.5625rem !important;
+  border: 0 !important;
+  background-color: #3C50E0 !important;
+  padding: 0.625rem 1rem !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: white !important;
+}
+.fc-addEventButton-button:hover {
+  background-color: #2a31d8 !important;
+}
+.fc-addEventButton-button:focus {
+  box-shadow: none !important;
 }
 .fc-toolbar-title {
   @apply !text-lg !font-medium text-gray-800 dark:text-white/90;
