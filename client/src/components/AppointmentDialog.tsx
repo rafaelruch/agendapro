@@ -13,8 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Plus } from "lucide-react";
 import { QuickClientDialog } from "./QuickClientDialog";
-import { TailAdminMultiSelect } from "./TailAdminMultiSelect";
 import { ClientSearchSelect } from "./ClientSearchSelect";
+import { ServiceSearchMultiSelect } from "./ServiceSearchMultiSelect";
 import type { InsertAppointment } from "@shared/schema";
 
 // Frontend appointment data - tenantId is set by backend
@@ -145,16 +145,12 @@ export function AppointmentDialog({
                 </Button>
               </div>
             </div>
-            <TailAdminMultiSelect
-              options={services.map(s => ({
-                id: s.id,
-                name: s.name,
-                description: `${s.category} • R$ ${parseFloat(s.value).toFixed(2).replace('.', ',')} • ${s.duration} min`
-              }))}
+            <ServiceSearchMultiSelect
+              services={services}
               selected={formData.serviceIds}
               onChange={(serviceIds) => setFormData({ ...formData, serviceIds })}
               label="Serviços"
-              placeholder="Selecione um ou mais serviços..."
+              placeholder="Digite para buscar e selecionar serviços..."
             />
             <div className="grid grid-cols-2 gap-4">
               <DatePicker
