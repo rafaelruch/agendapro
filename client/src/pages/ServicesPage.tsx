@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Plus, Search, Download, Upload, Edit2, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Download, Upload, Edit2, Trash2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -389,58 +389,43 @@ export default function ServicesPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-b-xl dark:border-white/[0.05] dark:bg-white/[0.03]">
-              <div className="flex flex-1 justify-between sm:hidden">
+            <div className="flex items-center justify-between border-t border-gray-100 px-5 py-4 dark:border-white/[0.05]">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Mostrando {startIndex + 1} até {Math.min(startIndex + itemsPerPage, filteredServices.length)} de {filteredServices.length} serviços
+              </p>
+              <div className="flex gap-2">
                 <Button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  variant="outline"
                   size="sm"
+                  variant="outline"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  data-testid="button-prev-page"
                 >
                   Anterior
                 </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      size="sm"
+                      variant={currentPage === page ? "default" : "ghost"}
+                      onClick={() => setCurrentPage(page)}
+                      data-testid={`button-page-${page}`}
+                      className="min-w-[36px]"
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
                 <Button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  variant="outline"
                   size="sm"
+                  variant="outline"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  data-testid="button-next-page"
                 >
-                  Próxima
+                  Próximo
                 </Button>
-              </div>
-              <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
-                    Mostrando <span className="font-medium">{startIndex + 1}</span> a{' '}
-                    <span className="font-medium">{Math.min(startIndex + itemsPerPage, filteredServices.length)}</span> de{' '}
-                    <span className="font-medium">{filteredServices.length}</span> resultados
-                  </p>
-                </div>
-                <div>
-                  <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                    <Button
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                      variant="outline"
-                      size="sm"
-                      className="rounded-r-none"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-gray-700">
-                      {currentPage} / {totalPages}
-                    </span>
-                    <Button
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                      variant="outline"
-                      size="sm"
-                      className="rounded-l-none"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </nav>
-                </div>
               </div>
             </div>
           )}
