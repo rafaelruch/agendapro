@@ -385,50 +385,50 @@ export default function ServicesPage() {
                 </TableBody>
               </Table>
             </div>
-          </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-gray-100 px-5 py-4 dark:border-white/[0.05]">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Mostrando {startIndex + 1} até {Math.min(startIndex + itemsPerPage, filteredServices.length)} de {filteredServices.length} serviços
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  data-testid="button-prev-page"
-                >
-                  Anterior
-                </Button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <Button
-                      key={page}
-                      size="sm"
-                      variant={currentPage === page ? "default" : "ghost"}
-                      onClick={() => setCurrentPage(page)}
-                      data-testid={`button-page-${page}`}
-                      className="min-w-[36px]"
-                    >
-                      {page}
-                    </Button>
-                  ))}
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-gray-100 px-5 py-4 dark:border-white/[0.05]">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Mostrando {startIndex + 1} até {Math.min(startIndex + itemsPerPage, filteredServices.length)} de {filteredServices.length} serviços
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    data-testid="button-prev-page"
+                  >
+                    Anterior
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        size="sm"
+                        variant={currentPage === page ? "default" : "ghost"}
+                        onClick={() => setCurrentPage(page)}
+                        data-testid={`button-page-${page}`}
+                        className="min-w-[36px]"
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    data-testid="button-next-page"
+                  >
+                    Próximo
+                  </Button>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  data-testid="button-next-page"
-                >
-                  Próximo
-                </Button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </>
       )}
 
