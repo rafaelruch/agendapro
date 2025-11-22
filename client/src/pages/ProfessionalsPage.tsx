@@ -218,9 +218,6 @@ export default function ProfessionalsPage() {
                 Serviços
               </th>
               <th className="px-4 py-4 text-left font-medium text-black dark:text-white">
-                Dias de Atendimento
-              </th>
-              <th className="px-4 py-4 text-left font-medium text-black dark:text-white">
                 Status
               </th>
               <th className="px-4 py-4 text-center font-medium text-black dark:text-white">
@@ -231,7 +228,7 @@ export default function ProfessionalsPage() {
           <TableBody>
             {paginatedProfessionals.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-12 text-bodydark2">
+                <TableCell colSpan={4} className="text-center py-12 text-bodydark2">
                   {searchQuery ? "Nenhum profissional encontrado." : "Nenhum profissional cadastrado."}
                 </TableCell>
               </TableRow>
@@ -249,14 +246,6 @@ export default function ProfessionalsPage() {
                     </p>
                     <p className="text-xs text-bodydark2 mt-0.5 truncate max-w-xs" title={getServiceNames(professional.serviceIds)}>
                       {getServiceNames(professional.serviceIds)}
-                    </p>
-                  </TableCell>
-                  <TableCell className="px-4 py-4">
-                    <p className="text-sm text-bodydark2">
-                      {getScheduleSummary(professional.schedules)}
-                    </p>
-                    <p className="text-xs text-bodydark2 mt-0.5">
-                      {professional.schedules.length} período(s)
                     </p>
                   </TableCell>
                   <TableCell className="px-4 py-4">
