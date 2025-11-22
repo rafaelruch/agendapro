@@ -5,6 +5,14 @@ import "flatpickr/dist/flatpickr.css";
 import { Calendar, Clock } from "lucide-react";
 import { Label } from "./label";
 
+// Configurar locale português globalmente com correção do firstDayOfWeek
+if (typeof flatpickr !== 'undefined' && flatpickr.l10ns) {
+  flatpickr.l10ns.pt = {
+    ...Portuguese,
+    firstDayOfWeek: 0, // 0 = Domingo (padrão brasileiro)
+  };
+}
+
 type DatePickerMode = "single" | "multiple" | "range" | "time";
 
 interface DatePickerProps {
@@ -48,10 +56,7 @@ export function DatePicker({
       enableTime: mode === "time",
       noCalendar: mode === "time",
       time_24hr: true,
-      locale: {
-        ...Portuguese,
-        firstDayOfWeek: 0, // 0 = Domingo (padrão brasileiro)
-      },
+      locale: "pt", // Usar locale português configurado globalmente
       defaultDate: value || defaultDate,
       onChange: (selectedDates, dateStr) => {
         if (onChange) {
@@ -61,6 +66,16 @@ export function DatePicker({
     };
 
     flatpickrRef.current = flatpickr(inputRef.current, config);
+
+    // Forçar firstDayOfWeek depois da inicialização (workaround para bug do Flatpickr)
+    if (flatpickrRef.current && mode !== "time") {
+      flatpickrRef.current.set("locale", {
+        ...Portuguese,
+        firstDayOfWeek: 0,
+      });
+      // Redesenhar o calendário com a configuração correta
+      flatpickrRef.current.redraw();
+    }
 
     return () => {
       if (flatpickrRef.current) {
