@@ -20,7 +20,7 @@ The system utilizes a multi-tenant SaaS architecture with a clear separation bet
 ### UI/UX Decisions
 All UI components (buttons, forms, tables, alerts, etc.) MUST be sourced EXCLUSIVELY from `attached_assets/free-react-tailwind-admin-dashboard-main/`. No other component libraries (e.g., Shadcn/UI, Radix UI, Material-UI) are permitted. The system uses exact TailAdmin color schemes defined in `client/src/index.css`.
 
-A custom modal system is implemented using React Portals, rendering into `#modal-root` with high z-index and `backdrop-blur-[32px]` for a professional look. The login page replicates the TailAdmin SignInForm, and the calendar page uses FullCalendar with TailAdmin styling, supporting full CRUD for appointments, conflict detection, and multi-service duration calculation. Date picking is handled by Flatpickr, localized for Brazilian format.
+A custom modal system is implemented using React Portals, rendering into `#modal-root` with high z-index and `backdrop-blur-[32px]` for a professional look. The login page replicates the TailAdmin SignInForm, and the calendar page uses FullCalendar with TailAdmin styling, supporting full CRUD for appointments, conflict detection, and multi-service duration calculation. **Date picking is handled by react-day-picker (replaces Flatpickr) with ptBR locale, weekStartsOn: 0 (Domingo), and correct day-of-week calculation**.
 
 **TABLE STANDARDIZATION (CRITICAL - MANDATORY FOR ALL TABLES):**
 ALL data tables across the entire system (Clients, Services, Professionals, Users, etc.) MUST follow this exact pattern from ServicesPage/ClientsPage:
@@ -99,7 +99,7 @@ ALL data tables across the entire system (Clients, Services, Professionals, User
 
 **NO EXCEPTIONS**: Every new table page must replicate this structure exactly. Consistency is critical for user experience and maintainability.
 
-Recent production bug fixes addressed cache invalidation race conditions, premature dialog closures, and DatePicker interaction issues. Schema corrections include removing the `email` field from the Clients table, adding a `duration` field to Appointments, and enforcing `phone` as NOT NULL. A critical bug fix ensures that appointment `duration` is correctly calculated and persisted to the database during creation and updates.
+Recent production bug fixes addressed cache invalidation race conditions, premature dialog closures, and DatePicker interaction issues. **CRITICAL FIX (Nov 2025):** Replaced Flatpickr with react-day-picker due to incorrect day-of-week calculations (22/Nov/2025 was showing as Wednesday instead of Saturday). Schema corrections include removing the `email` field from the Clients table, adding a `duration` field to Appointments, and enforcing `phone` as NOT NULL. A critical bug fix ensures that appointment `duration` is correctly calculated and persisted to the database during creation and updates. **Professional assignment now displays correctly in AppointmentDetailsDialog** with dedicated query and UI section.
 
 ### Technical Implementations
 - **Multi-Tenant Architecture**: Enforced data isolation via `tenantId` and middleware.
