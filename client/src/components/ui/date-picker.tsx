@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import flatpickr from "flatpickr";
+import { Portuguese } from "flatpickr/dist/l10n/pt.js";
 import "flatpickr/dist/flatpickr.css";
 import { Calendar, Clock } from "lucide-react";
 import { Label } from "./label";
@@ -42,9 +43,15 @@ export function DatePicker({
       static: true,
       monthSelectorType: "static",
       dateFormat: mode === "time" ? "H:i" : "Y-m-d",
+      altInput: mode !== "time",
+      altFormat: mode === "time" ? "H:i" : "d/m/Y",
       enableTime: mode === "time",
       noCalendar: mode === "time",
       time_24hr: true,
+      locale: {
+        ...Portuguese,
+        firstDayOfWeek: 0, // 0 = Domingo (padrão brasileiro)
+      },
       defaultDate: value || defaultDate,
       onChange: (selectedDates, dateStr) => {
         if (onChange) {
