@@ -267,9 +267,10 @@ export default function SettingsPage() {
             </Alert>
 
             <Tabs defaultValue="clients" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="clients">Clientes</TabsTrigger>
                 <TabsTrigger value="services">Serviços</TabsTrigger>
+                <TabsTrigger value="professionals">Profissionais</TabsTrigger>
                 <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
               </TabsList>
 
@@ -467,6 +468,134 @@ export default function SettingsPage() {
                         <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
 {`curl -X GET ${baseUrl}/api/services/{id}/appointments`}
                         </pre>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="professionals" className="space-y-4 mt-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Endpoints Disponíveis</Label>
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-1 text-white px-2 py-1 rounded font-mono text-xs">GET</code>
+                          <span className="font-mono text-muted-foreground">/api/professionals</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Listar todos os profissionais</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X GET ${baseUrl}/api/professionals \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-2 text-white px-2 py-1 rounded font-mono text-xs">POST</code>
+                          <span className="font-mono text-muted-foreground">/api/professionals</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Criar um novo profissional</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X POST ${baseUrl}/api/professionals \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "Dr. João Silva",
+    "serviceIds": ["service-id-1", "service-id-2"],
+    "schedules": [
+      {"dayOfWeek": 1, "startTime": "08:00", "endTime": "12:00"},
+      {"dayOfWeek": 1, "startTime": "14:00", "endTime": "18:00"}
+    ],
+    "active": true
+  }'`}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-3 text-white px-2 py-1 rounded font-mono text-xs">PUT</code>
+                          <span className="font-mono text-muted-foreground">/api/professionals/{"{id}"}</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Atualizar um profissional existente</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X PUT ${baseUrl}/api/professionals/{id} \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "Dr. João Silva Updated",
+    "serviceIds": ["service-id-1"],
+    "schedules": [
+      {"dayOfWeek": 1, "startTime": "09:00", "endTime": "17:00"}
+    ],
+    "active": true
+  }'`}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-4 text-white px-2 py-1 rounded font-mono text-xs">DELETE</code>
+                          <span className="font-mono text-muted-foreground">/api/professionals/{"{id}"}</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Deletar um profissional</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X DELETE ${baseUrl}/api/professionals/{id} \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="bg-chart-1 text-white px-2 py-1 rounded font-mono text-xs">GET</code>
+                          <span className="font-mono text-muted-foreground">/api/professionals/{"{id}"}/availability</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs ml-14">Verificar disponibilidade de um profissional</p>
+                        <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-auto">
+{`curl -X GET ${baseUrl}/api/professionals/{id}/availability?date=2025-11-25&time=14:00&duration=60 \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-4 border-t">
+                    <Label>Campos do Profissional</Label>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex gap-2">
+                        <code className="bg-muted px-2 py-1 rounded">name</code>
+                        <span className="text-muted-foreground">Nome do profissional (obrigatório)</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <code className="bg-muted px-2 py-1 rounded">serviceIds</code>
+                        <span className="text-muted-foreground">Array de IDs de serviços (obrigatório, mínimo 1)</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <code className="bg-muted px-2 py-1 rounded">schedules</code>
+                        <span className="text-muted-foreground">Array de horários (obrigatório, mínimo 1)</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <code className="bg-muted px-2 py-1 rounded">active</code>
+                        <span className="text-muted-foreground">Status ativo/inativo (padrão: true)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-4 border-t">
+                    <Label>Estrutura de Horários</Label>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex gap-2">
+                        <code className="bg-muted px-2 py-1 rounded">dayOfWeek</code>
+                        <span className="text-muted-foreground">Dia da semana (0=Domingo, 1=Segunda, ..., 6=Sábado)</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <code className="bg-muted px-2 py-1 rounded">startTime</code>
+                        <span className="text-muted-foreground">Horário de início (formato: HH:MM)</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <code className="bg-muted px-2 py-1 rounded">endTime</code>
+                        <span className="text-muted-foreground">Horário de término (formato: HH:MM)</span>
                       </div>
                     </div>
                   </div>

@@ -1,7 +1,7 @@
 # AgendaPro - Sistema SaaS Multi-Tenant de Gerenciamento de Agendas
 
 ## Overview
-AgendaPro is a multi-tenant SaaS appointment management system designed for businesses. It provides comprehensive tools for managing clients, services, and appointments with complete data isolation for each tenant. The platform includes a robust REST API for integration with automation tools like N8N, aiming to deliver a scalable and secure scheduling solution for the service industry.
+AgendaPro is a multi-tenant SaaS appointment management system designed for businesses. It provides comprehensive tools for managing clients, services, **professionals**, and appointments with complete data isolation for each tenant. The platform includes a robust REST API for integration with automation tools like N8N, aiming to deliver a scalable and secure scheduling solution for the service industry.
 
 ## User Preferences
 I prefer simple language and clear explanations. I want iterative development with frequent, small updates. Please ask for my approval before making any major architectural changes or significant feature implementations. Ensure all code is well-documented and follows best practices.
@@ -32,8 +32,8 @@ Recent production bug fixes addressed cache invalidation race conditions, premat
 - **User Management**: `master_admin`, `admin`, and `user` roles with defined access levels.
 - **API Design**: Comprehensive RESTful API for CRUD operations, filtering, and N8N compatibility.
 - **Data Validation**: Zod for robust schema validation.
-- **Core Features**: Multi-tenant, secure auth, master admin panel, user/service management, appointment scheduling/editing, business hours, availability, full REST API.
-- **Advanced Features**: Appointment conflict detection, flexible business hours, availability API, secure API token system, role-based access control, dynamic API documentation, bulk service import, detailed calendar views, client phone uniqueness, multi-service appointments (total duration calculation), and promotional pricing with date-based activation.
+- **Core Features**: Multi-tenant, secure auth, master admin panel, user/service/professional management, appointment scheduling/editing, business hours, availability, full REST API.
+- **Advanced Features**: Appointment conflict detection (including professional double-booking prevention), flexible business hours, availability API, secure API token system, role-based access control, dynamic API documentation, bulk service import, detailed calendar views, client phone uniqueness, multi-service appointments (total duration calculation), promotional pricing with date-based activation, **professional management with flexible multi-interval schedules, professional filtering in calendar, and professional-specific appointment assignment**.
 - **Production Security**: Critical requirements include a mandatory, high-entropy `SESSION_SECRET` environment variable. Security measures include httpOnly, secure, and strict sameSite cookies; rate limiting on auth and API endpoints; trust proxy configuration for Replit and production environments; Zod-based input validation; and secure file upload handling for CSVs (max 5MB, 1000 rows, strict type validation).
 
 ### System Design Choices

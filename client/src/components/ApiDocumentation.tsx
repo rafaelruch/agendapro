@@ -736,6 +736,17 @@ export function ApiDocumentation() {
             ))}
           </section>
 
+          {/* Profissionais */}
+          <section id="profissionais" data-section="profissionais" className="mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Profissionais</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Gerencie profissionais do seu tenant. Cada profissional pode realizar múltiplos serviços e ter horários de atendimento flexíveis por dia da semana.
+            </p>
+            {endpoints.profissionais.map((endpoint, idx) => (
+              <EndpointCard key={idx} endpoint={endpoint} />
+            ))}
+          </section>
+
           {/* Agendamentos */}
           <section id="agendamentos" data-section="agendamentos" className="mb-16">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Agendamentos</h2>
