@@ -9,6 +9,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AppointmentDialog } from "@/components/AppointmentDialog";
 import { AppointmentDetailsDialog } from "@/components/AppointmentDetailsDialog";
+import { Label } from "@/components/ui/label";
 import type { Appointment, AppointmentWithServices, Client, Service, InsertAppointment } from "@shared/schema";
 
 // Frontend appointment data - tenantId is set by backend
@@ -19,6 +20,7 @@ export default function CalendarPage() {
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [editingAppointment, setEditingAppointment] = useState<AppointmentWithServices | null>(null);
   const [prefilledDate, setPrefilledDate] = useState<string | null>(null);
+  const [professionalFilter, setProfessionalFilter] = useState<string>("all");
   const calendarRef = useRef<FullCalendar>(null);
   const { toast } = useToast();
 
@@ -28,6 +30,10 @@ export default function CalendarPage() {
 
   const { data: services = [] } = useQuery<Service[]>({
     queryKey: ["/api/services"],
+  });
+
+  const { data: professionals = [] } = useQuery<any[]>({
+    queryKey: ["/api/professionals"],
   });
 
   const { data: appointments = [], isLoading } = useQuery<AppointmentWithServices[]>({
@@ -96,8 +102,19 @@ export default function CalendarPage() {
     },
   });
 
+  // Filter appointments based on professional filter
+  const filteredAppointments = appointments.filter((apt) => {
+    if (professionalFilter === "all") {
+      return true;
+    } else if (professionalFilter === "none") {
+      return !apt.professionalId;
+    } else {
+      return apt.professionalId === professionalFilter;
+    }
+  });
+
   // Convert appointments to FullCalendar events
-  const calendarEvents = appointments.map((apt) => {
+  const calendarEvents = filteredAppointments.map((apt) => {
     const client = clients.find((c) => c.id === apt.clientId);
     const aptServices = services.filter((s) => apt.serviceIds?.includes(s.id));
     const serviceNames = aptServices.map((s) => s.name).join(", ");
@@ -149,9 +166,38 @@ export default function CalendarPage() {
 
   return (
     <>
-      <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="custom-calendar">
-          <FullCalendar
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold text-black dark:text-white">Agenda</h1>
+            <p className="text-bodydark2">Visualize e gerencie os agendamentos</p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Label htmlFor="professional-filter" className="text-sm text-bodydark2">
+              Filtrar por:
+            </Label>
+            <select
+              id="professional-filter"
+              value={professionalFilter}
+              onChange={(e) => setProfessionalFilter(e.target.value)}
+              className="rounded-lg border border-stroke bg-white dark:bg-boxdark dark:border-strokedark py-2 px-4 text-sm outline-none transition focus:border-primary dark:focus:border-primary"
+              data-testid="select-professional-filter"
+            >
+              <option value="all">Todos os profissionais</option>
+              <option value="none">Sem profissional</option>
+              {professionals.map((professional) => (
+                <option key={professional.id} value={professional.id}>
+                  {professional.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+          <div className="custom-calendar">
+            <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView="dayGridMonth"
@@ -182,6 +228,7 @@ export default function CalendarPage() {
           />
         </div>
       </div>
+    </div>
 
       {/* Original AppointmentDialog for full CRUD functionality */}
       <AppointmentDialog

@@ -15,6 +15,13 @@ import {
   type InsertBusinessHours,
   type AppointmentService,
   type InsertAppointmentService,
+  type Professional,
+  type InsertProfessional,
+  type ProfessionalService,
+  type InsertProfessionalService,
+  type ProfessionalSchedule,
+  type InsertProfessionalSchedule,
+  type ProfessionalWithDetails,
   clients,
   services,
   appointments,
@@ -22,7 +29,10 @@ import {
   users,
   tenantApiTokens,
   businessHours,
-  appointmentServices
+  appointmentServices,
+  professionals,
+  professionalServices,
+  professionalSchedules
 } from "@shared/schema";
 import { randomBytes } from "crypto";
 import { db } from "./db";
@@ -104,6 +114,18 @@ export interface IStorage {
   createBusinessHours(businessHour: InsertBusinessHours): Promise<BusinessHours>;
   updateBusinessHours(id: string, tenantId: string, businessHour: Partial<InsertBusinessHours>): Promise<BusinessHours | undefined>;
   deleteBusinessHours(id: string, tenantId: string): Promise<boolean>;
+
+  // Professional operations (with tenant isolation)
+  getProfessional(id: string, tenantId: string): Promise<Professional | undefined>;
+  getProfessionalWithDetails(id: string, tenantId: string): Promise<ProfessionalWithDetails | undefined>;
+  getAllProfessionals(tenantId: string): Promise<Professional[]>;
+  getAllProfessionalsWithDetails(tenantId: string): Promise<ProfessionalWithDetails[]>;
+  getProfessionalsByServices(serviceIds: string[], tenantId: string): Promise<ProfessionalWithDetails[]>;
+  searchProfessionals(tenantId: string, searchTerm: string): Promise<Professional[]>;
+  createProfessional(professional: Omit<InsertProfessional, 'tenantId'>, tenantId: string): Promise<ProfessionalWithDetails>;
+  updateProfessional(id: string, tenantId: string, professional: Partial<Omit<InsertProfessional, 'tenantId'>>): Promise<ProfessionalWithDetails | undefined>;
+  deleteProfessional(id: string, tenantId: string): Promise<boolean>;
+  checkProfessionalAvailability(professionalId: string, date: string, time: string, duration: number, excludeAppointmentId?: string): Promise<boolean>;
 
   // Admin operations (no tenant isolation)
   getAllAppointmentsAdmin(): Promise<Appointment[]>;
@@ -312,7 +334,7 @@ export class DbStorage implements IStorage {
   }
 
   async createService(insertService: InsertService): Promise<Service> {
-    const serviceData = {
+    const serviceData: any = {
       ...insertService,
       value: insertService.value.toString(),
     };
@@ -605,7 +627,7 @@ export class DbStorage implements IStorage {
     appointmentData: Partial<InsertAppointment>
   ): Promise<Appointment | undefined> {
     // Remover duration e serviceIds do appointmentData antes de usar
-    const { serviceIds, duration: _, ...dataToUpdate } = appointmentData;
+    const { serviceIds, ...dataToUpdate } = appointmentData;
     
     const currentAppointment = await this.getAppointment(id, tenantId);
     if (!currentAppointment) return undefined;
@@ -908,6 +930,223 @@ export class DbStorage implements IStorage {
       .where(and(eq(businessHours.id, id), eq(businessHours.tenantId, tenantId)))
       .returning();
     return result.length > 0;
+  }
+
+  // Professional operations
+  async getProfessional(id: string, tenantId: string): Promise<Professional | undefined> {
+    const result = await db
+      .select()
+      .from(professionals)
+      .where(and(eq(professionals.id, id), eq(professionals.tenantId, tenantId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getProfessionalWithDetails(id: string, tenantId: string): Promise<ProfessionalWithDetails | undefined> {
+    const professional = await this.getProfessional(id, tenantId);
+    if (!professional) return undefined;
+
+    const services = await db
+      .select({ serviceId: professionalServices.serviceId })
+      .from(professionalServices)
+      .where(eq(professionalServices.professionalId, id));
+
+    const schedules = await db
+      .select()
+      .from(professionalSchedules)
+      .where(eq(professionalSchedules.professionalId, id))
+      .orderBy(professionalSchedules.dayOfWeek, professionalSchedules.startTime);
+
+    return {
+      ...professional,
+      serviceIds: services.map(s => s.serviceId),
+      schedules: schedules.map(s => ({
+        dayOfWeek: s.dayOfWeek,
+        startTime: s.startTime,
+        endTime: s.endTime,
+      })),
+    };
+  }
+
+  async getAllProfessionals(tenantId: string): Promise<Professional[]> {
+    return await db
+      .select()
+      .from(professionals)
+      .where(eq(professionals.tenantId, tenantId))
+      .orderBy(professionals.name);
+  }
+
+  async getAllProfessionalsWithDetails(tenantId: string): Promise<ProfessionalWithDetails[]> {
+    const allProfessionals = await this.getAllProfessionals(tenantId);
+    const results: ProfessionalWithDetails[] = [];
+
+    for (const prof of allProfessionals) {
+      const details = await this.getProfessionalWithDetails(prof.id, tenantId);
+      if (details) {
+        results.push(details);
+      }
+    }
+
+    return results;
+  }
+
+  async getProfessionalsByServices(serviceIds: string[], tenantId: string): Promise<ProfessionalWithDetails[]> {
+    if (serviceIds.length === 0) {
+      return await this.getAllProfessionalsWithDetails(tenantId);
+    }
+
+    const allProfessionals = await this.getAllProfessionalsWithDetails(tenantId);
+    
+    return allProfessionals.filter(prof => {
+      return serviceIds.every(serviceId => prof.serviceIds.includes(serviceId));
+    });
+  }
+
+  async searchProfessionals(tenantId: string, searchTerm: string): Promise<Professional[]> {
+    return await db
+      .select()
+      .from(professionals)
+      .where(
+        and(
+          eq(professionals.tenantId, tenantId),
+          like(professionals.name, `%${searchTerm}%`)
+        )
+      )
+      .orderBy(professionals.name);
+  }
+
+  async createProfessional(
+    professionalData: Omit<InsertProfessional, 'tenantId'>,
+    tenantId: string
+  ): Promise<ProfessionalWithDetails> {
+    const { serviceIds, schedules, ...professionalInfo } = professionalData;
+
+    const [professional] = await db
+      .insert(professionals)
+      .values({ ...professionalInfo, tenantId })
+      .returning();
+
+    if (serviceIds && serviceIds.length > 0) {
+      await db.insert(professionalServices).values(
+        serviceIds.map(serviceId => ({
+          professionalId: professional.id,
+          serviceId,
+        }))
+      );
+    }
+
+    if (schedules && schedules.length > 0) {
+      await db.insert(professionalSchedules).values(
+        schedules.map(schedule => ({
+          professionalId: professional.id,
+          dayOfWeek: schedule.dayOfWeek,
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+        }))
+      );
+    }
+
+    const details = await this.getProfessionalWithDetails(professional.id, tenantId);
+    return details!;
+  }
+
+  async updateProfessional(
+    id: string,
+    tenantId: string,
+    professionalData: Partial<Omit<InsertProfessional, 'tenantId'>>
+  ): Promise<ProfessionalWithDetails | undefined> {
+    const existing = await this.getProfessional(id, tenantId);
+    if (!existing) return undefined;
+
+    const { serviceIds, schedules, ...professionalInfo } = professionalData;
+
+    if (Object.keys(professionalInfo).length > 0) {
+      await db
+        .update(professionals)
+        .set(professionalInfo)
+        .where(and(eq(professionals.id, id), eq(professionals.tenantId, tenantId)));
+    }
+
+    if (serviceIds !== undefined) {
+      await db.delete(professionalServices).where(eq(professionalServices.professionalId, id));
+      if (serviceIds.length > 0) {
+        await db.insert(professionalServices).values(
+          serviceIds.map(serviceId => ({
+            professionalId: id,
+            serviceId,
+          }))
+        );
+      }
+    }
+
+    if (schedules !== undefined) {
+      await db.delete(professionalSchedules).where(eq(professionalSchedules.professionalId, id));
+      if (schedules.length > 0) {
+        await db.insert(professionalSchedules).values(
+          schedules.map(schedule => ({
+            professionalId: id,
+            dayOfWeek: schedule.dayOfWeek,
+            startTime: schedule.startTime,
+            endTime: schedule.endTime,
+          }))
+        );
+      }
+    }
+
+    return await this.getProfessionalWithDetails(id, tenantId);
+  }
+
+  async deleteProfessional(id: string, tenantId: string): Promise<boolean> {
+    const result = await db
+      .delete(professionals)
+      .where(and(eq(professionals.id, id), eq(professionals.tenantId, tenantId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async checkProfessionalAvailability(
+    professionalId: string,
+    date: string,
+    time: string,
+    duration: number,
+    excludeAppointmentId?: string
+  ): Promise<boolean> {
+    const timeToMinutes = (timeStr: string): number => {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const startMinutes = timeToMinutes(time);
+    const endMinutes = startMinutes + duration;
+
+    let query = db
+      .select()
+      .from(appointments)
+      .where(
+        and(
+          eq(appointments.professionalId, professionalId),
+          eq(appointments.date, date)
+        )
+      );
+
+    const existingAppointments = await query;
+
+    for (const apt of existingAppointments) {
+      if (excludeAppointmentId && apt.id === excludeAppointmentId) {
+        continue;
+      }
+
+      const aptStart = timeToMinutes(apt.time);
+      const aptEnd = aptStart + apt.duration;
+
+      const hasConflict = (startMinutes < aptEnd && endMinutes > aptStart);
+      
+      if (hasConflict) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   // Admin operations (no tenant isolation)

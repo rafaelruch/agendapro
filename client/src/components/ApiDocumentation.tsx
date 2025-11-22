@@ -161,6 +161,185 @@ const getEndpoints = (baseUrl: string): { [key: string]: EndpointExample[] } => 
   }'`
     }
   ],
+  profissionais: [
+    {
+      method: "GET",
+      path: "/api/professionals",
+      description: "Listar todos os profissionais do tenant com seus serviços e horários",
+      auth: "Bearer Token",
+      queryParams: [
+        { name: "search", type: "string", required: false, description: "Buscar profissionais por nome" }
+      ],
+      responseExample: `[
+  {
+    "id": "prof-123",
+    "name": "Ana Silva",
+    "active": true,
+    "serviceIds": ["svc-123", "svc-456"],
+    "schedules": [
+      {
+        "dayOfWeek": 1,
+        "startTime": "08:00",
+        "endTime": "12:00"
+      },
+      {
+        "dayOfWeek": 1,
+        "startTime": "14:00",
+        "endTime": "18:00"
+      }
+    ],
+    "tenantId": "tenant-123"
+  }
+]`,
+      curlExample: `curl -X GET "${baseUrl}/api/professionals" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
+    },
+    {
+      method: "POST",
+      path: "/api/professionals",
+      description: "Criar um novo profissional com serviços e horários",
+      auth: "Bearer Token",
+      requestBody: `{
+  "name": "João Santos",
+  "serviceIds": ["svc-123", "svc-789"],
+  "schedules": [
+    {
+      "dayOfWeek": 1,
+      "startTime": "08:00",
+      "endTime": "17:00"
+    },
+    {
+      "dayOfWeek": 2,
+      "startTime": "08:00",
+      "endTime": "17:00"
+    }
+  ],
+  "active": true
+}`,
+      responseExample: `{
+  "id": "prof-456",
+  "name": "João Santos",
+  "active": true,
+  "serviceIds": ["svc-123", "svc-789"],
+  "schedules": [
+    {
+      "dayOfWeek": 1,
+      "startTime": "08:00",
+      "endTime": "17:00"
+    },
+    {
+      "dayOfWeek": 2,
+      "startTime": "08:00",
+      "endTime": "17:00"
+    }
+  ],
+  "tenantId": "tenant-123"
+}`,
+      curlExample: `curl -X POST "${baseUrl}/api/professionals" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "João Santos",
+    "serviceIds": ["svc-123", "svc-789"],
+    "schedules": [
+      {"dayOfWeek": 1, "startTime": "08:00", "endTime": "17:00"},
+      {"dayOfWeek": 2, "startTime": "08:00", "endTime": "17:00"}
+    ],
+    "active": true
+  }'`
+    },
+    {
+      method: "PUT",
+      path: "/api/professionals/:id",
+      description: "Atualizar um profissional existente",
+      auth: "Bearer Token",
+      parameters: [
+        { name: "id", type: "string", required: true, description: "ID do profissional" }
+      ],
+      requestBody: `{
+  "name": "João Santos Silva",
+  "serviceIds": ["svc-123"],
+  "schedules": [
+    {
+      "dayOfWeek": 1,
+      "startTime": "09:00",
+      "endTime": "18:00"
+    }
+  ],
+  "active": true
+}`,
+      responseExample: `{
+  "id": "prof-456",
+  "name": "João Santos Silva",
+  "active": true,
+  "serviceIds": ["svc-123"],
+  "schedules": [
+    {
+      "dayOfWeek": 1,
+      "startTime": "09:00",
+      "endTime": "18:00"
+    }
+  ],
+  "tenantId": "tenant-123"
+}`,
+      curlExample: `curl -X PUT "${baseUrl}/api/professionals/prof-456" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "João Santos Silva",
+    "serviceIds": ["svc-123"],
+    "schedules": [
+      {"dayOfWeek": 1, "startTime": "09:00", "endTime": "18:00"}
+    ],
+    "active": true
+  }'`
+    },
+    {
+      method: "DELETE",
+      path: "/api/professionals/:id",
+      description: "Deletar um profissional",
+      auth: "Bearer Token",
+      parameters: [
+        { name: "id", type: "string", required: true, description: "ID do profissional" }
+      ],
+      responseExample: "204 No Content",
+      curlExample: `curl -X DELETE "${baseUrl}/api/professionals/prof-456" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
+    },
+    {
+      method: "GET",
+      path: "/api/professionals/:id/availability",
+      description: "Verificar disponibilidade de um profissional em uma data/hora específica",
+      auth: "Bearer Token",
+      parameters: [
+        { name: "id", type: "string", required: true, description: "ID do profissional" }
+      ],
+      queryParams: [
+        { name: "date", type: "string", required: true, description: "Data no formato YYYY-MM-DD" },
+        { name: "time", type: "string", required: true, description: "Hora no formato HH:MM" },
+        { name: "duration", type: "number", required: true, description: "Duração em minutos" }
+      ],
+      responseExample: `{
+  "available": true,
+  "conflicts": []
+}
+
+// Ou em caso de conflito:
+{
+  "available": false,
+  "conflicts": [
+    {
+      "id": "apt-789",
+      "date": "2025-11-25",
+      "time": "14:00",
+      "duration": 60
+    }
+  ]
+}`,
+      curlExample: `curl -X GET "${baseUrl}/api/professionals/prof-123/availability?date=2025-11-25&time=14:00&duration=60" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
+    }
+  ],
   agendamentos: [
     {
       method: "GET",
@@ -264,6 +443,7 @@ const sections = [
   { id: "authentication", label: "Autenticação" },
   { id: "clientes", label: "Clientes" },
   { id: "servicos", label: "Serviços" },
+  { id: "profissionais", label: "Profissionais" },
   { id: "agendamentos", label: "Agendamentos" },
   { id: "tokens", label: "Tokens de API" }
 ];

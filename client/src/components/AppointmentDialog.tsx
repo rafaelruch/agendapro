@@ -15,6 +15,8 @@ import { Plus } from "lucide-react";
 import { QuickClientDialog } from "./QuickClientDialog";
 import { ClientSearchSelect } from "./ClientSearchSelect";
 import { ServiceSearchMultiSelect } from "./ServiceSearchMultiSelect";
+import { ProfessionalSearchSelect } from "./ProfessionalSearchSelect";
+import { useQuery } from "@tanstack/react-query";
 import type { InsertAppointment } from "@shared/schema";
 
 // Frontend appointment data - tenantId is set by backend
@@ -55,6 +57,7 @@ export function AppointmentDialog({
   const defaultFormData = {
     clientId: "",
     serviceIds: [] as string[],
+    professionalId: "",
     date: "",
     time: "",
     status: "scheduled",
@@ -64,12 +67,17 @@ export function AppointmentDialog({
   const [formData, setFormData] = useState(defaultFormData);
   const [showQuickClientDialog, setShowQuickClientDialog] = useState(false);
 
+  const { data: professionals = [] } = useQuery<any[]>({
+    queryKey: ["/api/professionals"],
+  });
+
   useEffect(() => {
     if (open) {
       if (initialData) {
         setFormData({
           clientId: initialData.clientId || "",
           serviceIds: initialData.serviceIds || [],
+          professionalId: (initialData as any).professionalId || "",
           date: initialData.date || "",
           time: initialData.time || "",
           status: initialData.status || "scheduled",
@@ -152,6 +160,21 @@ export function AppointmentDialog({
               label="Serviços"
               placeholder="Digite para buscar e selecionar serviços..."
             />
+            <div className="grid gap-2">
+              <Label htmlFor="professional">Profissional (opcional)</Label>
+              <ProfessionalSearchSelect
+                professionals={professionals}
+                value={formData.professionalId}
+                onChange={(professionalId) => setFormData({ ...formData, professionalId })}
+                placeholder="Selecionar profissional..."
+                filterByServices={formData.serviceIds}
+              />
+              <p className="text-xs text-bodydark2">
+                {formData.serviceIds.length > 0
+                  ? "Profissionais filtrados pelos serviços selecionados"
+                  : "Selecione os serviços para filtrar profissionais"}
+              </p>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <DatePicker
                 id="date"

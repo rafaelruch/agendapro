@@ -1,4 +1,4 @@
-import { Calendar, LayoutDashboard, Users, Settings, Briefcase, UserCog, ChevronDown } from "lucide-react";
+import { Calendar, LayoutDashboard, Users, Settings, Briefcase, UserCog, ChevronDown, UserCheck } from "lucide-react";
 import { useLocation } from "wouter";
 import { useSidebar } from "@/context/SidebarContext";
 
@@ -37,6 +37,12 @@ export function AppSidebarNew({ userRole }: AppSidebarProps) {
       icon: <Briefcase className="h-5 w-5" />,
       path: "/services",
       testId: "link-serviços"
+    },
+    {
+      name: "Profissionais",
+      icon: <UserCheck className="h-5 w-5" />,
+      path: "/professionals",
+      testId: "link-profissionais"
     },
   ];
 

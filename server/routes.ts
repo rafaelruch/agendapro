@@ -10,6 +10,7 @@ import {
   insertTenantSchema,
   insertUserSchema,
   insertBusinessHoursSchema,
+  insertProfessionalSchema,
   loginSchema,
   setupSchema,
   type InsertUser,
@@ -792,6 +793,176 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ===========================================
+  // ROTAS DE PROFISSIONAIS (COM ISOLAMENTO TENANT)
+  // ===========================================
+
+  // GET /api/professionals - List all professionals of current tenant
+  app.get("/api/professionals", authenticateRequest, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const search = req.query.search as string;
+      const serviceIds = req.query.serviceIds ? (req.query.serviceIds as string).split(',') : undefined;
+
+      let professionals;
+
+      if (serviceIds && serviceIds.length > 0) {
+        professionals = await storage.getProfessionalsByServices(serviceIds, tenantId);
+      } else if (search) {
+        professionals = await storage.searchProfessionals(tenantId, search);
+        const professionalDetails = await Promise.all(
+          professionals.map(p => storage.getProfessionalWithDetails(p.id, tenantId))
+        );
+        professionals = professionalDetails.filter(Boolean);
+      } else {
+        professionals = await storage.getAllProfessionalsWithDetails(tenantId);
+      }
+
+      res.json(professionals);
+    } catch (error) {
+      console.error("Error fetching professionals:", error);
+      res.status(500).json({ error: "Erro ao buscar profissionais" });
+    }
+  });
+
+  // GET /api/professionals/:id - Get a specific professional
+  app.get("/api/professionals/:id", authenticateRequest, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const professional = await storage.getProfessionalWithDetails(req.params.id, tenantId);
+      if (!professional) {
+        return res.status(404).json({ error: "Profissional não encontrado" });
+      }
+
+      res.json(professional);
+    } catch (error) {
+      console.error("Error fetching professional:", error);
+      res.status(500).json({ error: "Erro ao buscar profissional" });
+    }
+  });
+
+  // POST /api/professionals - Create a new professional
+  app.post("/api/professionals", authenticateRequest, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const validatedData = insertProfessionalSchema.omit({ tenantId: true }).parse(req.body);
+
+      // Validate services exist and belong to tenant
+      if (validatedData.serviceIds && validatedData.serviceIds.length > 0) {
+        for (const serviceId of validatedData.serviceIds) {
+          const service = await storage.getService(serviceId, tenantId);
+          if (!service) {
+            return res.status(400).json({ 
+              error: "Um ou mais serviços inválidos",
+              invalidServices: [serviceId]
+            });
+          }
+        }
+      }
+
+      // Validate schedule times
+      if (validatedData.schedules && validatedData.schedules.length > 0) {
+        for (const schedule of validatedData.schedules) {
+          if (schedule.startTime >= schedule.endTime) {
+            return res.status(400).json({
+              error: "Horário de início deve ser menor que horário de término"
+            });
+          }
+        }
+      }
+
+      const professional = await storage.createProfessional(validatedData, tenantId);
+      res.status(201).json(professional);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Dados inválidos", details: error.errors });
+      }
+      console.error("Error creating professional:", error);
+      res.status(500).json({ error: "Erro ao criar profissional" });
+    }
+  });
+
+  // PUT /api/professionals/:id - Update a professional
+  app.put("/api/professionals/:id", authenticateRequest, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const validatedData = insertProfessionalSchema.omit({ tenantId: true }).partial().parse(req.body);
+
+      // Validate services if provided
+      if (validatedData.serviceIds && validatedData.serviceIds.length > 0) {
+        for (const serviceId of validatedData.serviceIds) {
+          const service = await storage.getService(serviceId, tenantId);
+          if (!service) {
+            return res.status(400).json({ 
+              error: "Um ou mais serviços inválidos",
+              invalidServices: [serviceId]
+            });
+          }
+        }
+      }
+
+      // Validate schedule times if provided
+      if (validatedData.schedules && validatedData.schedules.length > 0) {
+        for (const schedule of validatedData.schedules) {
+          if (schedule.startTime >= schedule.endTime) {
+            return res.status(400).json({
+              error: "Horário de início deve ser menor que horário de término"
+            });
+          }
+        }
+      }
+
+      const professional = await storage.updateProfessional(req.params.id, tenantId, validatedData);
+      if (!professional) {
+        return res.status(404).json({ error: "Profissional não encontrado" });
+      }
+
+      res.json(professional);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Dados inválidos", details: error.errors });
+      }
+      console.error("Error updating professional:", error);
+      res.status(500).json({ error: "Erro ao atualizar profissional" });
+    }
+  });
+
+  // DELETE /api/professionals/:id - Delete a professional
+  app.delete("/api/professionals/:id", authenticateRequest, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const success = await storage.deleteProfessional(req.params.id, tenantId);
+      if (!success) {
+        return res.status(404).json({ error: "Profissional não encontrado" });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting professional:", error);
+      res.status(500).json({ error: "Erro ao deletar profissional" });
+    }
+  });
+
+  // ===========================================
   // ROTAS DE CLIENTES (COM ISOLAMENTO TENANT)
   // ===========================================
   
@@ -1434,6 +1605,25 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         });
       }
 
+      // VALIDAÇÃO DE CONFLITO: Verificar disponibilidade do profissional se atribuído
+      if (validatedData.professionalId) {
+        const totalDuration = services.reduce((sum, service) => sum + (service?.duration || 0), 0) || 60;
+        const isAvailable = await storage.checkProfessionalAvailability(
+          validatedData.professionalId,
+          validatedData.date,
+          validatedData.time,
+          totalDuration
+        );
+
+        if (!isAvailable) {
+          return res.status(409).json({
+            code: 'PROFESSIONAL_CONFLICT',
+            error: "Conflito de horário do profissional",
+            message: "O profissional já possui um agendamento neste horário"
+          });
+        }
+      }
+
       const appointment = await storage.createAppointment(validatedData);
       const appointmentServices = await storage.getAppointmentServices(appointment.id);
       res.status(201).json({
@@ -1501,6 +1691,42 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
           return res.status(400).json({ 
             error: "Serviços inválidos",
             details: `Os seguintes serviços não existem ou não pertencem ao seu tenant: ${invalidServices.join(', ')}`
+          });
+        }
+      }
+
+      // VALIDAÇÃO DE CONFLITO: Verificar disponibilidade do profissional se atribuído ou sendo atualizado
+      if (validatedData.professionalId) {
+        const currentAppointment = await storage.getAppointment(appointmentId, tenantId);
+        if (!currentAppointment) {
+          return res.status(404).json({ error: "Agendamento não encontrado" });
+        }
+
+        const finalDate = validatedData.date || currentAppointment.date;
+        const finalTime = validatedData.time || currentAppointment.time;
+        
+        let totalDuration = currentAppointment.duration;
+        if (validatedData.serviceIds && validatedData.serviceIds.length > 0) {
+          const servicePromises = validatedData.serviceIds.map(serviceId => 
+            storage.getService(serviceId, tenantId)
+          );
+          const services = await Promise.all(servicePromises);
+          totalDuration = services.reduce((sum, service) => sum + (service?.duration || 0), 0) || 60;
+        }
+
+        const isAvailable = await storage.checkProfessionalAvailability(
+          validatedData.professionalId,
+          finalDate,
+          finalTime,
+          totalDuration,
+          appointmentId
+        );
+
+        if (!isAvailable) {
+          return res.status(409).json({
+            code: 'PROFESSIONAL_CONFLICT',
+            error: "Conflito de horário do profissional",
+            message: "O profissional já possui um agendamento neste horário"
           });
         }
       }

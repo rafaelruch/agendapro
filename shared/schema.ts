@@ -50,6 +50,7 @@ export const appointments = pgTable("appointments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   clientId: varchar("client_id").notNull().references(() => clients.id, { onDelete: 'cascade' }),
+  professionalId: varchar("professional_id"),
   date: text("date").notNull(),
   time: text("time").notNull(),
   duration: integer("duration").notNull(),
@@ -83,6 +84,28 @@ export const businessHours = pgTable("business_hours", {
   endTime: text("end_time").notNull(),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const professionals = pgTable("professionals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const professionalServices = pgTable("professional_services", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  professionalId: varchar("professional_id").notNull().references(() => professionals.id, { onDelete: 'cascade' }),
+  serviceId: varchar("service_id").notNull().references(() => services.id, { onDelete: 'cascade' }),
+});
+
+export const professionalSchedules = pgTable("professional_schedules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  professionalId: varchar("professional_id").notNull().references(() => professionals.id, { onDelete: 'cascade' }),
+  dayOfWeek: integer("day_of_week").notNull(),
+  startTime: text("start_time").notNull(),
+  endTime: text("end_time").notNull(),
 });
 
 export const insertTenantSchema = createInsertSchema(tenants).omit({
@@ -191,6 +214,30 @@ export const insertBusinessHoursSchema = createInsertSchema(businessHours).omit(
   endTime: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, "Formato inválido. Use HH:MM"),
 });
 
+export const insertProfessionalSchema = createInsertSchema(professionals).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  serviceIds: z.array(z.string()).min(1, "Pelo menos um serviço deve ser selecionado"),
+  schedules: z.array(z.object({
+    dayOfWeek: z.number().min(0).max(6),
+    startTime: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, "Formato inválido. Use HH:MM"),
+    endTime: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, "Formato inválido. Use HH:MM"),
+  })).min(1, "Pelo menos um horário deve ser configurado"),
+});
+
+export const insertProfessionalServiceSchema = createInsertSchema(professionalServices).omit({
+  id: true,
+});
+
+export const insertProfessionalScheduleSchema = createInsertSchema(professionalSchedules).omit({
+  id: true,
+}).extend({
+  dayOfWeek: z.number().min(0).max(6),
+  startTime: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, "Formato inválido. Use HH:MM"),
+  endTime: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, "Formato inválido. Use HH:MM"),
+});
+
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type Tenant = typeof tenants.$inferSelect;
 
@@ -219,6 +266,24 @@ export type TenantApiToken = typeof tenantApiTokens.$inferSelect;
 
 export type InsertBusinessHours = z.infer<typeof insertBusinessHoursSchema>;
 export type BusinessHours = typeof businessHours.$inferSelect;
+
+export type InsertProfessional = z.infer<typeof insertProfessionalSchema>;
+export type Professional = typeof professionals.$inferSelect;
+
+export type InsertProfessionalService = z.infer<typeof insertProfessionalServiceSchema>;
+export type ProfessionalService = typeof professionalServices.$inferSelect;
+
+export type InsertProfessionalSchedule = z.infer<typeof insertProfessionalScheduleSchema>;
+export type ProfessionalSchedule = typeof professionalSchedules.$inferSelect;
+
+export type ProfessionalWithDetails = Professional & {
+  serviceIds: string[];
+  schedules: {
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+  }[];
+};
 
 // Função helper para verificar se serviço está em promoção
 export function isServiceInPromotion(service: Service): boolean {

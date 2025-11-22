@@ -14,6 +14,7 @@ import DashboardCRM from "@/pages/DashboardCRM";
 import CalendarPage from "@/pages/CalendarPage";
 import ClientsPage from "@/pages/ClientsPage";
 import ServicesPage from "@/pages/ServicesPage";
+import ProfessionalsPage from "@/pages/ProfessionalsPage";
 import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
 import LoginPage from "@/pages/LoginPage";
@@ -47,6 +48,7 @@ function Router() {
       <Route path="/calendar" component={CalendarPage} />
       <Route path="/clients" component={ClientsPage} />
       <Route path="/services" component={ServicesPage} />
+      <Route path="/professionals" component={ProfessionalsPage} />
       <Route path="/users" component={UsersPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route path="/admin" component={AdminPage} />
