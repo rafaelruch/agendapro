@@ -69,13 +69,18 @@ export function ProfessionalSearchSelect({
     <div ref={containerRef} className="relative w-full">
       <Input
         type="text"
-        placeholder={selectedProfessional?.name || placeholder}
-        value={search}
+        placeholder={placeholder}
+        value={selectedProfessional ? selectedProfessional.name : search}
         onChange={(e) => {
           setSearch(e.target.value);
           setIsOpen(true);
         }}
-        onFocus={() => setIsOpen(true)}
+        onFocus={() => {
+          if (selectedProfessional) {
+            setSearch("");
+          }
+          setIsOpen(true);
+        }}
         data-testid="input-professional-search"
         className="w-full"
       />
