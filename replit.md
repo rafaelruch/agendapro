@@ -22,7 +22,82 @@ All UI components (buttons, forms, tables, alerts, etc.) MUST be sourced EXCLUSI
 
 A custom modal system is implemented using React Portals, rendering into `#modal-root` with high z-index and `backdrop-blur-[32px]` for a professional look. The login page replicates the TailAdmin SignInForm, and the calendar page uses FullCalendar with TailAdmin styling, supporting full CRUD for appointments, conflict detection, and multi-service duration calculation. Date picking is handled by Flatpickr, localized for Brazilian format.
 
-All pagination implementations must follow a specific pattern, integrated directly within the table container, featuring numbered page buttons, "Anterior" and "Próximo" buttons, and specific text formatting for item counts.
+**TABLE STANDARDIZATION (CRITICAL - MANDATORY FOR ALL TABLES):**
+ALL data tables across the entire system (Clients, Services, Professionals, Users, etc.) MUST follow this exact pattern from ServicesPage/ClientsPage:
+
+1. **Container Structure**:
+   ```tsx
+   <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+     <div className="max-w-full overflow-x-auto">
+       <Table>...</Table>
+     </div>
+   </div>
+   ```
+
+2. **Table Header**:
+   ```tsx
+   <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+     <TableRow>
+       <TableHead className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+   ```
+
+3. **Table Body**:
+   ```tsx
+   <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+   ```
+
+4. **Table Cells**:
+   - First column: `className="px-5 py-4 sm:px-6 text-start"`
+   - Other columns: `className="px-4 py-3 text-start"` (or `text-center` for actions)
+   - Text styles: `text-gray-800 text-theme-sm dark:text-white/90` for main, `text-gray-500 text-theme-xs dark:text-gray-400` for secondary
+
+5. **Empty State**:
+   ```tsx
+   <div className="rounded-sm border border-stroke bg-white px-5 py-12 text-center shadow-default dark:border-strokedark dark:bg-boxdark">
+     <p className="text-bodydark2 mb-4">{message}</p>
+     {!searchQuery && <Button>Adicionar Primeiro Item</Button>}
+   </div>
+   ```
+
+6. **Pagination (MANDATORY PATTERN)**:
+   ```tsx
+   <div className="flex items-center justify-between border-t border-gray-100 px-5 py-4 dark:border-white/[0.05]">
+     <p className="text-sm text-gray-500 dark:text-gray-400">
+       Mostrando {start} até {end} de {total} items
+     </p>
+     <div className="flex gap-2">
+       <Button size="sm" variant="outline">Anterior</Button>
+       <div className="flex items-center gap-1">
+         {pages.map(page => (
+           <Button size="sm" variant={currentPage === page ? "default" : "ghost"} className="min-w-[36px]">
+             {page}
+           </Button>
+         ))}
+       </div>
+       <Button size="sm" variant="outline">Próximo</Button>
+     </div>
+   </div>
+   ```
+
+7. **Search Bar**:
+   ```tsx
+   <div className="relative max-w-md">
+     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-bodydark2" />
+     <Input placeholder="Buscar..." className="pl-12" />
+   </div>
+   ```
+
+8. **Action Buttons**:
+   ```tsx
+   <Button size="sm" variant="ghost" className="hover-elevate">
+     <Edit2 className="h-4 w-4" />
+   </Button>
+   <Button size="sm" variant="ghost" className="text-meta-1 hover:text-meta-1 hover-elevate">
+     <Trash2 className="h-4 w-4" />
+   </Button>
+   ```
+
+**NO EXCEPTIONS**: Every new table page must replicate this structure exactly. Consistency is critical for user experience and maintainability.
 
 Recent production bug fixes addressed cache invalidation race conditions, premature dialog closures, and DatePicker interaction issues. Schema corrections include removing the `email` field from the Clients table, adding a `duration` field to Appointments, and enforcing `phone` as NOT NULL. A critical bug fix ensures that appointment `duration` is correctly calculated and persisted to the database during creation and updates.
 

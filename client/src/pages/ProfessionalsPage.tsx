@@ -3,8 +3,7 @@ import { Plus, Search, Edit2, Trash2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { TableHead } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableRow, TableHead } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ProfessionalDialog } from "@/components/ProfessionalDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -189,139 +188,152 @@ export default function ProfessionalsPage() {
       </div>
 
       {/* Search Bar */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-bodydark2" />
-          <Input
-            type="text"
-            placeholder="Buscar profissional por nome..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="pl-10"
-            data-testid="input-search-professional"
-          />
+      <div className="relative max-w-md">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-bodydark2" />
+        <Input
+          placeholder="Buscar profissional por nome..."
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="pl-12"
+          data-testid="input-search-professional"
+        />
+      </div>
+
+      {/* TailAdmin DataTable */}
+      {filteredProfessionals.length === 0 ? (
+        <div className="rounded-sm border border-stroke bg-white px-5 py-12 text-center shadow-default dark:border-strokedark dark:bg-boxdark">
+          <p className="text-bodydark2 mb-4">
+            {searchQuery ? "Nenhum profissional encontrado para sua busca." : "Nenhum profissional cadastrado."}
+          </p>
+          {!searchQuery && (
+            <Button onClick={() => setShowProfessionalDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Adicionar Primeiro Profissional
+            </Button>
+          )}
         </div>
-      </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+          <div className="max-w-full overflow-x-auto">
+            <Table>
+              {/* Table Header */}
+              <thead className="border-b border-gray-100 dark:border-white/[0.05]">
+                <tr>
+                  <TableHead className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                    Nome
+                  </TableHead>
+                  <TableHead className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                    Serviços
+                  </TableHead>
+                  <TableHead className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                    Status
+                  </TableHead>
+                  <TableHead className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400">
+                    Ações
+                  </TableHead>
+                </tr>
+              </thead>
 
-      {/* Table Container */}
-      <div className="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-        <Table>
-          <TableHead>
-            <TableRow>
-              <th className="px-4 py-4 text-left font-medium text-black dark:text-white">
-                Nome
-              </th>
-              <th className="px-4 py-4 text-left font-medium text-black dark:text-white">
-                Serviços
-              </th>
-              <th className="px-4 py-4 text-left font-medium text-black dark:text-white">
-                Status
-              </th>
-              <th className="px-4 py-4 text-center font-medium text-black dark:text-white">
-                Ações
-              </th>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {paginatedProfessionals.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center py-12 text-bodydark2">
-                  {searchQuery ? "Nenhum profissional encontrado." : "Nenhum profissional cadastrado."}
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedProfessionals.map((professional) => (
-                <TableRow key={professional.id} data-testid={`row-professional-${professional.id}`}>
-                  <TableCell className="px-4 py-4">
-                    <p className="text-black dark:text-white font-medium">
-                      {professional.name}
-                    </p>
-                  </TableCell>
-                  <TableCell className="px-4 py-4">
-                    <p className="text-sm text-bodydark2">
+              {/* Table Body */}
+              <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+                {paginatedProfessionals.map((professional) => (
+                  <TableRow key={professional.id} data-testid={`row-professional-${professional.id}`}>
+                    <TableCell className="px-5 py-4 sm:px-6 text-start">
+                      <div>
+                        <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                          {professional.name}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                       {professional.serviceIds.length} serviço(s)
-                    </p>
-                    <p className="text-xs text-bodydark2 mt-0.5 truncate max-w-xs" title={getServiceNames(professional.serviceIds)}>
-                      {getServiceNames(professional.serviceIds)}
-                    </p>
-                  </TableCell>
-                  <TableCell className="px-4 py-4">
-                    <Badge variant={professional.active ? "success" : "secondary"}>
-                      {professional.active ? "Ativo" : "Inativo"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="px-4 py-4">
-                    <div className="flex items-center justify-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditingProfessional(professional);
-                          setShowProfessionalDialog(true);
-                        }}
-                        data-testid={`button-edit-professional-${professional.id}`}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteProfessional(professional.id, professional.name)}
-                        data-testid={`button-delete-professional-${professional.id}`}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-stroke px-4 py-4 dark:border-strokedark">
-            <p className="text-sm text-bodydark2">
-              Mostrando {startIndex + 1} a {Math.min(startIndex + itemsPerPage, filteredProfessionals.length)} de {filteredProfessionals.length} profissionais
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                data-testid="button-prev-page"
-              >
-                Anterior
-              </Button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <Button
-                  key={page}
-                  variant={currentPage === page ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setCurrentPage(page)}
-                  data-testid={`button-page-${page}`}
-                >
-                  {page}
-                </Button>
-              ))}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                data-testid="button-next-page"
-              >
-                Próximo
-              </Button>
-            </div>
+                      <span className="block text-gray-500 text-theme-xs dark:text-gray-400 truncate max-w-xs" title={getServiceNames(professional.serviceIds)}>
+                        {getServiceNames(professional.serviceIds)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-start">
+                      <Badge variant="default" className="text-xs">
+                        {professional.active ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditingProfessional(professional);
+                            setShowProfessionalDialog(true);
+                          }}
+                          data-testid={`button-edit-professional-${professional.id}`}
+                          className="hover-elevate"
+                        >
+                          <Edit2 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteProfessional(professional.id, professional.name)}
+                          data-testid={`button-delete-professional-${professional.id}`}
+                          className="hover-elevate"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500 dark:text-red-400" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
-        )}
-      </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-gray-100 px-5 py-4 dark:border-white/[0.05]">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Mostrando {startIndex + 1} até {Math.min(startIndex + itemsPerPage, filteredProfessionals.length)} de {filteredProfessionals.length} profissionais
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  data-testid="button-prev-page"
+                >
+                  Anterior
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      size="sm"
+                      variant={currentPage === page ? "default" : "ghost"}
+                      onClick={() => setCurrentPage(page)}
+                      data-testid={`button-page-${page}`}
+                      className="min-w-[36px]"
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  data-testid="button-next-page"
+                >
+                  Próximo
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Dialog */}
       <ProfessionalDialog
