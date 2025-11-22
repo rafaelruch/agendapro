@@ -39,6 +39,11 @@ export function AppointmentDetailsDialog({
     enabled: open,
   });
 
+  const { data: professional } = useQuery<any>({
+    queryKey: ["/api/professionals", appointment?.professionalId],
+    enabled: !!appointment?.professionalId && open,
+  });
+
   const handleDeleteConfirm = () => {
     if (appointmentId && onDelete) {
       onDelete(appointmentId);
@@ -155,6 +160,19 @@ export function AppointmentDetailsDialog({
               )}
             </div>
           </div>
+
+          {/* Profissional */}
+          {appointment.professionalId && (
+            <div className="flex items-start gap-3">
+              <User className="h-5 w-5 text-muted-foreground mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">Profissional</p>
+                <p className="text-sm text-muted-foreground" data-testid="text-professional-name">
+                  {professional?.name || "Carregando..."}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Serviços */}
           {selectedServices.length > 0 && (

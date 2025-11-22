@@ -71,6 +71,14 @@ export function AppointmentDialog({
     queryKey: ["/api/professionals"],
   });
 
+  // DEBUG: Log quantidade de profissionais recebidos
+  useEffect(() => {
+    console.log('🔍 [AppointmentDialog] Profissionais recebidos da API:', {
+      count: professionals.length,
+      professionals: professionals.map(p => ({ id: p.id, name: p.name, serviceIdsCount: p.serviceIds?.length || 0 }))
+    });
+  }, [professionals]);
+
   useEffect(() => {
     if (open) {
       if (initialData) {
@@ -110,10 +118,20 @@ export function AppointmentDialog({
       return;
     }
     
+    console.log('📤 [AppointmentDialog] formData antes de salvar:', {
+      professionalId: formData.professionalId,
+      professionalIdType: typeof formData.professionalId,
+      professionalIdLength: formData.professionalId?.length,
+    });
+    
     const dataToSave = {
       ...formData,
+      // Converter string vazia para undefined (para omit no backend)
+      professionalId: formData.professionalId || undefined,
       serviceIds: formData.serviceIds,
     };
+    
+    console.log('📤 [AppointmentDialog] dataToSave:', dataToSave);
     onSave(dataToSave);
     // NÃO fechar o dialog aqui - o parent fecha no onSuccess da mutation
   };

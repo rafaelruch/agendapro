@@ -605,10 +605,14 @@ export class DbStorage implements IStorage {
     }
     
     return await db.transaction(async (tx) => {
-      const result = await tx.insert(appointments).values({
+      // Preparar dados para inserção, garantindo que professionalId seja null se vazio
+      const dataToInsert: any = {
         ...appointmentData,
-        duration: totalDuration
-      }).returning();
+        duration: totalDuration,
+        professionalId: appointmentData.professionalId || null,
+      };
+      
+      const result = await tx.insert(appointments).values(dataToInsert).returning();
       const appointment = result[0];
       
       const values = serviceIds.map(serviceId => ({
