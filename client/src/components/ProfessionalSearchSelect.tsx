@@ -41,22 +41,6 @@ export function ProfessionalSearchSelect({
     return matchesSearch && canPerformAllServices;
   });
 
-  // DEBUG: Log filtro de profissionais
-  useEffect(() => {
-    console.log('🔍 [ProfessionalSearchSelect] Filtro aplicado:', {
-      totalProfessionals: professionals.length,
-      filteredCount: filteredProfessionals.length,
-      filterByServices: filterByServices,
-      isOpen,
-      professionals: professionals.map(p => ({
-        id: p.id,
-        name: p.name,
-        serviceIds: p.serviceIds,
-        matchesFilter: filterByServices.length === 0 || filterByServices.every(sid => p.serviceIds?.includes(sid))
-      }))
-    });
-  }, [professionals, filteredProfessionals, filterByServices, isOpen]);
-
   const selectedProfessional = professionals.find((p) => p.id === value);
 
   useEffect(() => {
@@ -71,7 +55,6 @@ export function ProfessionalSearchSelect({
   }, []);
 
   const handleSelect = (professionalId: string) => {
-    console.log('✅ [ProfessionalSearchSelect] Profissional selecionado:', professionalId);
     onChange(professionalId);
     setSearch("");
     setIsOpen(false);
