@@ -1,5 +1,4 @@
 node_modules
-dist
 .git
 .gitignore
 README.md
@@ -13,6 +12,5 @@ replit.nix
 .idea
 coverage
 *.md
-attached_assets
 tmp
 .DS_Store
