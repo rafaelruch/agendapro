@@ -344,26 +344,53 @@ const getEndpoints = (baseUrl: string): { [key: string]: EndpointExample[] } => 
     {
       method: "GET",
       path: "/api/appointments",
-      description: "Listar todos os agendamentos do tenant",
+      description: "Listar agendamentos do tenant com filtros opcionais",
       auth: "Bearer Token",
       queryParams: [
-        { name: "date", type: "string", required: false, description: "Filtrar por data (YYYY-MM-DD)" },
+        { name: "date", type: "string", required: false, description: "Filtrar por data específica (YYYY-MM-DD) - Retorna apenas agendamentos desse dia" },
+        { name: "startDate", type: "string", required: false, description: "Data inicial para intervalo (YYYY-MM-DD) - Usar junto com endDate" },
+        { name: "endDate", type: "string", required: false, description: "Data final para intervalo (YYYY-MM-DD) - Usar junto com startDate" },
+        { name: "clientId", type: "string", required: false, description: "Filtrar por cliente específico" },
+        { name: "serviceId", type: "string", required: false, description: "Filtrar por serviço específico" },
         { name: "status", type: "string", required: false, description: "Filtrar por status (scheduled, completed, cancelled)" }
       ],
-      responseExample: `[
+      responseExample: `// Exemplo: Agendamentos do dia 2025-11-20
+[
   {
     "id": "apt-123",
     "clientId": "client-456",
+    "professionalId": "prof-789",
     "date": "2025-11-20",
-    "time": "14:00",
+    "time": "09:00",
     "duration": 60,
     "status": "scheduled",
+    "notes": "Primeiro horário",
+    "serviceIds": ["svc-123"],
+    "tenantId": "tenant-123"
+  },
+  {
+    "id": "apt-124",
+    "clientId": "client-457",
+    "professionalId": "prof-789",
+    "date": "2025-11-20",
+    "time": "14:00",
+    "duration": 45,
+    "status": "scheduled",
     "notes": "Cliente preferencial",
-    "services": ["svc-123", "svc-456"],
+    "serviceIds": ["svc-123", "svc-456"],
     "tenantId": "tenant-123"
   }
 ]`,
-      curlExample: `curl -X GET "${baseUrl}/api/appointments?date=2025-11-20" \\
+      curlExample: `# Filtrar agendamentos de um dia específico:
+curl -X GET "${baseUrl}/api/appointments?date=2025-11-20" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"
+
+# Filtrar agendamentos de um intervalo de datas:
+curl -X GET "${baseUrl}/api/appointments?startDate=2025-11-01&endDate=2025-11-30" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"
+
+# Filtrar agendamentos de um dia + cliente específico:
+curl -X GET "${baseUrl}/api/appointments?date=2025-11-20&clientId=client-456" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     },
     {

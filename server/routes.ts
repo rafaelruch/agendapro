@@ -1507,6 +1507,27 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.json({ available: !existingAppointment });
       }
 
+      // Filtrar agendamentos de um dia específico (sem time)
+      if (date && !time) {
+        const appointments = await storage.getAppointmentsByDateRange(
+          tenantId,
+          date as string,
+          date as string,
+          clientId as string | undefined
+        );
+        // Adicionar serviceIds a cada appointment
+        const appointmentsWithServices = await Promise.all(
+          appointments.map(async (apt) => {
+            const services = await storage.getAppointmentServices(apt.id);
+            return {
+              ...apt,
+              serviceIds: services.map(s => s.id),
+            };
+          })
+        );
+        return res.json(appointmentsWithServices);
+      }
+
       if (startDate && endDate) {
         const appointments = await storage.getAppointmentsByDateRange(
           tenantId,
