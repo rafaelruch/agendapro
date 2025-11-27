@@ -426,6 +426,107 @@ curl -X GET "${baseUrl}/api/appointments?date=2025-11-20&clientId=client-456" \\
     "time": "14:00",
     "status": "scheduled"
   }'`
+    },
+    {
+      method: "PUT",
+      path: "/api/appointments?id=:id",
+      description: "Reagendar/Atualizar um agendamento existente (IDEAL PARA N8N)",
+      auth: "Bearer Token",
+      queryParams: [
+        { name: "id", type: "string", required: true, description: "ID do agendamento a ser atualizado" }
+      ],
+      requestBody: `{
+  "date": "2025-11-25",
+  "time": "16:00",
+  "status": "scheduled",
+  "notes": "Reagendado a pedido do cliente"
+}
+
+// Campos opcionais que podem ser atualizados:
+// - date: Nova data (YYYY-MM-DD)
+// - time: Novo horário (HH:MM)
+// - status: Novo status (scheduled, completed, cancelled)
+// - clientId: Trocar cliente
+// - serviceIds: Alterar serviços
+// - professionalId: Alterar profissional
+// - notes: Observações`,
+      responseExample: `{
+  "id": "apt-789",
+  "clientId": "client-456",
+  "professionalId": "prof-123",
+  "date": "2025-11-25",
+  "time": "16:00",
+  "duration": 75,
+  "status": "scheduled",
+  "notes": "Reagendado a pedido do cliente",
+  "tenantId": "tenant-123"
+}`,
+      curlExample: `# Reagendar para nova data e horário:
+curl -X PUT "${baseUrl}/api/appointments?id=apt-789" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "date": "2025-11-25",
+    "time": "16:00",
+    "notes": "Reagendado via N8N"
+  }'
+
+# Cancelar agendamento:
+curl -X PUT "${baseUrl}/api/appointments?id=apt-789" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "status": "cancelled"
+  }'
+
+# Marcar como concluído:
+curl -X PUT "${baseUrl}/api/appointments?id=apt-789" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "status": "completed"
+  }'`
+    },
+    {
+      method: "PUT",
+      path: "/api/appointments/:id",
+      description: "Reagendar/Atualizar um agendamento (via path parameter)",
+      auth: "Bearer Token",
+      parameters: [
+        { name: "id", type: "string", required: true, description: "ID do agendamento" }
+      ],
+      requestBody: `{
+  "date": "2025-11-25",
+  "time": "16:00"
+}`,
+      responseExample: `{
+  "id": "apt-789",
+  "clientId": "client-456",
+  "date": "2025-11-25",
+  "time": "16:00",
+  "duration": 75,
+  "status": "scheduled",
+  "tenantId": "tenant-123"
+}`,
+      curlExample: `curl -X PUT "${baseUrl}/api/appointments/apt-789" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "date": "2025-11-25",
+    "time": "16:00"
+  }'`
+    },
+    {
+      method: "DELETE",
+      path: "/api/appointments/:id",
+      description: "Excluir um agendamento",
+      auth: "Bearer Token",
+      parameters: [
+        { name: "id", type: "string", required: true, description: "ID do agendamento" }
+      ],
+      responseExample: "204 No Content",
+      curlExample: `curl -X DELETE "${baseUrl}/api/appointments/apt-789" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     }
   ],
   tokens: [
