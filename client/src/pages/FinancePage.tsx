@@ -37,7 +37,7 @@ import { ptBR } from "date-fns/locale";
 
 interface FinancialSummary {
   totalIncome: number;
-  totalExpenses: number;
+  totalExpense: number;
   balance: number;
   incomeByPaymentMethod: Record<string, number>;
   expenseByCategory: Record<string, number>;
@@ -87,7 +87,10 @@ export default function FinancePage() {
   const { data: summary, isLoading: summaryLoading } = useQuery<FinancialSummary>({
     queryKey: ["/api/finance/summary", dateRange.startDate, dateRange.endDate],
     queryFn: async () => {
-      const res = await fetch(`/api/finance/summary/${dateRange.startDate}/${dateRange.endDate}`, {
+      const params = new URLSearchParams();
+      params.set("startDate", dateRange.startDate);
+      params.set("endDate", dateRange.endDate);
+      const res = await fetch(`/api/finance/summary?${params.toString()}`, {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Erro ao buscar resumo");
@@ -326,7 +329,7 @@ export default function FinancePage() {
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Despesas</p>
               <p className="text-xl font-bold text-red-600 dark:text-red-400" data-testid="text-total-expenses">
-                {summaryLoading ? "..." : formatCurrency(summary?.totalExpenses || 0)}
+                {summaryLoading ? "..." : formatCurrency(summary?.totalExpense || 0)}
               </p>
             </div>
           </div>
