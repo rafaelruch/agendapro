@@ -204,7 +204,8 @@ export interface IStorage {
       city?: string;
       zipCode?: string;
       reference?: string;
-    }
+    },
+    clientAddressId?: string
   ): Promise<OrderWithDetails>;
   updateOrderStatus(id: string, tenantId: string, status: OrderStatus): Promise<Order | undefined>;
   cancelOrder(id: string, tenantId: string): Promise<Order | undefined>;
@@ -1727,7 +1728,8 @@ export class DbStorage implements IStorage {
       city?: string;
       zipCode?: string;
       reference?: string;
-    }
+    },
+    clientAddressId?: string
   ): Promise<OrderWithDetails> {
     // Calcular total e validar estoque
     let total = 0;
@@ -1757,6 +1759,7 @@ export class DbStorage implements IStorage {
       .values({
         tenantId,
         clientId,
+        clientAddressId: clientAddressId || null,
         orderNumber,
         status: 'pending',
         total: String(total),

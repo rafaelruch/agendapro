@@ -258,10 +258,12 @@ export const orders = pgTable("orders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   clientId: varchar("client_id").notNull().references(() => clients.id, { onDelete: 'cascade' }),
+  clientAddressId: varchar("client_address_id").references(() => clientAddresses.id, { onDelete: 'set null' }),
   orderNumber: integer("order_number").notNull(),
   status: text("status").notNull().default("pending"),
   total: numeric("total", { precision: 10, scale: 2 }).notNull(),
   notes: text("notes"),
+  // Snapshot do endereço no momento do pedido (imutável para histórico)
   deliveryStreet: text("delivery_street"),
   deliveryNumber: text("delivery_number"),
   deliveryComplement: text("delivery_complement"),
@@ -460,8 +462,9 @@ export const insertOrderSchema = z.object({
   })).min(1, "Pelo menos um item é obrigatório"),
   notes: z.string().optional(),
   deliveryAddress: deliveryAddressSchema.optional(),
-  saveAddress: z.boolean().optional(),
-  addressLabel: z.string().optional(),
+  clientAddressId: z.string().optional(), // ID do endereço existente selecionado
+  saveAddress: z.boolean().optional(), // Salvar novo endereço para próximos pedidos
+  addressLabel: z.string().optional(), // Nome do novo endereço (Casa, Trabalho, etc.)
 });
 
 export type DeliveryAddress = z.infer<typeof deliveryAddressSchema>;

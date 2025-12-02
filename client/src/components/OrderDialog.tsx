@@ -34,6 +34,7 @@ interface OrderDialogProps {
     items: { productId: string; quantity: number }[];
     notes?: string;
     deliveryAddress?: DeliveryAddress;
+    clientAddressId?: string;
     saveAddress?: boolean;
     addressLabel?: string;
   }) => void;
@@ -282,23 +283,13 @@ export function OrderDialog({
     }
 
     let deliveryAddress: DeliveryAddress | undefined;
+    let clientAddressIdToSend: string | undefined;
     let shouldSaveAddress = false;
     let addressLabel: string | undefined;
 
     if (addressMode === "select" && selectedAddressId) {
-      // Usar endereço selecionado
-      const selectedAddr = getSelectedAddress();
-      if (selectedAddr) {
-        deliveryAddress = {
-          street: selectedAddr.street || undefined,
-          number: selectedAddr.number || undefined,
-          complement: selectedAddr.complement || undefined,
-          neighborhood: selectedAddr.neighborhood || undefined,
-          city: selectedAddr.city || undefined,
-          zipCode: selectedAddr.zipCode || undefined,
-          reference: selectedAddr.reference || undefined,
-        };
-      }
+      // Enviar o ID do endereço selecionado - o backend buscará os dados
+      clientAddressIdToSend = selectedAddressId;
     } else if (addressMode === "new") {
       // Usar novo endereço
       const hasDeliveryAddress = deliveryStreet || deliveryNumber || deliveryNeighborhood || deliveryCity;
@@ -328,6 +319,7 @@ export function OrderDialog({
       })),
       notes: notes.trim() || undefined,
       deliveryAddress,
+      clientAddressId: clientAddressIdToSend,
       saveAddress: shouldSaveAddress,
       addressLabel,
     });

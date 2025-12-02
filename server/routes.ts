@@ -2835,7 +2835,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         });
       }
 
-      const { client, items, notes, deliveryAddress, saveAddress, addressLabel } = validation.data;
+      const { client, items, notes, deliveryAddress, clientAddressId, saveAddress, addressLabel } = validation.data;
 
       // Verificar/criar cliente pelo telefone
       let existingClient = await storage.getClientByPhone(client.phone, tenantId);
@@ -2847,8 +2847,27 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         });
       }
 
+      // Determinar endereço de entrega final
+      let finalDeliveryAddress = deliveryAddress;
+
+      // Se um endereço existente foi selecionado, buscar dados do endereço
+      if (clientAddressId) {
+        const addresses = await storage.getClientAddresses(existingClient.id, tenantId);
+        const selectedAddress = addresses.find(a => a.id === clientAddressId);
+        if (selectedAddress) {
+          finalDeliveryAddress = {
+            street: selectedAddress.street || undefined,
+            number: selectedAddress.number || undefined,
+            complement: selectedAddress.complement || undefined,
+            neighborhood: selectedAddress.neighborhood || undefined,
+            city: selectedAddress.city || undefined,
+            zipCode: selectedAddress.zipCode || undefined,
+            reference: selectedAddress.reference || undefined,
+          };
+        }
+      }
       // Salvar novo endereço se solicitado
-      if (saveAddress && deliveryAddress && (deliveryAddress.street || deliveryAddress.neighborhood)) {
+      else if (saveAddress && deliveryAddress && (deliveryAddress.street || deliveryAddress.neighborhood)) {
         await storage.createClientAddress({
           tenantId,
           clientId: existingClient.id,
@@ -2864,8 +2883,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         });
       }
 
-      // Criar pedido com endereço de entrega
-      const order = await storage.createOrder(tenantId, existingClient.id, items, notes, deliveryAddress);
+      // Criar pedido com endereço de entrega e referência ao endereço salvo
+      const order = await storage.createOrder(tenantId, existingClient.id, items, notes, finalDeliveryAddress, clientAddressId);
 
       res.status(201).json(order);
     } catch (error: any) {
