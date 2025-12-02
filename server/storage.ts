@@ -22,6 +22,7 @@ import {
   type ProfessionalSchedule,
   type InsertProfessionalSchedule,
   type ProfessionalWithDetails,
+  type TenantModulePermission,
   clients,
   services,
   appointments,
@@ -32,7 +33,11 @@ import {
   appointmentServices,
   professionals,
   professionalServices,
-  professionalSchedules
+  professionalSchedules,
+  tenantModulePermissions,
+  MODULE_DEFINITIONS,
+  getCoreModuleIds,
+  getDefaultEnabledModules
 } from "@shared/schema";
 import { randomBytes } from "crypto";
 import { db } from "./db";
@@ -135,6 +140,12 @@ export interface IStorage {
   // Data correction operations
   findOrphanAppointments(tenantId: string): Promise<Appointment[]>;
   fixOrphanAppointments(tenantId: string, defaultServiceId: string): Promise<{ fixed: number; errors: string[] }>;
+
+  // Module Permission operations
+  getTenantModulePermissions(tenantId: string): Promise<TenantModulePermission[]>;
+  getTenantAllowedModules(tenantId: string): Promise<string[]>;
+  updateTenantModulePermissions(tenantId: string, modules: Record<string, boolean>): Promise<void>;
+  isModuleEnabledForTenant(tenantId: string, moduleId: string): Promise<boolean>;
 }
 
 export class DbStorage implements IStorage {
@@ -1234,6 +1245,107 @@ export class DbStorage implements IStorage {
     }
     
     return { fixed, errors };
+  }
+
+  // Module Permission operations
+  async getTenantModulePermissions(tenantId: string): Promise<TenantModulePermission[]> {
+    return await db
+      .select()
+      .from(tenantModulePermissions)
+      .where(eq(tenantModulePermissions.tenantId, tenantId));
+  }
+
+  async getTenantAllowedModules(tenantId: string): Promise<string[]> {
+    // Get explicit permissions from database
+    const permissions = await this.getTenantModulePermissions(tenantId);
+    const permissionMap = new Map(permissions.map(p => [p.moduleId, p.enabled]));
+
+    // Build allowed modules list
+    const allowedModules: string[] = [];
+    
+    for (const module of MODULE_DEFINITIONS) {
+      if (module.isCore) {
+        // Core modules are always enabled
+        allowedModules.push(module.id);
+      } else {
+        // Check if there's an explicit permission
+        const hasExplicitPermission = permissionMap.has(module.id);
+        if (hasExplicitPermission) {
+          if (permissionMap.get(module.id)) {
+            allowedModules.push(module.id);
+          }
+        } else {
+          // No explicit permission, use default
+          if (module.defaultEnabled) {
+            allowedModules.push(module.id);
+          }
+        }
+      }
+    }
+
+    return allowedModules;
+  }
+
+  async updateTenantModulePermissions(tenantId: string, modules: Record<string, boolean>): Promise<void> {
+    const coreModuleIds = getCoreModuleIds();
+
+    for (const [moduleId, enabled] of Object.entries(modules)) {
+      // Skip core modules - they're always enabled
+      if (coreModuleIds.includes(moduleId)) {
+        continue;
+      }
+
+      // Check if permission already exists
+      const existing = await db
+        .select()
+        .from(tenantModulePermissions)
+        .where(and(
+          eq(tenantModulePermissions.tenantId, tenantId),
+          eq(tenantModulePermissions.moduleId, moduleId)
+        ))
+        .limit(1);
+
+      if (existing.length > 0) {
+        // Update existing permission
+        await db
+          .update(tenantModulePermissions)
+          .set({ enabled })
+          .where(eq(tenantModulePermissions.id, existing[0].id));
+      } else {
+        // Insert new permission
+        await db.insert(tenantModulePermissions).values({
+          tenantId,
+          moduleId,
+          enabled,
+        });
+      }
+    }
+  }
+
+  async isModuleEnabledForTenant(tenantId: string, moduleId: string): Promise<boolean> {
+    // Core modules are always enabled
+    const coreModuleIds = getCoreModuleIds();
+    if (coreModuleIds.includes(moduleId)) {
+      return true;
+    }
+
+    // Check explicit permission
+    const permission = await db
+      .select()
+      .from(tenantModulePermissions)
+      .where(and(
+        eq(tenantModulePermissions.tenantId, tenantId),
+        eq(tenantModulePermissions.moduleId, moduleId)
+      ))
+      .limit(1);
+
+    if (permission.length > 0) {
+      return permission[0].enabled;
+    }
+
+    // No explicit permission, check default
+    const moduleDef = MODULE_DEFINITIONS.find(m => m.id === moduleId);
+    return moduleDef?.defaultEnabled ?? false;
   }
 }
 
