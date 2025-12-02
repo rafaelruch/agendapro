@@ -9,7 +9,7 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 export const Card = ({ children, className = "", ...props }: CardProps) => {
   return (
     <div
-      className={`rounded-lg border border-gray-200 bg-white shadow-card dark:border-gray-800 dark:bg-gray-dark ${className}`}
+      className={`rounded-lg border border-border bg-card text-card-foreground shadow-card ${className}`}
       {...props}
     >
       {children}
@@ -39,7 +39,7 @@ export interface CardTitleProps extends HTMLAttributes<HTMLHeadingElement> {
 
 export const CardTitle = ({ children, className = "", ...props }: CardTitleProps) => {
   return (
-    <h3 className={`text-xl font-semibold leading-none tracking-tight text-gray-900 dark:text-white ${className}`} {...props}>
+    <h3 className={`text-xl font-semibold leading-none tracking-tight ${className}`} {...props}>
       {children}
     </h3>
   );
@@ -53,7 +53,7 @@ export interface CardDescriptionProps extends HTMLAttributes<HTMLParagraphElemen
 
 export const CardDescription = ({ children, className = "", ...props }: CardDescriptionProps) => {
   return (
-    <p className={`text-sm text-gray-500 dark:text-gray-400 ${className}`} {...props}>
+    <p className={`text-sm text-muted-foreground ${className}`} {...props}>
       {children}
     </p>
   );
