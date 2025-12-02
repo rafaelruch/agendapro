@@ -15,6 +15,16 @@ interface OrderItem {
   unitPrice: number;
 }
 
+interface DeliveryAddress {
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
+  city?: string;
+  zipCode?: string;
+  reference?: string;
+}
+
 interface OrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -22,6 +32,7 @@ interface OrderDialogProps {
     client: { name: string; phone: string };
     items: { productId: string; quantity: number }[];
     notes?: string;
+    deliveryAddress?: DeliveryAddress;
   }) => void;
   isLoading?: boolean;
 }
@@ -37,6 +48,15 @@ export function OrderDialog({
   const [notes, setNotes] = useState("");
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
+  
+  // Endereço de entrega
+  const [deliveryStreet, setDeliveryStreet] = useState("");
+  const [deliveryNumber, setDeliveryNumber] = useState("");
+  const [deliveryComplement, setDeliveryComplement] = useState("");
+  const [deliveryNeighborhood, setDeliveryNeighborhood] = useState("");
+  const [deliveryCity, setDeliveryCity] = useState("");
+  const [deliveryZipCode, setDeliveryZipCode] = useState("");
+  const [deliveryReference, setDeliveryReference] = useState("");
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/inventory/products"],
@@ -52,6 +72,14 @@ export function OrderDialog({
       setNotes("");
       setOrderItems([]);
       setSelectedProductId("");
+      // Limpar endereço de entrega
+      setDeliveryStreet("");
+      setDeliveryNumber("");
+      setDeliveryComplement("");
+      setDeliveryNeighborhood("");
+      setDeliveryCity("");
+      setDeliveryZipCode("");
+      setDeliveryReference("");
     }
   }, [open]);
 
@@ -70,9 +98,20 @@ export function OrderDialog({
     return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
   };
 
+  const formatZipCode = (value: string) => {
+    const numbers = value.replace(/\D/g, "");
+    if (numbers.length <= 5) return numbers;
+    return `${numbers.slice(0, 5)}-${numbers.slice(5, 8)}`;
+  };
+
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatPhone(e.target.value);
     setClientPhone(formatted);
+  };
+
+  const handleZipCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatZipCode(e.target.value);
+    setDeliveryZipCode(formatted);
   };
 
   const addProduct = (productId: string) => {
@@ -134,6 +173,18 @@ export function OrderDialog({
       return;
     }
 
+    // Montar endereço de entrega apenas se pelo menos um campo estiver preenchido
+    const hasDeliveryAddress = deliveryStreet || deliveryNumber || deliveryNeighborhood || deliveryCity;
+    const deliveryAddress: DeliveryAddress | undefined = hasDeliveryAddress ? {
+      street: deliveryStreet.trim() || undefined,
+      number: deliveryNumber.trim() || undefined,
+      complement: deliveryComplement.trim() || undefined,
+      neighborhood: deliveryNeighborhood.trim() || undefined,
+      city: deliveryCity.trim() || undefined,
+      zipCode: deliveryZipCode.replace(/\D/g, "") || undefined,
+      reference: deliveryReference.trim() || undefined,
+    } : undefined;
+
     onSubmit({
       client: {
         name: clientName.trim(),
@@ -144,6 +195,7 @@ export function OrderDialog({
         quantity: item.quantity,
       })),
       notes: notes.trim() || undefined,
+      deliveryAddress,
     });
   };
 
@@ -302,6 +354,91 @@ export function OrderDialog({
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <h4 className="text-sm font-medium text-gray-800 dark:text-white mb-3">
+              Endereço de Entrega (opcional)
+            </h4>
+            <div className="grid gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="deliveryStreet">Rua</Label>
+                  <Input
+                    id="deliveryStreet"
+                    value={deliveryStreet}
+                    onChange={(e) => setDeliveryStreet(e.target.value)}
+                    placeholder="Nome da rua"
+                    data-testid="input-delivery-street"
+                  />
+                </div>
+                <div className="grid gap-2 grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="deliveryNumber">Número</Label>
+                    <Input
+                      id="deliveryNumber"
+                      value={deliveryNumber}
+                      onChange={(e) => setDeliveryNumber(e.target.value)}
+                      placeholder="Nº"
+                      data-testid="input-delivery-number"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="deliveryComplement">Complemento</Label>
+                    <Input
+                      id="deliveryComplement"
+                      value={deliveryComplement}
+                      onChange={(e) => setDeliveryComplement(e.target.value)}
+                      placeholder="Apto, bloco..."
+                      data-testid="input-delivery-complement"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-2">
+                  <Label htmlFor="deliveryNeighborhood">Bairro</Label>
+                  <Input
+                    id="deliveryNeighborhood"
+                    value={deliveryNeighborhood}
+                    onChange={(e) => setDeliveryNeighborhood(e.target.value)}
+                    placeholder="Bairro"
+                    data-testid="input-delivery-neighborhood"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="deliveryCity">Cidade</Label>
+                  <Input
+                    id="deliveryCity"
+                    value={deliveryCity}
+                    onChange={(e) => setDeliveryCity(e.target.value)}
+                    placeholder="Cidade"
+                    data-testid="input-delivery-city"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="deliveryZipCode">CEP</Label>
+                  <Input
+                    id="deliveryZipCode"
+                    value={deliveryZipCode}
+                    onChange={handleZipCodeChange}
+                    placeholder="00000-000"
+                    data-testid="input-delivery-zipcode"
+                    maxLength={9}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="deliveryReference">Ponto de Referência</Label>
+                <Input
+                  id="deliveryReference"
+                  value={deliveryReference}
+                  onChange={(e) => setDeliveryReference(e.target.value)}
+                  placeholder="Próximo ao mercado, casa azul..."
+                  data-testid="input-delivery-reference"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="grid gap-2">

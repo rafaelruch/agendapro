@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { ORDER_STATUS_LABELS, type OrderWithDetails, type OrderStatus } from "@shared/schema";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Clock, ChefHat, Check, XCircle, RefreshCw, Volume2 } from "lucide-react";
+import { Clock, ChefHat, Check, XCircle, RefreshCw, Printer } from "lucide-react";
+import { printThermalReceipt } from "@/components/ThermalReceipt";
 
 const statusConfig: Record<string, { bgColor: string; borderColor: string; textColor: string }> = {
   pending: { bgColor: "bg-yellow-50 dark:bg-yellow-900/20", borderColor: "border-yellow-400", textColor: "text-yellow-700 dark:text-yellow-300" },
@@ -17,6 +18,8 @@ const statusConfig: Record<string, { bgColor: string; borderColor: string; textC
 
 export default function KitchenPage() {
   const { toast } = useToast();
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [transitioningOrders, setTransitioningOrders] = useState<Set<string>>(new Set());
 
   const { data: orders = [], isLoading, refetch } = useQuery<OrderWithDetails[]>({
     queryKey: ["/api/orders/active"],
@@ -26,11 +29,23 @@ export default function KitchenPage() {
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: OrderStatus }) =>
       apiRequest("PATCH", `/api/orders/${id}/status`, { status }),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      setTransitioningOrders(prev => {
+        const next = new Set(prev);
+        next.delete(variables.id);
+        return next;
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      setUpdatingOrderId(null);
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables) => {
+      setTransitioningOrders(prev => {
+        const next = new Set(prev);
+        next.delete(variables.id);
+        return next;
+      });
+      setUpdatingOrderId(null);
       toast({
         title: "Erro ao atualizar status",
         description: error.message,
@@ -98,18 +113,33 @@ export default function KitchenPage() {
     };
     const next = nextStatus[order.status];
     if (next) {
+      setUpdatingOrderId(order.id);
+      setTransitioningOrders(prev => new Set(prev).add(order.id));
       updateStatusMutation.mutate({ id: order.id, status: next });
     }
+  };
+
+  const getTransitionColor = (orderId: string, currentStatus: string): string => {
+    if (!transitioningOrders.has(orderId)) return "";
+    
+    const nextColors: Record<string, string> = {
+      pending: "!bg-blue-200 dark:!bg-blue-800/50 !border-blue-500",
+      preparing: "!bg-green-200 dark:!bg-green-800/50 !border-green-500",
+      ready: "!bg-gray-200 dark:!bg-gray-800/50 !border-gray-500",
+    };
+    return nextColors[currentStatus] || "";
   };
 
   const OrderCard = ({ order, showNextButton = true }: { order: OrderWithDetails; showNextButton?: boolean }) => {
     const config = statusConfig[order.status] || statusConfig.pending;
     const elapsed = getElapsedTime(order.createdAt);
     const isLate = order.createdAt && (new Date().getTime() - new Date(order.createdAt).getTime()) > 15 * 60 * 1000;
+    const transitionClass = getTransitionColor(order.id, order.status);
+    const isUpdating = updatingOrderId === order.id;
 
     return (
       <div
-        className={`rounded-lg border-2 ${config.borderColor} ${config.bgColor} p-4 transition-all hover:shadow-lg`}
+        className={`rounded-lg border-2 ${config.borderColor} ${config.bgColor} p-4 transition-all duration-300 hover:shadow-lg ${transitionClass} ${isUpdating ? "scale-95 opacity-80" : ""}`}
         data-testid={`card-order-${order.id}`}
       >
         <div className="flex items-center justify-between mb-3">
@@ -167,6 +197,16 @@ export default function KitchenPage() {
             {formatCurrency(order.total)}
           </span>
           <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => printThermalReceipt(order)}
+              className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+              data-testid={`button-print-${order.id}`}
+              title="Imprimir pedido"
+            >
+              <Printer className="h-4 w-4" />
+            </Button>
             {order.status !== "ready" && (
               <Button
                 size="sm"
@@ -186,29 +226,32 @@ export default function KitchenPage() {
               <Button
                 size="sm"
                 onClick={() => handleNextStatus(order)}
-                disabled={updateStatusMutation.isPending}
+                disabled={isUpdating}
                 className={`${
                   order.status === "pending"
                     ? "bg-blue-500 hover:bg-blue-600"
                     : order.status === "preparing"
                     ? "bg-green-500 hover:bg-green-600"
                     : "bg-gray-500 hover:bg-gray-600"
-                } text-white`}
+                } text-white transition-all duration-200 ${isUpdating ? "animate-pulse" : ""}`}
                 data-testid={`button-next-${order.id}`}
               >
-                {order.status === "pending" && (
+                {isUpdating ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                    Atualizando...
+                  </>
+                ) : order.status === "pending" ? (
                   <>
                     <ChefHat className="h-4 w-4 mr-1" />
                     Preparar
                   </>
-                )}
-                {order.status === "preparing" && (
+                ) : order.status === "preparing" ? (
                   <>
                     <Check className="h-4 w-4 mr-1" />
                     Pronto
                   </>
-                )}
-                {order.status === "ready" && (
+                ) : (
                   <>
                     <Check className="h-4 w-4 mr-1" />
                     Entregar

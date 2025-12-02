@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Eye, Clock, ChefHat, Check, Truck, XCircle, Plus } from "lucide-react";
+import { Search, Eye, Clock, ChefHat, Check, Truck, XCircle, Plus, Printer } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ORDER_STATUS_LABELS, type OrderWithDetails, type OrderStatus } from "@shared/schema";
 import { OrderDialog } from "@/components/OrderDialog";
+import { printThermalReceipt } from "@/components/ThermalReceipt";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -38,6 +39,15 @@ export default function OrdersPage() {
       client: { name: string; phone: string };
       items: { productId: string; quantity: number }[];
       notes?: string;
+      deliveryAddress?: {
+        street?: string;
+        number?: string;
+        complement?: string;
+        neighborhood?: string;
+        city?: string;
+        zipCode?: string;
+        reference?: string;
+      };
     }) => apiRequest("POST", "/api/orders", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
@@ -299,6 +309,16 @@ export default function OrdersPage() {
                         </TableCell>
                         <TableCell className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => printThermalReceipt(order)}
+                              className="text-gray-500 hover:text-gray-700"
+                              data-testid={`button-print-${order.id}`}
+                              title="Imprimir pedido"
+                            >
+                              <Printer className="h-4 w-4" />
+                            </Button>
                             {nextStatus && (
                               <Button
                                 size="sm"
