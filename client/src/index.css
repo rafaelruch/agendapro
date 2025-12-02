@@ -254,13 +254,7 @@
   }
 
   body {
-    @apply font-sans antialiased text-foreground;
-    /* TailAdmin body background para contraste com boxes */
-    background-color: rgb(249, 250, 251); /* gray-50 */
-  }
-  
-  .dark body {
-    background-color: rgb(31, 41, 55); /* dark mode gray-800 */
+    @apply font-sans antialiased text-foreground bg-background;
   }
 }
 

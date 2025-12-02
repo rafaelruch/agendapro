@@ -21,13 +21,13 @@ export function ThemeToggle() {
   return (
     <button 
       onClick={toggleTheme}
-      className="relative flex h-10 w-10 items-center justify-center rounded-full border border-stroke hover:bg-gray-2 dark:border-strokedark dark:hover:bg-meta-4"
+      className="relative flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-accent dark:bg-card dark:text-foreground dark:hover:bg-accent transition-colors"
       data-testid="button-theme-toggle"
     >
       {theme === "light" ? (
-        <Sun className="h-4 w-4" />
+        <Sun className="h-5 w-5" />
       ) : (
-        <Moon className="h-4 w-4" />
+        <Moon className="h-5 w-5" />
       )}
     </button>
   );
