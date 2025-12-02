@@ -1255,6 +1255,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ===========================================
+  // ROTAS DE ENDEREÇOS DE CLIENTE (COM ISOLAMENTO TENANT)
+  // Protegido pelo módulo "clients"
+  // ===========================================
+
+  // GET /api/clients/:id/addresses - List all addresses of a specific client
+  app.get("/api/clients/:id/addresses", authenticateRequest, requireModule("clients"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req)!;
+      const client = await storage.getClient(req.params.id, tenantId);
+      if (!client) {
+        return res.status(404).json({ error: "Cliente não encontrado" });
+      }
+      
+      const addresses = await storage.getClientAddresses(req.params.id, tenantId);
+      res.json(addresses);
+    } catch (error) {
+      console.error("Error fetching client addresses:", error);
+      res.status(500).json({ error: "Erro ao buscar endereços do cliente" });
+    }
+  });
+
+  // POST /api/clients/:id/addresses - Create a new address for a client
+  app.post("/api/clients/:id/addresses", authenticateRequest, requireModule("clients"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req)!;
+      const clientId = req.params.id;
+      
+      const client = await storage.getClient(clientId, tenantId);
+      if (!client) {
+        return res.status(404).json({ error: "Cliente não encontrado" });
+      }
+      
+      const addressData = {
+        ...req.body,
+        clientId,
+        tenantId,
+      };
+      
+      const address = await storage.createClientAddress(addressData);
+      res.status(201).json(address);
+    } catch (error) {
+      console.error("Error creating client address:", error);
+      res.status(500).json({ error: "Erro ao criar endereço do cliente" });
+    }
+  });
+
+  // PUT /api/clients/:clientId/addresses/:addressId - Update a client address
+  app.put("/api/clients/:clientId/addresses/:addressId", authenticateRequest, requireModule("clients"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req)!;
+      const { clientId, addressId } = req.params;
+      
+      const client = await storage.getClient(clientId, tenantId);
+      if (!client) {
+        return res.status(404).json({ error: "Cliente não encontrado" });
+      }
+      
+      const address = await storage.updateClientAddress(addressId, tenantId, req.body);
+      if (!address) {
+        return res.status(404).json({ error: "Endereço não encontrado" });
+      }
+      res.json(address);
+    } catch (error) {
+      console.error("Error updating client address:", error);
+      res.status(500).json({ error: "Erro ao atualizar endereço do cliente" });
+    }
+  });
+
+  // DELETE /api/clients/:clientId/addresses/:addressId - Delete a client address
+  app.delete("/api/clients/:clientId/addresses/:addressId", authenticateRequest, requireModule("clients"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req)!;
+      const { clientId, addressId } = req.params;
+      
+      const client = await storage.getClient(clientId, tenantId);
+      if (!client) {
+        return res.status(404).json({ error: "Cliente não encontrado" });
+      }
+      
+      const success = await storage.deleteClientAddress(addressId, tenantId);
+      if (!success) {
+        return res.status(404).json({ error: "Endereço não encontrado" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting client address:", error);
+      res.status(500).json({ error: "Erro ao deletar endereço do cliente" });
+    }
+  });
+
+  // PUT /api/clients/:clientId/addresses/:addressId/default - Set address as default
+  app.put("/api/clients/:clientId/addresses/:addressId/default", authenticateRequest, requireModule("clients"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req)!;
+      const { clientId, addressId } = req.params;
+      
+      const client = await storage.getClient(clientId, tenantId);
+      if (!client) {
+        return res.status(404).json({ error: "Cliente não encontrado" });
+      }
+      
+      const address = await storage.setDefaultClientAddress(addressId, clientId, tenantId);
+      if (!address) {
+        return res.status(404).json({ error: "Endereço não encontrado" });
+      }
+      res.json(address);
+    } catch (error) {
+      console.error("Error setting default address:", error);
+      res.status(500).json({ error: "Erro ao definir endereço padrão" });
+    }
+  });
+
+  // ===========================================
   // ROTAS DE SERVIÇOS (COM ISOLAMENTO TENANT)
   // Protegido pelo módulo "services"
   // ===========================================

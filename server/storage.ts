@@ -1,6 +1,8 @@
 import { 
   type Client, 
   type InsertClient,
+  type ClientAddress,
+  type InsertClientAddress,
   type Service,
   type InsertService,
   type Appointment,
@@ -30,6 +32,7 @@ import {
   type OrderWithDetails,
   type OrderStatus,
   clients,
+  clientAddresses,
   services,
   appointments,
   tenants,
@@ -83,6 +86,14 @@ export interface IStorage {
   createClient(client: InsertClient): Promise<Client>;
   updateClient(id: string, tenantId: string, client: Partial<InsertClient>): Promise<Client | undefined>;
   deleteClient(id: string, tenantId: string): Promise<boolean>;
+
+  // Client Address operations (with tenant isolation)
+  getClientAddresses(clientId: string, tenantId: string): Promise<ClientAddress[]>;
+  getClientDefaultAddress(clientId: string, tenantId: string): Promise<ClientAddress | undefined>;
+  createClientAddress(address: InsertClientAddress): Promise<ClientAddress>;
+  updateClientAddress(id: string, tenantId: string, address: Partial<InsertClientAddress>): Promise<ClientAddress | undefined>;
+  deleteClientAddress(id: string, tenantId: string): Promise<boolean>;
+  setDefaultClientAddress(id: string, clientId: string, tenantId: string): Promise<ClientAddress | undefined>;
 
   // Service operations (with tenant isolation)
   getService(id: string, tenantId: string): Promise<Service | undefined>;
@@ -358,6 +369,93 @@ export class DbStorage implements IStorage {
       .where(and(eq(clients.id, id), eq(clients.tenantId, tenantId)))
       .returning();
     return result.length > 0;
+  }
+
+  // Client Address operations (with tenant isolation)
+  async getClientAddresses(clientId: string, tenantId: string): Promise<ClientAddress[]> {
+    return await db
+      .select()
+      .from(clientAddresses)
+      .where(and(
+        eq(clientAddresses.clientId, clientId),
+        eq(clientAddresses.tenantId, tenantId)
+      ))
+      .orderBy(desc(clientAddresses.isDefault), clientAddresses.label);
+  }
+
+  async getClientDefaultAddress(clientId: string, tenantId: string): Promise<ClientAddress | undefined> {
+    const result = await db
+      .select()
+      .from(clientAddresses)
+      .where(and(
+        eq(clientAddresses.clientId, clientId),
+        eq(clientAddresses.tenantId, tenantId),
+        eq(clientAddresses.isDefault, true)
+      ))
+      .limit(1);
+    return result[0];
+  }
+
+  async createClientAddress(address: InsertClientAddress): Promise<ClientAddress> {
+    // Se for o primeiro endereço ou marcado como default, garantir que é default
+    const existingAddresses = await this.getClientAddresses(address.clientId, address.tenantId);
+    const isFirst = existingAddresses.length === 0;
+    
+    // Se for default, desmarcar outros endereços como default
+    if (address.isDefault || isFirst) {
+      await db
+        .update(clientAddresses)
+        .set({ isDefault: false })
+        .where(and(
+          eq(clientAddresses.clientId, address.clientId),
+          eq(clientAddresses.tenantId, address.tenantId)
+        ));
+    }
+    
+    const result = await db
+      .insert(clientAddresses)
+      .values({ ...address, isDefault: address.isDefault || isFirst })
+      .returning();
+    return result[0];
+  }
+
+  async updateClientAddress(id: string, tenantId: string, address: Partial<InsertClientAddress>): Promise<ClientAddress | undefined> {
+    const result = await db
+      .update(clientAddresses)
+      .set(address)
+      .where(and(eq(clientAddresses.id, id), eq(clientAddresses.tenantId, tenantId)))
+      .returning();
+    return result[0];
+  }
+
+  async deleteClientAddress(id: string, tenantId: string): Promise<boolean> {
+    const result = await db
+      .delete(clientAddresses)
+      .where(and(eq(clientAddresses.id, id), eq(clientAddresses.tenantId, tenantId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async setDefaultClientAddress(id: string, clientId: string, tenantId: string): Promise<ClientAddress | undefined> {
+    // Desmarcar todos os endereços do cliente
+    await db
+      .update(clientAddresses)
+      .set({ isDefault: false })
+      .where(and(
+        eq(clientAddresses.clientId, clientId),
+        eq(clientAddresses.tenantId, tenantId)
+      ));
+    
+    // Marcar o endereço selecionado como default
+    const result = await db
+      .update(clientAddresses)
+      .set({ isDefault: true })
+      .where(and(
+        eq(clientAddresses.id, id),
+        eq(clientAddresses.tenantId, tenantId)
+      ))
+      .returning();
+    return result[0];
   }
 
   // Service operations (with tenant isolation)
