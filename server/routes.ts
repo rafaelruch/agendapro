@@ -15,7 +15,8 @@ import {
   setupSchema,
   type InsertUser,
   isServiceInPromotion,
-  getServiceEffectiveValue
+  getServiceEffectiveValue,
+  MODULE_DEFINITIONS
 } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
