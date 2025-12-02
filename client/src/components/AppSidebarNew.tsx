@@ -1,4 +1,4 @@
-import { Calendar, LayoutDashboard, Users, Settings, Briefcase, UserCog, ChevronDown, UserCheck, Clock, Key } from "lucide-react";
+import { Calendar, LayoutDashboard, Users, Settings, Briefcase, UserCog, ChevronDown, UserCheck, Clock, Key, Package, ShoppingCart, ChefHat } from "lucide-react";
 import { useLocation } from "wouter";
 import { useSidebar } from "@/context/SidebarContext";
 
@@ -51,6 +51,27 @@ export function AppSidebarNew({ userRole, allowedModules = [] }: AppSidebarProps
       path: "/professionals",
       testId: "link-profissionais",
       moduleId: "professionals"
+    },
+    {
+      name: "Estoque",
+      icon: <Package className="h-5 w-5" />,
+      path: "/inventory",
+      testId: "link-estoque",
+      moduleId: "inventory"
+    },
+    {
+      name: "Pedidos",
+      icon: <ShoppingCart className="h-5 w-5" />,
+      path: "/orders",
+      testId: "link-pedidos",
+      moduleId: "orders"
+    },
+    {
+      name: "Cozinha",
+      icon: <ChefHat className="h-5 w-5" />,
+      path: "/kitchen",
+      testId: "link-cozinha",
+      moduleId: "orders"
     },
   ].filter(item => item.moduleId === null || hasModule(item.moduleId));
 

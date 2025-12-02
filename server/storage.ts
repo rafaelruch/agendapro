@@ -23,6 +23,12 @@ import {
   type InsertProfessionalSchedule,
   type ProfessionalWithDetails,
   type TenantModulePermission,
+  type Product,
+  type InsertProduct,
+  type Order,
+  type OrderItem,
+  type OrderWithDetails,
+  type OrderStatus,
   clients,
   services,
   appointments,
@@ -35,6 +41,9 @@ import {
   professionalServices,
   professionalSchedules,
   tenantModulePermissions,
+  products,
+  orders,
+  orderItems,
   MODULE_DEFINITIONS,
   getCoreModuleIds,
   getDefaultEnabledModules
@@ -151,6 +160,29 @@ export interface IStorage {
   listAllModules(): Promise<{ id: string; label: string; description: string; isCore: boolean; defaultEnabled: boolean }[]>;
   getTenantModules(tenantId: string): Promise<string[]>;
   setTenantModules(tenantId: string, enabledModuleIds: string[]): Promise<void>;
+
+  // ==================== DELIVERY SYSTEM ====================
+  
+  // Product operations (with tenant isolation)
+  getProduct(id: string, tenantId: string): Promise<Product | undefined>;
+  getAllProducts(tenantId: string): Promise<Product[]>;
+  getActiveProducts(tenantId: string): Promise<Product[]>;
+  searchProducts(tenantId: string, searchTerm: string): Promise<Product[]>;
+  createProduct(product: InsertProduct & { tenantId: string }): Promise<Product>;
+  updateProduct(id: string, tenantId: string, product: Partial<InsertProduct>): Promise<Product | undefined>;
+  deleteProduct(id: string, tenantId: string): Promise<boolean>;
+  adjustProductStock(id: string, tenantId: string, adjustment: number): Promise<Product | undefined>;
+  
+  // Order operations (with tenant isolation)
+  getOrder(id: string, tenantId: string): Promise<Order | undefined>;
+  getOrderWithDetails(id: string, tenantId: string): Promise<OrderWithDetails | undefined>;
+  getAllOrders(tenantId: string): Promise<Order[]>;
+  getOrdersByStatus(tenantId: string, status: OrderStatus): Promise<OrderWithDetails[]>;
+  getActiveOrders(tenantId: string): Promise<OrderWithDetails[]>;
+  getNextOrderNumber(tenantId: string): Promise<number>;
+  createOrder(tenantId: string, clientId: string, items: { productId: string; quantity: number }[], notes?: string): Promise<OrderWithDetails>;
+  updateOrderStatus(id: string, tenantId: string, status: OrderStatus): Promise<Order | undefined>;
+  cancelOrder(id: string, tenantId: string): Promise<Order | undefined>;
 }
 
 export class DbStorage implements IStorage {
@@ -1391,6 +1423,261 @@ export class DbStorage implements IStorage {
         enabled,
       });
     }
+  }
+
+  // ==================== DELIVERY SYSTEM ====================
+
+  // Product operations
+  async getProduct(id: string, tenantId: string): Promise<Product | undefined> {
+    const result = await db
+      .select()
+      .from(products)
+      .where(and(eq(products.id, id), eq(products.tenantId, tenantId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getAllProducts(tenantId: string): Promise<Product[]> {
+    return await db
+      .select()
+      .from(products)
+      .where(eq(products.tenantId, tenantId))
+      .orderBy(desc(products.createdAt));
+  }
+
+  async getActiveProducts(tenantId: string): Promise<Product[]> {
+    return await db
+      .select()
+      .from(products)
+      .where(and(eq(products.tenantId, tenantId), eq(products.isActive, true)))
+      .orderBy(products.name);
+  }
+
+  async searchProducts(tenantId: string, searchTerm: string): Promise<Product[]> {
+    return await db
+      .select()
+      .from(products)
+      .where(and(
+        eq(products.tenantId, tenantId),
+        or(
+          like(products.name, `%${searchTerm}%`),
+          like(products.description, `%${searchTerm}%`)
+        )
+      ))
+      .orderBy(products.name);
+  }
+
+  async createProduct(product: InsertProduct & { tenantId: string }): Promise<Product> {
+    const productData = {
+      ...product,
+      price: String(product.price),
+    };
+    const result = await db.insert(products).values(productData).returning();
+    return result[0];
+  }
+
+  async updateProduct(id: string, tenantId: string, product: Partial<InsertProduct>): Promise<Product | undefined> {
+    const productData: Record<string, any> = { ...product };
+    if (product.price !== undefined) {
+      productData.price = String(product.price);
+    }
+    const result = await db
+      .update(products)
+      .set(productData)
+      .where(and(eq(products.id, id), eq(products.tenantId, tenantId)))
+      .returning();
+    return result[0];
+  }
+
+  async deleteProduct(id: string, tenantId: string): Promise<boolean> {
+    const result = await db
+      .delete(products)
+      .where(and(eq(products.id, id), eq(products.tenantId, tenantId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async adjustProductStock(id: string, tenantId: string, adjustment: number): Promise<Product | undefined> {
+    const product = await this.getProduct(id, tenantId);
+    if (!product || !product.manageStock || product.quantity === null) {
+      return undefined;
+    }
+
+    const newQuantity = Math.max(0, product.quantity + adjustment);
+    return this.updateProduct(id, tenantId, { quantity: newQuantity });
+  }
+
+  // Order operations
+  async getOrder(id: string, tenantId: string): Promise<Order | undefined> {
+    const result = await db
+      .select()
+      .from(orders)
+      .where(and(eq(orders.id, id), eq(orders.tenantId, tenantId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getOrderWithDetails(id: string, tenantId: string): Promise<OrderWithDetails | undefined> {
+    const order = await this.getOrder(id, tenantId);
+    if (!order) return undefined;
+
+    const client = await this.getClient(order.clientId, tenantId);
+    if (!client) return undefined;
+
+    const items = await db
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.orderId, order.id));
+
+    const itemsWithProducts = await Promise.all(
+      items.map(async (item) => {
+        const product = await this.getProduct(item.productId, tenantId);
+        return { ...item, product: product! };
+      })
+    );
+
+    return { ...order, client, items: itemsWithProducts };
+  }
+
+  async getAllOrders(tenantId: string): Promise<Order[]> {
+    return await db
+      .select()
+      .from(orders)
+      .where(eq(orders.tenantId, tenantId))
+      .orderBy(desc(orders.createdAt));
+  }
+
+  async getOrdersByStatus(tenantId: string, status: OrderStatus): Promise<OrderWithDetails[]> {
+    const ordersList = await db
+      .select()
+      .from(orders)
+      .where(and(eq(orders.tenantId, tenantId), eq(orders.status, status)))
+      .orderBy(orders.createdAt);
+
+    const result: OrderWithDetails[] = [];
+    for (const order of ordersList) {
+      const details = await this.getOrderWithDetails(order.id, tenantId);
+      if (details) result.push(details);
+    }
+    return result;
+  }
+
+  async getActiveOrders(tenantId: string): Promise<OrderWithDetails[]> {
+    const ordersList = await db
+      .select()
+      .from(orders)
+      .where(and(
+        eq(orders.tenantId, tenantId),
+        or(
+          eq(orders.status, 'pending'),
+          eq(orders.status, 'preparing'),
+          eq(orders.status, 'ready')
+        )
+      ))
+      .orderBy(orders.createdAt);
+
+    const result: OrderWithDetails[] = [];
+    for (const order of ordersList) {
+      const details = await this.getOrderWithDetails(order.id, tenantId);
+      if (details) result.push(details);
+    }
+    return result;
+  }
+
+  async getNextOrderNumber(tenantId: string): Promise<number> {
+    const result = await db
+      .select({ maxNumber: orders.orderNumber })
+      .from(orders)
+      .where(eq(orders.tenantId, tenantId))
+      .orderBy(desc(orders.orderNumber))
+      .limit(1);
+    
+    return (result[0]?.maxNumber ?? 0) + 1;
+  }
+
+  async createOrder(
+    tenantId: string, 
+    clientId: string, 
+    items: { productId: string; quantity: number }[], 
+    notes?: string
+  ): Promise<OrderWithDetails> {
+    // Calcular total e validar estoque
+    let total = 0;
+    const itemsData: { productId: string; quantity: number; unitPrice: number }[] = [];
+
+    for (const item of items) {
+      const product = await this.getProduct(item.productId, tenantId);
+      if (!product) {
+        throw new Error(`Produto não encontrado: ${item.productId}`);
+      }
+      if (!product.isActive) {
+        throw new Error(`Produto indisponível: ${product.name}`);
+      }
+      if (product.manageStock && product.quantity !== null && product.quantity < item.quantity) {
+        throw new Error(`Estoque insuficiente para: ${product.name}`);
+      }
+
+      const unitPrice = parseFloat(String(product.price));
+      total += unitPrice * item.quantity;
+      itemsData.push({ productId: item.productId, quantity: item.quantity, unitPrice });
+    }
+
+    // Criar pedido
+    const orderNumber = await this.getNextOrderNumber(tenantId);
+    const [newOrder] = await db
+      .insert(orders)
+      .values({
+        tenantId,
+        clientId,
+        orderNumber,
+        status: 'pending',
+        total: String(total),
+        notes,
+      })
+      .returning();
+
+    // Criar itens do pedido e atualizar estoque
+    for (const item of itemsData) {
+      await db.insert(orderItems).values({
+        orderId: newOrder.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: String(item.unitPrice),
+      });
+
+      // Decrementar estoque se gerenciado
+      await this.adjustProductStock(item.productId, tenantId, -item.quantity);
+    }
+
+    return (await this.getOrderWithDetails(newOrder.id, tenantId))!;
+  }
+
+  async updateOrderStatus(id: string, tenantId: string, status: OrderStatus): Promise<Order | undefined> {
+    const result = await db
+      .update(orders)
+      .set({ status, updatedAt: new Date() })
+      .where(and(eq(orders.id, id), eq(orders.tenantId, tenantId)))
+      .returning();
+    return result[0];
+  }
+
+  async cancelOrder(id: string, tenantId: string): Promise<Order | undefined> {
+    const order = await this.getOrder(id, tenantId);
+    if (!order || order.status === 'cancelled' || order.status === 'delivered') {
+      return undefined;
+    }
+
+    // Restaurar estoque
+    const items = await db
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.orderId, id));
+
+    for (const item of items) {
+      await this.adjustProductStock(item.productId, tenantId, item.quantity);
+    }
+
+    return this.updateOrderStatus(id, tenantId, 'cancelled');
   }
 }
 

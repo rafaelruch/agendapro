@@ -65,6 +65,20 @@ export const MODULE_DEFINITIONS: ModuleDefinition[] = [
     isCore: false,
     defaultEnabled: false,
   },
+  {
+    id: "inventory",
+    label: "Estoque",
+    description: "Gestão de produtos e estoque",
+    isCore: false,
+    defaultEnabled: false,
+  },
+  {
+    id: "orders",
+    label: "Pedidos",
+    description: "Gestão de pedidos delivery",
+    isCore: false,
+    defaultEnabled: false,
+  },
 ];
 
 // Helper para obter módulos habilitados por padrão
@@ -193,6 +207,56 @@ export const tenantModulePermissions = pgTable("tenant_module_permissions", {
 }, (table) => ({
   uniqueTenantModule: unique().on(table.tenantId, table.moduleId)
 }));
+
+// ==================== DELIVERY SYSTEM ====================
+
+// Status de pedidos
+export const ORDER_STATUSES = ['pending', 'preparing', 'ready', 'delivered', 'cancelled'] as const;
+export type OrderStatus = typeof ORDER_STATUSES[number];
+
+// Labels em português para os status
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  pending: 'Pendente',
+  preparing: 'Em Preparo',
+  ready: 'Pronto',
+  delivered: 'Entregue',
+  cancelled: 'Cancelado',
+};
+
+// Tabela de produtos (estoque)
+export const products = pgTable("products", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  description: text("description"),
+  price: numeric("price", { precision: 10, scale: 2 }).notNull(),
+  manageStock: boolean("manage_stock").notNull().default(false),
+  quantity: integer("quantity"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Tabela de pedidos
+export const orders = pgTable("orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  clientId: varchar("client_id").notNull().references(() => clients.id, { onDelete: 'cascade' }),
+  orderNumber: integer("order_number").notNull(),
+  status: text("status").notNull().default("pending"),
+  total: numeric("total", { precision: 10, scale: 2 }).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Tabela de itens do pedido
+export const orderItems = pgTable("order_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  productId: varchar("product_id").notNull().references(() => products.id, { onDelete: 'cascade' }),
+  quantity: integer("quantity").notNull(),
+  unitPrice: numeric("unit_price", { precision: 10, scale: 2 }).notNull(),
+});
 
 export const insertTenantSchema = createInsertSchema(tenants).omit({
   id: true,
@@ -333,6 +397,41 @@ export const updateTenantModulesSchema = z.object({
   modules: z.record(z.string(), z.boolean()), // { "clients": true, "api-tokens": false }
 });
 
+// ==================== DELIVERY SCHEMAS ====================
+
+export const insertProductSchema = createInsertSchema(products).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  price: z.coerce.number().positive("Preço deve ser positivo"),
+  quantity: z.coerce.number().int().min(0).optional().nullable(),
+});
+
+export const updateProductSchema = insertProductSchema.partial();
+
+export const insertOrderSchema = z.object({
+  client: z.object({
+    name: z.string().min(1, "Nome do cliente é obrigatório"),
+    phone: z.string().min(1, "Telefone do cliente é obrigatório"),
+  }),
+  items: z.array(z.object({
+    productId: z.string().min(1, "ID do produto é obrigatório"),
+    quantity: z.coerce.number().int().positive("Quantidade deve ser positiva"),
+  })).min(1, "Pelo menos um item é obrigatório"),
+  notes: z.string().optional(),
+});
+
+export const updateOrderStatusSchema = z.object({
+  status: z.enum(ORDER_STATUSES),
+});
+
+export const insertOrderItemSchema = createInsertSchema(orderItems).omit({
+  id: true,
+}).extend({
+  quantity: z.coerce.number().int().positive(),
+  unitPrice: z.coerce.number().positive(),
+});
+
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type Tenant = typeof tenants.$inferSelect;
 
@@ -374,6 +473,27 @@ export type ProfessionalSchedule = typeof professionalSchedules.$inferSelect;
 export type InsertTenantModulePermission = z.infer<typeof insertTenantModulePermissionSchema>;
 export type TenantModulePermission = typeof tenantModulePermissions.$inferSelect;
 export type UpdateTenantModules = z.infer<typeof updateTenantModulesSchema>;
+
+// ==================== DELIVERY TYPES ====================
+
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type Product = typeof products.$inferSelect;
+export type UpdateProduct = z.infer<typeof updateProductSchema>;
+
+export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export type Order = typeof orders.$inferSelect;
+export type UpdateOrderStatus = z.infer<typeof updateOrderStatusSchema>;
+
+export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
+export type OrderItem = typeof orderItems.$inferSelect;
+
+// Pedido com detalhes do cliente e itens
+export type OrderWithDetails = Order & {
+  client: Client;
+  items: (OrderItem & {
+    product: Product;
+  })[];
+};
 
 export type ProfessionalWithDetails = Professional & {
   serviceIds: string[];

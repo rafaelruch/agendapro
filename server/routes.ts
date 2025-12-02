@@ -11,9 +11,15 @@ import {
   insertUserSchema,
   insertBusinessHoursSchema,
   insertProfessionalSchema,
+  insertProductSchema,
+  updateProductSchema,
+  insertOrderSchema,
+  updateOrderStatusSchema,
   loginSchema,
   setupSchema,
   type InsertUser,
+  type OrderStatus,
+  ORDER_STATUSES,
   isServiceInPromotion,
   getServiceEffectiveValue,
   MODULE_DEFINITIONS
@@ -2478,6 +2484,325 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         success: false,
         error: error.message || "Erro ao corrigir agendamentos órfãos" 
       });
+    }
+  });
+
+  // ===========================================
+  // ROTAS DE PRODUTOS / ESTOQUE (COM ISOLAMENTO TENANT)
+  // ===========================================
+
+  // GET /api/inventory/products - Listar produtos
+  app.get("/api/inventory/products", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const search = req.query.search as string;
+      const activeOnly = req.query.active === 'true';
+
+      let productsList;
+      if (search) {
+        productsList = await storage.searchProducts(tenantId, search);
+      } else if (activeOnly) {
+        productsList = await storage.getActiveProducts(tenantId);
+      } else {
+        productsList = await storage.getAllProducts(tenantId);
+      }
+
+      res.json(productsList);
+    } catch (error: any) {
+      console.error("Error fetching products:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar produtos" });
+    }
+  });
+
+  // GET /api/inventory/products/:id - Obter produto específico
+  app.get("/api/inventory/products/:id", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const product = await storage.getProduct(req.params.id, tenantId);
+      if (!product) {
+        return res.status(404).json({ error: "Produto não encontrado" });
+      }
+
+      res.json(product);
+    } catch (error: any) {
+      console.error("Error fetching product:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar produto" });
+    }
+  });
+
+  // POST /api/inventory/products - Criar produto
+  app.post("/api/inventory/products", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const validation = insertProductSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Dados inválidos", 
+          details: validation.error.errors 
+        });
+      }
+
+      const product = await storage.createProduct({
+        ...validation.data,
+        tenantId,
+      });
+
+      res.status(201).json(product);
+    } catch (error: any) {
+      console.error("Error creating product:", error);
+      res.status(500).json({ error: error.message || "Erro ao criar produto" });
+    }
+  });
+
+  // PUT /api/inventory/products/:id - Atualizar produto
+  app.put("/api/inventory/products/:id", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const validation = updateProductSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Dados inválidos", 
+          details: validation.error.errors 
+        });
+      }
+
+      const product = await storage.updateProduct(req.params.id, tenantId, validation.data);
+      if (!product) {
+        return res.status(404).json({ error: "Produto não encontrado" });
+      }
+
+      res.json(product);
+    } catch (error: any) {
+      console.error("Error updating product:", error);
+      res.status(500).json({ error: error.message || "Erro ao atualizar produto" });
+    }
+  });
+
+  // PATCH /api/inventory/products/:id/stock - Ajustar estoque
+  app.patch("/api/inventory/products/:id/stock", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const { adjustment } = req.body;
+      if (typeof adjustment !== 'number') {
+        return res.status(400).json({ error: "adjustment deve ser um número" });
+      }
+
+      const product = await storage.adjustProductStock(req.params.id, tenantId, adjustment);
+      if (!product) {
+        return res.status(404).json({ error: "Produto não encontrado ou sem controle de estoque" });
+      }
+
+      res.json(product);
+    } catch (error: any) {
+      console.error("Error adjusting stock:", error);
+      res.status(500).json({ error: error.message || "Erro ao ajustar estoque" });
+    }
+  });
+
+  // DELETE /api/inventory/products/:id - Excluir produto
+  app.delete("/api/inventory/products/:id", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const deleted = await storage.deleteProduct(req.params.id, tenantId);
+      if (!deleted) {
+        return res.status(404).json({ error: "Produto não encontrado" });
+      }
+
+      res.status(204).send();
+    } catch (error: any) {
+      console.error("Error deleting product:", error);
+      res.status(500).json({ error: error.message || "Erro ao excluir produto" });
+    }
+  });
+
+  // ===========================================
+  // ROTAS DE PEDIDOS (COM ISOLAMENTO TENANT)
+  // ===========================================
+
+  // GET /api/orders - Listar pedidos
+  app.get("/api/orders", authenticateRequest, requireModule("orders"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const status = req.query.status as OrderStatus | undefined;
+      const activeOnly = req.query.active === 'true';
+
+      let ordersList;
+      if (status && ORDER_STATUSES.includes(status)) {
+        ordersList = await storage.getOrdersByStatus(tenantId, status);
+      } else if (activeOnly) {
+        ordersList = await storage.getActiveOrders(tenantId);
+      } else {
+        ordersList = await storage.getAllOrders(tenantId);
+      }
+
+      res.json(ordersList);
+    } catch (error: any) {
+      console.error("Error fetching orders:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar pedidos" });
+    }
+  });
+
+  // GET /api/orders/active - Listar pedidos ativos (para painel da cozinha)
+  app.get("/api/orders/active", authenticateRequest, requireModule("orders"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const ordersList = await storage.getActiveOrders(tenantId);
+      res.json(ordersList);
+    } catch (error: any) {
+      console.error("Error fetching active orders:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar pedidos ativos" });
+    }
+  });
+
+  // GET /api/orders/:id - Obter pedido específico
+  app.get("/api/orders/:id", authenticateRequest, requireModule("orders"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const order = await storage.getOrderWithDetails(req.params.id, tenantId);
+      if (!order) {
+        return res.status(404).json({ error: "Pedido não encontrado" });
+      }
+
+      res.json(order);
+    } catch (error: any) {
+      console.error("Error fetching order:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar pedido" });
+    }
+  });
+
+  // POST /api/orders - Criar pedido (compatível com N8N)
+  app.post("/api/orders", authenticateRequest, requireModule("orders"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const validation = insertOrderSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Dados inválidos", 
+          details: validation.error.errors 
+        });
+      }
+
+      const { client, items, notes } = validation.data;
+
+      // Verificar/criar cliente pelo telefone
+      let existingClient = await storage.getClientByPhone(client.phone, tenantId);
+      if (!existingClient) {
+        existingClient = await storage.createClient({
+          tenantId,
+          name: client.name,
+          phone: client.phone,
+        });
+      }
+
+      // Criar pedido
+      const order = await storage.createOrder(tenantId, existingClient.id, items, notes);
+
+      res.status(201).json(order);
+    } catch (error: any) {
+      console.error("Error creating order:", error);
+      
+      // Erro de estoque insuficiente
+      if (error.message.includes("Estoque insuficiente")) {
+        return res.status(409).json({ error: error.message });
+      }
+      // Produto não encontrado
+      if (error.message.includes("Produto não encontrado") || error.message.includes("indisponível")) {
+        return res.status(404).json({ error: error.message });
+      }
+
+      res.status(500).json({ error: error.message || "Erro ao criar pedido" });
+    }
+  });
+
+  // PATCH /api/orders/:id/status - Atualizar status do pedido (um clique)
+  app.patch("/api/orders/:id/status", authenticateRequest, requireModule("orders"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const validation = updateOrderStatusSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Status inválido",
+          validStatuses: ORDER_STATUSES
+        });
+      }
+
+      const order = await storage.updateOrderStatus(req.params.id, tenantId, validation.data.status);
+      if (!order) {
+        return res.status(404).json({ error: "Pedido não encontrado" });
+      }
+
+      // Retornar pedido completo com detalhes
+      const orderWithDetails = await storage.getOrderWithDetails(order.id, tenantId);
+      res.json(orderWithDetails);
+    } catch (error: any) {
+      console.error("Error updating order status:", error);
+      res.status(500).json({ error: error.message || "Erro ao atualizar status" });
+    }
+  });
+
+  // POST /api/orders/:id/cancel - Cancelar pedido (restaura estoque)
+  app.post("/api/orders/:id/cancel", authenticateRequest, requireModule("orders"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const order = await storage.cancelOrder(req.params.id, tenantId);
+      if (!order) {
+        return res.status(404).json({ error: "Pedido não encontrado ou não pode ser cancelado" });
+      }
+
+      // Retornar pedido completo com detalhes
+      const orderWithDetails = await storage.getOrderWithDetails(order.id, tenantId);
+      res.json(orderWithDetails);
+    } catch (error: any) {
+      console.error("Error cancelling order:", error);
+      res.status(500).json({ error: error.message || "Erro ao cancelar pedido" });
     }
   });
 

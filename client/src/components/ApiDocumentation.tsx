@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 interface EndpointExample {
-  method: "GET" | "POST" | "PUT" | "DELETE";
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   path: string;
   description: string;
   auth: "Bearer Token" | "Session" | "None" | "Master Admin" | "Tenant Admin";
@@ -627,6 +627,250 @@ curl -X PUT "${baseUrl}/api/appointments?id=apt-789" \\
     "enabledModules": ["clients", "services", "professionals", "business-hours"]
   }'`
     }
+  ],
+  produtos: [
+    {
+      method: "GET",
+      path: "/api/products",
+      description: "Listar todos os produtos do estoque do tenant",
+      auth: "Bearer Token",
+      queryParams: [
+        { name: "search", type: "string", required: false, description: "Buscar produtos por nome" },
+        { name: "active", type: "boolean", required: false, description: "Filtrar apenas produtos ativos" }
+      ],
+      responseExample: `[
+  {
+    "id": "prod-123",
+    "name": "Hambúrguer Artesanal",
+    "description": "Pão brioche, 200g de carne, queijo cheddar",
+    "price": "35.90",
+    "manageStock": true,
+    "quantity": 50,
+    "isActive": true,
+    "tenantId": "tenant-123"
+  }
+]`,
+      curlExample: `curl -X GET "${baseUrl}/api/products?active=true" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
+    },
+    {
+      method: "POST",
+      path: "/api/products",
+      description: "Criar um novo produto",
+      auth: "Bearer Token",
+      requestBody: `{
+  "name": "Hambúrguer Artesanal",
+  "description": "Pão brioche, 200g de carne, queijo cheddar",
+  "price": 35.90,
+  "manageStock": true,
+  "quantity": 50,
+  "isActive": true
+}`,
+      responseExample: `{
+  "id": "prod-456",
+  "name": "Hambúrguer Artesanal",
+  "description": "Pão brioche, 200g de carne, queijo cheddar",
+  "price": "35.90",
+  "manageStock": true,
+  "quantity": 50,
+  "isActive": true,
+  "tenantId": "tenant-123"
+}`,
+      curlExample: `curl -X POST "${baseUrl}/api/products" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "Hambúrguer Artesanal",
+    "description": "Pão brioche, 200g de carne, queijo cheddar",
+    "price": 35.90,
+    "manageStock": true,
+    "quantity": 50
+  }'`
+    },
+    {
+      method: "PUT",
+      path: "/api/products/:id",
+      description: "Atualizar um produto existente",
+      auth: "Bearer Token",
+      parameters: [
+        { name: "id", type: "string", required: true, description: "ID do produto" }
+      ],
+      requestBody: `{
+  "price": 39.90,
+  "quantity": 100
+}`,
+      responseExample: `{
+  "id": "prod-456",
+  "name": "Hambúrguer Artesanal",
+  "price": "39.90",
+  "manageStock": true,
+  "quantity": 100,
+  "isActive": true,
+  "tenantId": "tenant-123"
+}`,
+      curlExample: `curl -X PUT "${baseUrl}/api/products/prod-456" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "price": 39.90,
+    "quantity": 100
+  }'`
+    },
+    {
+      method: "DELETE",
+      path: "/api/products/:id",
+      description: "Deletar um produto",
+      auth: "Bearer Token",
+      parameters: [
+        { name: "id", type: "string", required: true, description: "ID do produto" }
+      ],
+      responseExample: "204 No Content",
+      curlExample: `curl -X DELETE "${baseUrl}/api/products/prod-456" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
+    }
+  ],
+  pedidos: [
+    {
+      method: "GET",
+      path: "/api/orders",
+      description: "Listar todos os pedidos do tenant (com detalhes de cliente e itens)",
+      auth: "Bearer Token",
+      queryParams: [
+        { name: "status", type: "string", required: false, description: "Filtrar por status: pending, preparing, ready, delivered, cancelled" },
+        { name: "date", type: "string", required: false, description: "Filtrar por data (YYYY-MM-DD)" }
+      ],
+      responseExample: `[
+  {
+    "id": "order-123",
+    "orderNumber": 1,
+    "status": "pending",
+    "total": "85.80",
+    "notes": "Sem cebola no hambúrguer",
+    "createdAt": "2025-12-02T14:30:00Z",
+    "client": {
+      "id": "client-456",
+      "name": "João Silva",
+      "phone": "11999999999"
+    },
+    "items": [
+      {
+        "productId": "prod-123",
+        "quantity": 2,
+        "unitPrice": "35.90",
+        "product": {
+          "id": "prod-123",
+          "name": "Hambúrguer Artesanal"
+        }
+      }
+    ]
+  }
+]`,
+      curlExample: `curl -X GET "${baseUrl}/api/orders?status=pending" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
+    },
+    {
+      method: "GET",
+      path: "/api/orders/active",
+      description: "Listar pedidos ativos para o painel da cozinha (pending, preparing, ready)",
+      auth: "Bearer Token",
+      responseExample: `[
+  {
+    "id": "order-123",
+    "orderNumber": 1,
+    "status": "preparing",
+    "total": "85.80",
+    "createdAt": "2025-12-02T14:30:00Z",
+    "client": { "name": "João Silva", "phone": "11999999999" },
+    "items": [{ "quantity": 2, "product": { "name": "Hambúrguer" } }]
+  }
+]`,
+      curlExample: `curl -X GET "${baseUrl}/api/orders/active" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
+    },
+    {
+      method: "POST",
+      path: "/api/orders",
+      description: "Criar um novo pedido (cria cliente automaticamente se não existir pelo telefone)",
+      auth: "Bearer Token",
+      requestBody: `{
+  "clientPhone": "11999999999",
+  "clientName": "João Silva",
+  "items": [
+    { "productId": "prod-123", "quantity": 2 },
+    { "productId": "prod-456", "quantity": 1 }
+  ],
+  "notes": "Sem cebola no hambúrguer"
+}`,
+      responseExample: `{
+  "id": "order-789",
+  "orderNumber": 42,
+  "status": "pending",
+  "total": "85.80",
+  "notes": "Sem cebola no hambúrguer",
+  "createdAt": "2025-12-02T15:00:00Z",
+  "client": {
+    "id": "client-new-or-existing",
+    "name": "João Silva",
+    "phone": "11999999999"
+  },
+  "items": [
+    {
+      "productId": "prod-123",
+      "quantity": 2,
+      "unitPrice": "35.90",
+      "product": { "name": "Hambúrguer Artesanal" }
+    }
+  ]
+}`,
+      curlExample: `curl -X POST "${baseUrl}/api/orders" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "clientPhone": "11999999999",
+    "clientName": "João Silva",
+    "items": [
+      { "productId": "prod-123", "quantity": 2 }
+    ],
+    "notes": "Sem cebola"
+  }'`
+    },
+    {
+      method: "PATCH",
+      path: "/api/orders/:id/status",
+      description: "Atualizar status de um pedido (fluxo: pending → preparing → ready → delivered)",
+      auth: "Bearer Token",
+      parameters: [
+        { name: "id", type: "string", required: true, description: "ID do pedido" }
+      ],
+      requestBody: `{
+  "status": "preparing"
+}`,
+      responseExample: `{
+  "id": "order-789",
+  "status": "preparing",
+  "updatedAt": "2025-12-02T15:05:00Z"
+}`,
+      curlExample: `curl -X PATCH "${baseUrl}/api/orders/order-789/status" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "status": "preparing" }'`
+    },
+    {
+      method: "POST",
+      path: "/api/orders/:id/cancel",
+      description: "Cancelar um pedido (restaura estoque automaticamente)",
+      auth: "Bearer Token",
+      parameters: [
+        { name: "id", type: "string", required: true, description: "ID do pedido" }
+      ],
+      responseExample: `{
+  "id": "order-789",
+  "status": "cancelled",
+  "message": "Pedido cancelado e estoque restaurado"
+}`,
+      curlExample: `curl -X POST "${baseUrl}/api/orders/order-789/cancel" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
+    }
   ]
 });
 
@@ -638,7 +882,9 @@ const sections = [
   { id: "profissionais", label: "Profissionais" },
   { id: "agendamentos", label: "Agendamentos" },
   { id: "tokens", label: "Tokens de API" },
-  { id: "modulos", label: "Módulos (Master Admin)" }
+  { id: "modulos", label: "Módulos (Master Admin)" },
+  { id: "produtos", label: "Produtos (Estoque)" },
+  { id: "pedidos", label: "Pedidos (Delivery)" }
 ];
 
 function CopyButton({ text }: { text: string }) {
@@ -975,6 +1221,73 @@ export function ApiDocumentation() {
               Gerencie tokens de autenticação para integração com ferramentas externas.
             </p>
             {endpoints.tokens.map((endpoint, idx) => (
+              <EndpointCard key={idx} endpoint={endpoint} />
+            ))}
+          </section>
+
+          {/* Produtos (Estoque) */}
+          <section id="produtos" data-section="produtos" className="mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Produtos (Estoque)</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Gerencie produtos do seu estoque/cardápio. Use <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">manageStock: true</code> para produtos com quantidade limitada.
+            </p>
+
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg p-6 mb-6">
+              <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-3">Controle de Estoque</h3>
+              <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
+                <p>
+                  <strong>manageStock: false</strong> - Produto sempre disponível (ex: serviços, bebidas ilimitadas)
+                </p>
+                <p>
+                  <strong>manageStock: true</strong> - Produto com quantidade limitada, decrementada automaticamente ao criar pedidos
+                </p>
+              </div>
+            </div>
+
+            {endpoints.produtos.map((endpoint, idx) => (
+              <EndpointCard key={idx} endpoint={endpoint} />
+            ))}
+          </section>
+
+          {/* Pedidos (Delivery) */}
+          <section id="pedidos" data-section="pedidos" className="mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Pedidos (Delivery)</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Crie e gerencie pedidos. Cliente é criado automaticamente pelo telefone se não existir. Estoque é decrementado na criação e restaurado no cancelamento.
+            </p>
+
+            <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900 rounded-lg p-6 mb-6">
+              <h3 className="text-sm font-semibold text-purple-900 dark:text-purple-300 mb-3">Fluxo de Status do Pedido</h3>
+              <div className="text-sm text-gray-700 dark:text-gray-300">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/50 rounded text-yellow-800 dark:text-yellow-200 font-medium">pending</span>
+                  <span>→</span>
+                  <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 rounded text-blue-800 dark:text-blue-200 font-medium">preparing</span>
+                  <span>→</span>
+                  <span className="px-2 py-1 bg-green-100 dark:bg-green-900/50 rounded text-green-800 dark:text-green-200 font-medium">ready</span>
+                  <span>→</span>
+                  <span className="px-2 py-1 bg-gray-100 dark:bg-gray-900/50 rounded text-gray-800 dark:text-gray-200 font-medium">delivered</span>
+                </div>
+                <p className="mt-2 text-xs">Ou cancelar a qualquer momento: <span className="px-2 py-1 bg-red-100 dark:bg-red-900/50 rounded text-red-800 dark:text-red-200 font-medium">cancelled</span></p>
+              </div>
+            </div>
+
+            <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-lg p-6 mb-6">
+              <h3 className="text-sm font-semibold text-green-900 dark:text-green-300 mb-3">Integração N8N - Criar Pedidos</h3>
+              <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
+                <p>
+                  <strong>clientPhone</strong> - Único campo obrigatório para identificar/criar cliente
+                </p>
+                <p>
+                  <strong>clientName</strong> - Nome do cliente (usado apenas se criar novo)
+                </p>
+                <p>
+                  <strong>items</strong> - Array de {"{ productId, quantity }"}
+                </p>
+              </div>
+            </div>
+
+            {endpoints.pedidos.map((endpoint, idx) => (
               <EndpointCard key={idx} endpoint={endpoint} />
             ))}
           </section>

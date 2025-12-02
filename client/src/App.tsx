@@ -20,6 +20,9 @@ import SettingsPage from "@/pages/SettingsPage";
 import LoginPage from "@/pages/LoginPage";
 import AdminPage from "@/pages/AdminPage";
 import SetupPage from "@/pages/SetupPage";
+import InventoryPage from "@/pages/InventoryPage";
+import OrdersPage from "@/pages/OrdersPage";
+import KitchenPage from "@/pages/KitchenPage";
 import NotFound from "@/pages/not-found";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
@@ -53,6 +56,9 @@ function Router() {
       <Route path="/users" component={UsersPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route path="/admin" component={AdminPage} />
+      <Route path="/inventory" component={InventoryPage} />
+      <Route path="/orders" component={OrdersPage} />
+      <Route path="/kitchen" component={KitchenPage} />
       <Route component={NotFound} />
     </Switch>
   );
