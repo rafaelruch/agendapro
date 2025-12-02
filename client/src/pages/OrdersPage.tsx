@@ -95,10 +95,13 @@ export default function OrdersPage() {
   });
 
   const filteredOrders = orders.filter((order) => {
+    const clientName = order.client?.name || "";
+    const clientPhone = order.client?.phone || "";
+    
     const matchesSearch =
       !searchQuery ||
-      order.client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.client.phone.includes(searchQuery) ||
+      clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      clientPhone.includes(searchQuery) ||
       String(order.orderNumber).includes(searchQuery);
 
     const matchesStatus =
@@ -260,21 +263,21 @@ export default function OrdersPage() {
                         <TableCell className="px-4 py-3 text-start">
                           <div>
                             <p className="text-gray-800 text-theme-sm dark:text-white/90">
-                              {order.client.name}
+                              {order.client?.name || "Cliente não informado"}
                             </p>
                             <p className="text-gray-500 text-theme-xs dark:text-gray-400">
-                              {order.client.phone}
+                              {order.client?.phone || "-"}
                             </p>
                           </div>
                         </TableCell>
                         <TableCell className="px-4 py-3 text-start">
                           <div className="max-w-xs">
-                            {order.items.slice(0, 2).map((item, idx) => (
+                            {(order.items || []).slice(0, 2).map((item, idx) => (
                               <p key={idx} className="text-gray-800 text-theme-xs dark:text-white/90 truncate">
-                                {item.quantity}x {item.product.name}
+                                {item.quantity}x {item.product?.name || "Produto"}
                               </p>
                             ))}
-                            {order.items.length > 2 && (
+                            {(order.items?.length || 0) > 2 && (
                               <p className="text-gray-500 text-theme-xs dark:text-gray-400">
                                 +{order.items.length - 2} mais
                               </p>

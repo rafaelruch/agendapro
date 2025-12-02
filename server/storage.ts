@@ -176,7 +176,7 @@ export interface IStorage {
   // Order operations (with tenant isolation)
   getOrder(id: string, tenantId: string): Promise<Order | undefined>;
   getOrderWithDetails(id: string, tenantId: string): Promise<OrderWithDetails | undefined>;
-  getAllOrders(tenantId: string): Promise<Order[]>;
+  getAllOrdersWithDetails(tenantId: string): Promise<OrderWithDetails[]>;
   getOrdersByStatus(tenantId: string, status: OrderStatus): Promise<OrderWithDetails[]>;
   getActiveOrders(tenantId: string): Promise<OrderWithDetails[]>;
   getNextOrderNumber(tenantId: string): Promise<number>;
@@ -1539,12 +1539,19 @@ export class DbStorage implements IStorage {
     return { ...order, client, items: itemsWithProducts };
   }
 
-  async getAllOrders(tenantId: string): Promise<Order[]> {
-    return await db
+  async getAllOrdersWithDetails(tenantId: string): Promise<OrderWithDetails[]> {
+    const ordersList = await db
       .select()
       .from(orders)
       .where(eq(orders.tenantId, tenantId))
       .orderBy(desc(orders.createdAt));
+
+    const result: OrderWithDetails[] = [];
+    for (const order of ordersList) {
+      const details = await this.getOrderWithDetails(order.id, tenantId);
+      if (details) result.push(details);
+    }
+    return result;
   }
 
   async getOrdersByStatus(tenantId: string, status: OrderStatus): Promise<OrderWithDetails[]> {

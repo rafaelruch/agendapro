@@ -2660,7 +2660,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       } else if (activeOnly) {
         ordersList = await storage.getActiveOrders(tenantId);
       } else {
-        ordersList = await storage.getAllOrders(tenantId);
+        ordersList = await storage.getAllOrdersWithDetails(tenantId);
       }
 
       res.json(ordersList);
