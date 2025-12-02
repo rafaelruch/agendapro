@@ -16,10 +16,10 @@ import { ptBR } from "date-fns/locale";
 
 const statusConfig: Record<OrderStatus, { color: string; icon: any }> = {
   pending: { color: "bg-yellow-500", icon: Clock },
-  preparing: { color: "bg-blue-500", icon: ChefHat },
-  ready: { color: "bg-green-500", icon: Check },
-  delivered: { color: "bg-gray-500", icon: Truck },
-  cancelled: { color: "bg-red-500", icon: XCircle },
+  preparing: { color: "bg-warning", icon: ChefHat },
+  ready: { color: "bg-success", icon: Check },
+  delivered: { color: "bg-primary", icon: Truck },
+  cancelled: { color: "bg-meta-1", icon: XCircle },
 };
 
 export default function OrdersPage() {
@@ -324,7 +324,15 @@ export default function OrdersPage() {
                                 size="sm"
                                 onClick={() => updateStatusMutation.mutate({ id: order.id, status: nextStatus })}
                                 disabled={updateStatusMutation.isPending}
-                                className="text-xs"
+                                className={`text-xs text-white ${
+                                  nextStatus === "preparing" 
+                                    ? "bg-warning hover:bg-warning/90" 
+                                    : nextStatus === "ready" 
+                                    ? "bg-success hover:bg-success/90" 
+                                    : nextStatus === "delivered" 
+                                    ? "bg-primary hover:bg-primary/90" 
+                                    : ""
+                                }`}
                                 data-testid={`button-next-status-${order.id}`}
                               >
                                 {ORDER_STATUS_LABELS[nextStatus]}

@@ -12,8 +12,8 @@ import { printThermalReceipt } from "@/components/ThermalReceipt";
 
 const statusConfig: Record<string, { bgColor: string; borderColor: string; textColor: string }> = {
   pending: { bgColor: "bg-yellow-50 dark:bg-yellow-900/20", borderColor: "border-yellow-400", textColor: "text-yellow-700 dark:text-yellow-300" },
-  preparing: { bgColor: "bg-blue-50 dark:bg-blue-900/20", borderColor: "border-blue-400", textColor: "text-blue-700 dark:text-blue-300" },
-  ready: { bgColor: "bg-green-50 dark:bg-green-900/20", borderColor: "border-green-400", textColor: "text-green-700 dark:text-green-300" },
+  preparing: { bgColor: "bg-warning/10 dark:bg-warning/20", borderColor: "border-warning", textColor: "text-warning dark:text-warning" },
+  ready: { bgColor: "bg-success/10 dark:bg-success/20", borderColor: "border-success", textColor: "text-success dark:text-success" },
 };
 
 export default function KitchenPage() {
@@ -123,9 +123,9 @@ export default function KitchenPage() {
     if (!transitioningOrders.has(orderId)) return "";
     
     const nextColors: Record<string, string> = {
-      pending: "!bg-blue-200 dark:!bg-blue-800/50 !border-blue-500",
-      preparing: "!bg-green-200 dark:!bg-green-800/50 !border-green-500",
-      ready: "!bg-gray-200 dark:!bg-gray-800/50 !border-gray-500",
+      pending: "!bg-warning/30 dark:!bg-warning/20 !border-warning",
+      preparing: "!bg-success/30 dark:!bg-success/20 !border-success",
+      ready: "!bg-primary/30 dark:!bg-primary/20 !border-primary",
     };
     return nextColors[currentStatus] || "";
   };
@@ -229,10 +229,10 @@ export default function KitchenPage() {
                 disabled={isUpdating}
                 className={`${
                   order.status === "pending"
-                    ? "bg-blue-500 hover:bg-blue-600"
+                    ? "bg-warning hover:bg-warning/90"
                     : order.status === "preparing"
-                    ? "bg-green-500 hover:bg-green-600"
-                    : "bg-gray-500 hover:bg-gray-600"
+                    ? "bg-success hover:bg-success/90"
+                    : "bg-primary hover:bg-primary/90"
                 } text-white transition-all duration-200 ${isUpdating ? "animate-pulse" : ""}`}
                 data-testid={`button-next-${order.id}`}
               >
