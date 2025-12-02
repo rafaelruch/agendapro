@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Eye, Clock, ChefHat, Check, Truck, XCircle } from "lucide-react";
+import { Search, Eye, Clock, ChefHat, Check, Truck, XCircle, Plus } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ORDER_STATUS_LABELS, type OrderWithDetails, type OrderStatus } from "@shared/schema";
+import { OrderDialog } from "@/components/OrderDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -24,11 +25,36 @@ export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const itemsPerPage = 10;
   const { toast } = useToast();
 
   const { data: orders = [], isLoading } = useQuery<OrderWithDetails[]>({
     queryKey: ["/api/orders"],
+  });
+
+  const createOrderMutation = useMutation({
+    mutationFn: (data: {
+      client: { name: string; phone: string };
+      items: { productId: string; quantity: number }[];
+      notes?: string;
+    }) => apiRequest("POST", "/api/orders", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/inventory/products"] });
+      setDialogOpen(false);
+      toast({
+        title: "Pedido criado",
+        description: "O pedido foi registrado com sucesso.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao criar pedido",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const updateStatusMutation = useMutation({
@@ -131,6 +157,10 @@ export default function OrdersPage() {
             Gerencie os pedidos do seu delivery
           </p>
         </div>
+        <Button onClick={() => setDialogOpen(true)} data-testid="button-new-order">
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Pedido
+        </Button>
       </div>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -345,6 +375,13 @@ export default function OrdersPage() {
           )}
         </>
       )}
+
+      <OrderDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSubmit={(data) => createOrderMutation.mutate(data)}
+        isLoading={createOrderMutation.isPending}
+      />
     </div>
   );
 }
