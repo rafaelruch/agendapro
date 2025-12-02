@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Building2, Users, Trash2, Key, Copy, AlertCircle, Pencil, Calendar as CalendarIcon, Eye, Check, X, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Building2, Users, Trash2, Key, Copy, AlertCircle, Pencil, Calendar as CalendarIcon, Eye, Check, X, Search, ChevronLeft, ChevronRight, Package, ToggleLeft, ToggleRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -24,6 +24,21 @@ type ApiToken = {
   createdAt: string;
   lastUsedAt: string | null;
   createdBy: string;
+};
+
+type ModuleDefinition = {
+  id: string;
+  label: string;
+  description: string;
+  isCore: boolean;
+  defaultEnabled: boolean;
+  enabled?: boolean;
+};
+
+type TenantModulesResponse = {
+  tenantId: string;
+  tenantName: string;
+  modules: ModuleDefinition[];
 };
 
 export default function AdminPage() {
@@ -45,6 +60,7 @@ export default function AdminPage() {
   const [appointmentsSearch, setAppointmentsSearch] = useState("");
   const [appointmentsPage, setAppointmentsPage] = useState(1);
   const appointmentsPerPage = 10;
+  const [modulesTenantId, setModulesTenantId] = useState<string>("");
 
   const { data: tenants = [], isLoading } = useQuery<Tenant[]>({
     queryKey: ["/api/admin/tenants"],
@@ -67,6 +83,11 @@ export default function AdminPage() {
   const { data: tokens, isLoading: tokensLoading } = useQuery<ApiToken[]>({
     queryKey: ["/api/admin/tenants", tokenTenantId, "api-tokens"],
     enabled: !!tokenTenantId,
+  });
+
+  const { data: tenantModules, isLoading: modulesLoading } = useQuery<TenantModulesResponse>({
+    queryKey: ["/api/admin/tenants", modulesTenantId, "modules"],
+    enabled: !!modulesTenantId,
   });
 
   const createTenantMutation = useMutation({
@@ -180,6 +201,27 @@ export default function AdminPage() {
     onError: (error: Error) => {
       toast({
         title: "Erro ao atualizar agendamento",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateModulesMutation = useMutation({
+    mutationFn: async ({ tenantId, enabledModules }: { tenantId: string; enabledModules: string[] }) => {
+      const res = await apiRequest("PUT", `/api/admin/tenants/${tenantId}/modules`, { enabledModules });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tenants", modulesTenantId, "modules"] });
+      toast({
+        title: "Módulos atualizados",
+        description: "As permissões de módulos foram atualizadas com sucesso.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao atualizar módulos",
         description: error.message,
         variant: "destructive",
       });
@@ -310,6 +352,23 @@ export default function AdminPage() {
     fixOrphansMutation.mutate({ tenantId: correctionTenantId, defaultServiceId });
   };
 
+  const handleToggleModule = (moduleId: string, currentEnabled: boolean) => {
+    if (!tenantModules) return;
+    
+    const enabledModules = tenantModules.modules
+      .filter(m => m.enabled)
+      .map(m => m.id);
+    
+    let newEnabledModules: string[];
+    if (currentEnabled) {
+      newEnabledModules = enabledModules.filter(id => id !== moduleId);
+    } else {
+      newEnabledModules = [...enabledModules, moduleId];
+    }
+    
+    updateModulesMutation.mutate({ tenantId: modulesTenantId, enabledModules: newEnabledModules });
+  };
+
   if (isLoading) {
     return <div className="p-6">Carregando...</div>;
   }
@@ -322,8 +381,9 @@ export default function AdminPage() {
       </div>
 
       <Tabs defaultValue="tenants" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="tenants">Tenants</TabsTrigger>
+          <TabsTrigger value="modules">Módulos</TabsTrigger>
           <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
           <TabsTrigger value="tokens">Tokens de API</TabsTrigger>
           <TabsTrigger value="migrations">Migrations</TabsTrigger>
@@ -390,6 +450,123 @@ export default function AdminPage() {
               </Card>
             ))}
           </div>
+        </TabsContent>
+
+        <TabsContent value="modules" className="space-y-6 mt-6">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Gerencie os módulos habilitados para cada tenant. Módulos core (como Agenda) estão sempre habilitados.
+            </p>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                Permissões de Módulos por Tenant
+              </CardTitle>
+              <CardDescription>
+                Selecione um tenant para visualizar e modificar os módulos habilitados
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label>Selecione o Tenant</Label>
+                <Select
+                  value={modulesTenantId}
+                  onValueChange={setModulesTenantId}
+                >
+                  <SelectTrigger data-testid="select-modules-tenant">
+                    <SelectValue placeholder="Escolha um tenant..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tenants.map((tenant) => (
+                      <SelectItem key={tenant.id} value={tenant.id}>
+                        {tenant.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {modulesTenantId && (
+                <div className="space-y-4">
+                  {modulesLoading ? (
+                    <div className="flex items-center justify-center p-8">
+                      <p className="text-bodydark2">Carregando módulos...</p>
+                    </div>
+                  ) : tenantModules ? (
+                    <>
+                      <div className="text-sm text-muted-foreground mb-4">
+                        Tenant: <strong>{tenantModules.tenantName}</strong>
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {tenantModules.modules.map((module) => (
+                          <div
+                            key={module.id}
+                            className={`flex items-center justify-between p-4 rounded-lg border ${
+                              module.isCore
+                                ? "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700"
+                                : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
+                            }`}
+                            data-testid={`module-card-${module.id}`}
+                          >
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{module.label}</span>
+                                {module.isCore && (
+                                  <Badge variant="outline" className="text-xs">
+                                    Core
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {module.description}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {module.isCore ? (
+                                <Badge variant="default" className="cursor-not-allowed">
+                                  Sempre Ativo
+                                </Badge>
+                              ) : (
+                                <Button
+                                  variant={module.enabled ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => handleToggleModule(module.id, module.enabled || false)}
+                                  disabled={updateModulesMutation.isPending}
+                                  data-testid={`toggle-module-${module.id}`}
+                                >
+                                  {module.enabled ? (
+                                    <>
+                                      <ToggleRight className="w-4 h-4 mr-1" />
+                                      Habilitado
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ToggleLeft className="w-4 h-4 mr-1" />
+                                      Desabilitado
+                                    </>
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <Alert>
+                      <AlertCircle className="w-4 h-4" />
+                      <AlertDescription>
+                        Erro ao carregar módulos do tenant.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="appointments" className="space-y-6 mt-6">
