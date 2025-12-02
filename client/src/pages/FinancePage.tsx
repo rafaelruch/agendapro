@@ -193,24 +193,24 @@ export default function FinancePage() {
   const handleExpenseSubmit = () => {
     if (!expenseForm.description || !expenseForm.amount || !expenseForm.paymentMethod) return;
     createExpenseMutation.mutate({
-      description: expenseForm.description,
+      title: expenseForm.description,
+      description: expenseForm.notes || undefined,
       amount: parseFloat(expenseForm.amount),
       categoryId: expenseForm.categoryId || undefined,
       paymentMethod: expenseForm.paymentMethod,
       date: expenseForm.date,
-      notes: expenseForm.notes || undefined,
     });
   };
 
   const handleIncomeSubmit = () => {
     if (!incomeForm.description || !incomeForm.amount || !incomeForm.paymentMethod) return;
     createIncomeMutation.mutate({
-      description: incomeForm.description,
+      title: incomeForm.description,
+      description: incomeForm.notes || undefined,
       amount: parseFloat(incomeForm.amount),
       categoryId: incomeForm.categoryId || undefined,
       paymentMethod: incomeForm.paymentMethod,
       date: incomeForm.date,
-      notes: incomeForm.notes || undefined,
     });
   };
 
