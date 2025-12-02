@@ -39,6 +39,7 @@ interface AuthData {
     id: string;
     name: string;
   } | null;
+  allowedModules: string[];
 }
 
 function Router() {
@@ -109,7 +110,7 @@ function AuthenticatedApp({ authData }: { authData: AuthData }) {
   return (
     <>
       <Backdrop />
-      <AppSidebarNew userRole={authData.user.role} />
+      <AppSidebarNew userRole={authData.user.role} allowedModules={authData.allowedModules} />
       <div 
         className={`flex flex-col h-screen transition-all duration-300 ${
           isExpanded ? 'lg:ml-[290px]' : 'lg:ml-[90px]'

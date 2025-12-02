@@ -1,65 +1,89 @@
-import { Calendar, LayoutDashboard, Users, Settings, Briefcase, UserCog, ChevronDown, UserCheck } from "lucide-react";
+import { Calendar, LayoutDashboard, Users, Settings, Briefcase, UserCog, ChevronDown, UserCheck, Clock, Key } from "lucide-react";
 import { useLocation } from "wouter";
 import { useSidebar } from "@/context/SidebarContext";
 
 interface AppSidebarProps {
   userRole?: string;
+  allowedModules?: string[];
 }
 
-export function AppSidebarNew({ userRole }: AppSidebarProps) {
+export function AppSidebarNew({ userRole, allowedModules = [] }: AppSidebarProps) {
   const [location, setLocation] = useLocation();
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const isAdmin = userRole === 'admin' || userRole === 'master_admin';
 
   const isActive = (path: string) => location === path;
 
+  const hasModule = (moduleId: string) => allowedModules.includes(moduleId);
+
   const menuItems = [
     {
       name: "Dashboard",
       icon: <LayoutDashboard className="h-5 w-5" />,
       path: "/",
-      testId: "link-dashboard"
+      testId: "link-dashboard",
+      moduleId: null
     },
     {
       name: "Calendário",
       icon: <Calendar className="h-5 w-5" />,
       path: "/calendar",
-      testId: "link-calendário"
+      testId: "link-calendário",
+      moduleId: "calendar"
     },
     {
       name: "Clientes",
       icon: <Users className="h-5 w-5" />,
       path: "/clients",
-      testId: "link-clientes"
+      testId: "link-clientes",
+      moduleId: "clients"
     },
     {
       name: "Serviços",
       icon: <Briefcase className="h-5 w-5" />,
       path: "/services",
-      testId: "link-serviços"
+      testId: "link-serviços",
+      moduleId: "services"
     },
     {
       name: "Profissionais",
       icon: <UserCheck className="h-5 w-5" />,
       path: "/professionals",
-      testId: "link-profissionais"
+      testId: "link-profissionais",
+      moduleId: "professionals"
     },
-  ];
+  ].filter(item => item.moduleId === null || hasModule(item.moduleId));
 
   const adminItems = isAdmin ? [
     {
       name: "Usuários",
       icon: <UserCog className="h-5 w-5" />,
       path: "/users",
-      testId: "link-usuários"
+      testId: "link-usuários",
+      moduleId: "users"
+    },
+    {
+      name: "Horários",
+      icon: <Clock className="h-5 w-5" />,
+      path: "/business-hours",
+      testId: "link-horários",
+      moduleId: "business-hours"
+    },
+    {
+      name: "Tokens API",
+      icon: <Key className="h-5 w-5" />,
+      path: "/api-tokens",
+      testId: "link-api-tokens",
+      moduleId: "api-tokens"
     },
     {
       name: "Configurações",
       icon: <Settings className="h-5 w-5" />,
       path: "/settings",
-      testId: "link-configurações"
+      testId: "link-configurações",
+      moduleId: null
     },
-  ] : [];
+  ].filter(item => item.moduleId === null || hasModule(item.moduleId)) : [];
 
   const allItems = [...menuItems, ...adminItems];
 
