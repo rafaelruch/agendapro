@@ -2722,7 +2722,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         });
       }
 
-      const { client, items, notes } = validation.data;
+      const { client, items, notes, deliveryAddress } = validation.data;
 
       // Verificar/criar cliente pelo telefone
       let existingClient = await storage.getClientByPhone(client.phone, tenantId);
@@ -2734,8 +2734,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         });
       }
 
-      // Criar pedido
-      const order = await storage.createOrder(tenantId, existingClient.id, items, notes);
+      // Criar pedido com endereço de entrega
+      const order = await storage.createOrder(tenantId, existingClient.id, items, notes, deliveryAddress);
 
       res.status(201).json(order);
     } catch (error: any) {

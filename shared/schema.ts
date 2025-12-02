@@ -245,6 +245,13 @@ export const orders = pgTable("orders", {
   status: text("status").notNull().default("pending"),
   total: numeric("total", { precision: 10, scale: 2 }).notNull(),
   notes: text("notes"),
+  deliveryStreet: text("delivery_street"),
+  deliveryNumber: text("delivery_number"),
+  deliveryComplement: text("delivery_complement"),
+  deliveryNeighborhood: text("delivery_neighborhood"),
+  deliveryCity: text("delivery_city"),
+  deliveryZipCode: text("delivery_zip_code"),
+  deliveryReference: text("delivery_reference"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -410,6 +417,16 @@ export const insertProductSchema = createInsertSchema(products).omit({
 
 export const updateProductSchema = insertProductSchema.partial();
 
+export const deliveryAddressSchema = z.object({
+  street: z.string().optional(),
+  number: z.string().optional(),
+  complement: z.string().optional(),
+  neighborhood: z.string().optional(),
+  city: z.string().optional(),
+  zipCode: z.string().optional(),
+  reference: z.string().optional(),
+});
+
 export const insertOrderSchema = z.object({
   client: z.object({
     name: z.string().min(1, "Nome do cliente é obrigatório"),
@@ -420,7 +437,10 @@ export const insertOrderSchema = z.object({
     quantity: z.coerce.number().int().positive("Quantidade deve ser positiva"),
   })).min(1, "Pelo menos um item é obrigatório"),
   notes: z.string().optional(),
+  deliveryAddress: deliveryAddressSchema.optional(),
 });
+
+export type DeliveryAddress = z.infer<typeof deliveryAddressSchema>;
 
 export const updateOrderStatusSchema = z.object({
   status: z.enum(ORDER_STATUSES),

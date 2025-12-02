@@ -180,7 +180,21 @@ export interface IStorage {
   getOrdersByStatus(tenantId: string, status: OrderStatus): Promise<OrderWithDetails[]>;
   getActiveOrders(tenantId: string): Promise<OrderWithDetails[]>;
   getNextOrderNumber(tenantId: string): Promise<number>;
-  createOrder(tenantId: string, clientId: string, items: { productId: string; quantity: number }[], notes?: string): Promise<OrderWithDetails>;
+  createOrder(
+    tenantId: string, 
+    clientId: string, 
+    items: { productId: string; quantity: number }[], 
+    notes?: string,
+    deliveryAddress?: {
+      street?: string;
+      number?: string;
+      complement?: string;
+      neighborhood?: string;
+      city?: string;
+      zipCode?: string;
+      reference?: string;
+    }
+  ): Promise<OrderWithDetails>;
   updateOrderStatus(id: string, tenantId: string, status: OrderStatus): Promise<Order | undefined>;
   cancelOrder(id: string, tenantId: string): Promise<Order | undefined>;
 }
@@ -1606,7 +1620,16 @@ export class DbStorage implements IStorage {
     tenantId: string, 
     clientId: string, 
     items: { productId: string; quantity: number }[], 
-    notes?: string
+    notes?: string,
+    deliveryAddress?: {
+      street?: string;
+      number?: string;
+      complement?: string;
+      neighborhood?: string;
+      city?: string;
+      zipCode?: string;
+      reference?: string;
+    }
   ): Promise<OrderWithDetails> {
     // Calcular total e validar estoque
     let total = 0;
@@ -1640,6 +1663,13 @@ export class DbStorage implements IStorage {
         status: 'pending',
         total: String(total),
         notes,
+        deliveryStreet: deliveryAddress?.street,
+        deliveryNumber: deliveryAddress?.number,
+        deliveryComplement: deliveryAddress?.complement,
+        deliveryNeighborhood: deliveryAddress?.neighborhood,
+        deliveryCity: deliveryAddress?.city,
+        deliveryZipCode: deliveryAddress?.zipCode,
+        deliveryReference: deliveryAddress?.reference,
       })
       .returning();
 
