@@ -2933,15 +2933,19 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       }
 
       // Criar transação financeira quando pedido for entregue
+      console.log(`[FINANCE] Status recebido: ${validation.data.status}, order.status: ${order.status}`);
       if (validation.data.status === 'delivered') {
+        console.log(`[FINANCE] Pedido ${order.id} entregue, criando transação financeira...`);
         try {
           // Check if finance module is enabled before creating transaction
           const isFinanceEnabled = await storage.isModuleEnabledForTenant(tenantId, 'finance');
+          console.log(`[FINANCE] Módulo finance habilitado: ${isFinanceEnabled}`);
           if (isFinanceEnabled) {
-            await storage.createTransactionFromOrder(order.id, tenantId);
+            const transaction = await storage.createTransactionFromOrder(order.id, tenantId);
+            console.log(`[FINANCE] Transação criada: ${transaction.id}, valor: ${transaction.amount}`);
           }
         } catch (txError) {
-          console.error("Error creating financial transaction:", txError);
+          console.error("[FINANCE] Error creating financial transaction:", txError);
           // Don't fail the order update if transaction creation fails
         }
       }
