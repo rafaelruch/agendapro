@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Minus, Trash2, ShoppingCart } from "lucide-react";
-import type { Product } from "@shared/schema";
+import { Plus, Minus, Trash2, ShoppingCart, MapPin, Home, Briefcase, Check } from "lucide-react";
+import type { Product, ClientAddress, Client } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 interface OrderItem {
   productId: string;
@@ -33,6 +34,8 @@ interface OrderDialogProps {
     items: { productId: string; quantity: number }[];
     notes?: string;
     deliveryAddress?: DeliveryAddress;
+    saveAddress?: boolean;
+    addressLabel?: string;
   }) => void;
   isLoading?: boolean;
 }
@@ -49,7 +52,16 @@ export function OrderDialog({
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
   
-  // Endereço de entrega
+  // Estado do cliente encontrado
+  const [foundClient, setFoundClient] = useState<Client | null>(null);
+  const [isSearchingClient, setIsSearchingClient] = useState(false);
+  
+  // Endereços do cliente
+  const [clientAddresses, setClientAddresses] = useState<ClientAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [addressMode, setAddressMode] = useState<"select" | "new">("select");
+  
+  // Endereço de entrega (novo)
   const [deliveryStreet, setDeliveryStreet] = useState("");
   const [deliveryNumber, setDeliveryNumber] = useState("");
   const [deliveryComplement, setDeliveryComplement] = useState("");
@@ -57,6 +69,8 @@ export function OrderDialog({
   const [deliveryCity, setDeliveryCity] = useState("");
   const [deliveryZipCode, setDeliveryZipCode] = useState("");
   const [deliveryReference, setDeliveryReference] = useState("");
+  const [saveNewAddress, setSaveNewAddress] = useState(true);
+  const [newAddressLabel, setNewAddressLabel] = useState("Casa");
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/inventory/products"],
@@ -65,6 +79,74 @@ export function OrderDialog({
 
   const activeProducts = products.filter((p) => p.isActive);
 
+  // Buscar cliente por telefone (debounced)
+  const searchClientByPhone = useCallback(async (phone: string) => {
+    const cleanPhone = phone.replace(/\D/g, "");
+    if (cleanPhone.length < 10) {
+      setFoundClient(null);
+      setClientAddresses([]);
+      setSelectedAddressId(null);
+      return;
+    }
+
+    setIsSearchingClient(true);
+    try {
+      const response = await fetch(`/api/clients?search=${cleanPhone}`);
+      if (response.ok) {
+        const clients = await response.json();
+        const exactMatch = clients.find((c: Client) => c.phone === cleanPhone);
+        
+        if (exactMatch) {
+          setFoundClient(exactMatch);
+          setClientName(exactMatch.name);
+          
+          // Buscar endereços do cliente
+          const addressResponse = await fetch(`/api/clients/${exactMatch.id}/addresses`);
+          if (addressResponse.ok) {
+            const addresses = await addressResponse.json();
+            setClientAddresses(addresses);
+            
+            // Selecionar endereço padrão se existir
+            const defaultAddr = addresses.find((a: ClientAddress) => a.isDefault);
+            if (defaultAddr) {
+              setSelectedAddressId(defaultAddr.id);
+              setAddressMode("select");
+            } else if (addresses.length > 0) {
+              setSelectedAddressId(addresses[0].id);
+              setAddressMode("select");
+            } else {
+              setAddressMode("new");
+            }
+          }
+        } else {
+          setFoundClient(null);
+          setClientAddresses([]);
+          setSelectedAddressId(null);
+          setAddressMode("new");
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao buscar cliente:", error);
+    } finally {
+      setIsSearchingClient(false);
+    }
+  }, []);
+
+  // Debounce para busca de cliente
+  useEffect(() => {
+    const cleanPhone = clientPhone.replace(/\D/g, "");
+    if (cleanPhone.length >= 10) {
+      const timer = setTimeout(() => {
+        searchClientByPhone(clientPhone);
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setFoundClient(null);
+      setClientAddresses([]);
+      setSelectedAddressId(null);
+    }
+  }, [clientPhone, searchClientByPhone]);
+
   useEffect(() => {
     if (!open) {
       setClientName("");
@@ -72,7 +154,10 @@ export function OrderDialog({
       setNotes("");
       setOrderItems([]);
       setSelectedProductId("");
-      // Limpar endereço de entrega
+      setFoundClient(null);
+      setClientAddresses([]);
+      setSelectedAddressId(null);
+      setAddressMode("select");
       setDeliveryStreet("");
       setDeliveryNumber("");
       setDeliveryComplement("");
@@ -80,6 +165,8 @@ export function OrderDialog({
       setDeliveryCity("");
       setDeliveryZipCode("");
       setDeliveryReference("");
+      setSaveNewAddress(true);
+      setNewAddressLabel("Casa");
     }
   }, [open]);
 
@@ -162,6 +249,27 @@ export function OrderDialog({
     0
   );
 
+  const getSelectedAddress = (): ClientAddress | undefined => {
+    return clientAddresses.find((a) => a.id === selectedAddressId);
+  };
+
+  const formatAddressDisplay = (address: ClientAddress): string => {
+    const parts = [];
+    if (address.street) parts.push(address.street);
+    if (address.number) parts.push(address.number);
+    if (address.complement) parts.push(address.complement);
+    if (address.neighborhood) parts.push(address.neighborhood);
+    if (address.city) parts.push(address.city);
+    return parts.join(", ") || "Endereço incompleto";
+  };
+
+  const getAddressIcon = (label: string) => {
+    if (label.toLowerCase().includes("trabalho") || label.toLowerCase().includes("work")) {
+      return <Briefcase className="h-4 w-4" />;
+    }
+    return <Home className="h-4 w-4" />;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -173,17 +281,41 @@ export function OrderDialog({
       return;
     }
 
-    // Montar endereço de entrega apenas se pelo menos um campo estiver preenchido
-    const hasDeliveryAddress = deliveryStreet || deliveryNumber || deliveryNeighborhood || deliveryCity;
-    const deliveryAddress: DeliveryAddress | undefined = hasDeliveryAddress ? {
-      street: deliveryStreet.trim() || undefined,
-      number: deliveryNumber.trim() || undefined,
-      complement: deliveryComplement.trim() || undefined,
-      neighborhood: deliveryNeighborhood.trim() || undefined,
-      city: deliveryCity.trim() || undefined,
-      zipCode: deliveryZipCode.replace(/\D/g, "") || undefined,
-      reference: deliveryReference.trim() || undefined,
-    } : undefined;
+    let deliveryAddress: DeliveryAddress | undefined;
+    let shouldSaveAddress = false;
+    let addressLabel: string | undefined;
+
+    if (addressMode === "select" && selectedAddressId) {
+      // Usar endereço selecionado
+      const selectedAddr = getSelectedAddress();
+      if (selectedAddr) {
+        deliveryAddress = {
+          street: selectedAddr.street || undefined,
+          number: selectedAddr.number || undefined,
+          complement: selectedAddr.complement || undefined,
+          neighborhood: selectedAddr.neighborhood || undefined,
+          city: selectedAddr.city || undefined,
+          zipCode: selectedAddr.zipCode || undefined,
+          reference: selectedAddr.reference || undefined,
+        };
+      }
+    } else if (addressMode === "new") {
+      // Usar novo endereço
+      const hasDeliveryAddress = deliveryStreet || deliveryNumber || deliveryNeighborhood || deliveryCity;
+      if (hasDeliveryAddress) {
+        deliveryAddress = {
+          street: deliveryStreet.trim() || undefined,
+          number: deliveryNumber.trim() || undefined,
+          complement: deliveryComplement.trim() || undefined,
+          neighborhood: deliveryNeighborhood.trim() || undefined,
+          city: deliveryCity.trim() || undefined,
+          zipCode: deliveryZipCode.replace(/\D/g, "") || undefined,
+          reference: deliveryReference.trim() || undefined,
+        };
+        shouldSaveAddress = saveNewAddress;
+        addressLabel = newAddressLabel;
+      }
+    }
 
     onSubmit({
       client: {
@@ -196,6 +328,8 @@ export function OrderDialog({
       })),
       notes: notes.trim() || undefined,
       deliveryAddress,
+      saveAddress: shouldSaveAddress,
+      addressLabel,
     });
   };
 
@@ -222,6 +356,30 @@ export function OrderDialog({
             </h4>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
+                <Label htmlFor="clientPhone">Telefone</Label>
+                <div className="relative">
+                  <Input
+                    id="clientPhone"
+                    value={clientPhone}
+                    onChange={handlePhoneChange}
+                    placeholder="(11) 99999-9999"
+                    data-testid="input-client-phone"
+                    required
+                  />
+                  {isSearchingClient && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    </div>
+                  )}
+                </div>
+                {foundClient && (
+                  <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                    <Check className="h-3 w-3" />
+                    Cliente encontrado
+                  </p>
+                )}
+              </div>
+              <div className="grid gap-2">
                 <Label htmlFor="clientName">Nome</Label>
                 <Input
                   id="clientName"
@@ -229,17 +387,6 @@ export function OrderDialog({
                   onChange={(e) => setClientName(e.target.value)}
                   placeholder="Nome do cliente"
                   data-testid="input-client-name"
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="clientPhone">Telefone</Label>
-                <Input
-                  id="clientPhone"
-                  value={clientPhone}
-                  onChange={handlePhoneChange}
-                  placeholder="(11) 99999-9999"
-                  data-testid="input-client-phone"
                   required
                 />
               </div>
@@ -357,88 +504,199 @@ export function OrderDialog({
           </div>
 
           <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <h4 className="text-sm font-medium text-gray-800 dark:text-white mb-3">
-              Endereço de Entrega (opcional)
-            </h4>
-            <div className="grid gap-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="deliveryStreet">Rua</Label>
-                  <Input
-                    id="deliveryStreet"
-                    value={deliveryStreet}
-                    onChange={(e) => setDeliveryStreet(e.target.value)}
-                    placeholder="Nome da rua"
-                    data-testid="input-delivery-street"
-                  />
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium text-gray-800 dark:text-white flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Endereço de Entrega (opcional)
+              </h4>
+              {clientAddresses.length > 0 && (
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setAddressMode("select")}
+                    className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                      addressMode === "select"
+                        ? "bg-primary text-white"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    }`}
+                    data-testid="button-address-mode-select"
+                  >
+                    Salvo ({clientAddresses.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddressMode("new")}
+                    className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                      addressMode === "new"
+                        ? "bg-primary text-white"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    }`}
+                    data-testid="button-address-mode-new"
+                  >
+                    Novo
+                  </button>
                 </div>
-                <div className="grid gap-2 grid-cols-2">
-                  <div className="grid gap-2">
-                    <Label htmlFor="deliveryNumber">Número</Label>
-                    <Input
-                      id="deliveryNumber"
-                      value={deliveryNumber}
-                      onChange={(e) => setDeliveryNumber(e.target.value)}
-                      placeholder="Nº"
-                      data-testid="input-delivery-number"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="deliveryComplement">Complemento</Label>
-                    <Input
-                      id="deliveryComplement"
-                      value={deliveryComplement}
-                      onChange={(e) => setDeliveryComplement(e.target.value)}
-                      placeholder="Apto, bloco..."
-                      data-testid="input-delivery-complement"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="grid gap-2">
-                  <Label htmlFor="deliveryNeighborhood">Bairro</Label>
-                  <Input
-                    id="deliveryNeighborhood"
-                    value={deliveryNeighborhood}
-                    onChange={(e) => setDeliveryNeighborhood(e.target.value)}
-                    placeholder="Bairro"
-                    data-testid="input-delivery-neighborhood"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="deliveryCity">Cidade</Label>
-                  <Input
-                    id="deliveryCity"
-                    value={deliveryCity}
-                    onChange={(e) => setDeliveryCity(e.target.value)}
-                    placeholder="Cidade"
-                    data-testid="input-delivery-city"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="deliveryZipCode">CEP</Label>
-                  <Input
-                    id="deliveryZipCode"
-                    value={deliveryZipCode}
-                    onChange={handleZipCodeChange}
-                    placeholder="00000-000"
-                    data-testid="input-delivery-zipcode"
-                    maxLength={9}
-                  />
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="deliveryReference">Ponto de Referência</Label>
-                <Input
-                  id="deliveryReference"
-                  value={deliveryReference}
-                  onChange={(e) => setDeliveryReference(e.target.value)}
-                  placeholder="Próximo ao mercado, casa azul..."
-                  data-testid="input-delivery-reference"
-                />
-              </div>
+              )}
             </div>
+
+            {addressMode === "select" && clientAddresses.length > 0 ? (
+              <div className="space-y-2">
+                {clientAddresses.map((address) => (
+                  <div
+                    key={address.id}
+                    onClick={() => setSelectedAddressId(address.id)}
+                    className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                      selectedAddressId === address.id
+                        ? "bg-primary/10 border-2 border-primary"
+                        : "bg-gray-50 dark:bg-gray-800 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600"
+                    }`}
+                    data-testid={`address-option-${address.id}`}
+                  >
+                    <div className={`mt-0.5 ${selectedAddressId === address.id ? "text-primary" : "text-gray-400"}`}>
+                      {getAddressIcon(address.label)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-800 dark:text-white">
+                          {address.label}
+                        </span>
+                        {address.isDefault && (
+                          <span className="px-1.5 py-0.5 text-xs rounded bg-primary/20 text-primary">
+                            Padrão
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {formatAddressDisplay(address)}
+                      </p>
+                      {address.reference && (
+                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">
+                          Ref: {address.reference}
+                        </p>
+                      )}
+                    </div>
+                    {selectedAddressId === address.id && (
+                      <Check className="h-5 w-5 text-primary" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="deliveryStreet">Rua</Label>
+                    <Input
+                      id="deliveryStreet"
+                      value={deliveryStreet}
+                      onChange={(e) => setDeliveryStreet(e.target.value)}
+                      placeholder="Nome da rua"
+                      data-testid="input-delivery-street"
+                    />
+                  </div>
+                  <div className="grid gap-2 grid-cols-2">
+                    <div className="grid gap-2">
+                      <Label htmlFor="deliveryNumber">Número</Label>
+                      <Input
+                        id="deliveryNumber"
+                        value={deliveryNumber}
+                        onChange={(e) => setDeliveryNumber(e.target.value)}
+                        placeholder="Nº"
+                        data-testid="input-delivery-number"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="deliveryComplement">Complemento</Label>
+                      <Input
+                        id="deliveryComplement"
+                        value={deliveryComplement}
+                        onChange={(e) => setDeliveryComplement(e.target.value)}
+                        placeholder="Apto, bloco..."
+                        data-testid="input-delivery-complement"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="grid gap-2">
+                    <Label htmlFor="deliveryNeighborhood">Bairro</Label>
+                    <Input
+                      id="deliveryNeighborhood"
+                      value={deliveryNeighborhood}
+                      onChange={(e) => setDeliveryNeighborhood(e.target.value)}
+                      placeholder="Bairro"
+                      data-testid="input-delivery-neighborhood"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="deliveryCity">Cidade</Label>
+                    <Input
+                      id="deliveryCity"
+                      value={deliveryCity}
+                      onChange={(e) => setDeliveryCity(e.target.value)}
+                      placeholder="Cidade"
+                      data-testid="input-delivery-city"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="deliveryZipCode">CEP</Label>
+                    <Input
+                      id="deliveryZipCode"
+                      value={deliveryZipCode}
+                      onChange={handleZipCodeChange}
+                      placeholder="00000-000"
+                      data-testid="input-delivery-zipcode"
+                      maxLength={9}
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="deliveryReference">Ponto de Referência</Label>
+                  <Input
+                    id="deliveryReference"
+                    value={deliveryReference}
+                    onChange={(e) => setDeliveryReference(e.target.value)}
+                    placeholder="Próximo ao mercado, casa azul..."
+                    data-testid="input-delivery-reference"
+                  />
+                </div>
+                
+                {/* Opção para salvar endereço */}
+                {(deliveryStreet || deliveryNumber || deliveryNeighborhood) && (
+                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="saveAddress"
+                        checked={saveNewAddress}
+                        onChange={(e) => setSaveNewAddress(e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        data-testid="checkbox-save-address"
+                      />
+                      <Label htmlFor="saveAddress" className="text-sm cursor-pointer">
+                        Salvar endereço para próximos pedidos
+                      </Label>
+                    </div>
+                    {saveNewAddress && (
+                      <div className="mt-3 grid gap-2">
+                        <Label htmlFor="addressLabel">Nome do endereço</Label>
+                        <select
+                          id="addressLabel"
+                          value={newAddressLabel}
+                          onChange={(e) => setNewAddressLabel(e.target.value)}
+                          className="rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                          data-testid="select-address-label"
+                        >
+                          <option value="Casa">Casa</option>
+                          <option value="Trabalho">Trabalho</option>
+                          <option value="Outro">Outro</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="grid gap-2">

@@ -460,6 +460,8 @@ export const insertOrderSchema = z.object({
   })).min(1, "Pelo menos um item é obrigatório"),
   notes: z.string().optional(),
   deliveryAddress: deliveryAddressSchema.optional(),
+  saveAddress: z.boolean().optional(),
+  addressLabel: z.string().optional(),
 });
 
 export type DeliveryAddress = z.infer<typeof deliveryAddressSchema>;

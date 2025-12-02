@@ -2835,7 +2835,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         });
       }
 
-      const { client, items, notes, deliveryAddress } = validation.data;
+      const { client, items, notes, deliveryAddress, saveAddress, addressLabel } = validation.data;
 
       // Verificar/criar cliente pelo telefone
       let existingClient = await storage.getClientByPhone(client.phone, tenantId);
@@ -2844,6 +2844,23 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
           tenantId,
           name: client.name,
           phone: client.phone,
+        });
+      }
+
+      // Salvar novo endereço se solicitado
+      if (saveAddress && deliveryAddress && (deliveryAddress.street || deliveryAddress.neighborhood)) {
+        await storage.createClientAddress({
+          tenantId,
+          clientId: existingClient.id,
+          label: addressLabel || "Casa",
+          street: deliveryAddress.street || null,
+          number: deliveryAddress.number || null,
+          complement: deliveryAddress.complement || null,
+          neighborhood: deliveryAddress.neighborhood || null,
+          city: deliveryAddress.city || null,
+          zipCode: deliveryAddress.zipCode || null,
+          reference: deliveryAddress.reference || null,
+          isDefault: false, // O primeiro endereço será automaticamente definido como padrão pelo storage
         });
       }
 
