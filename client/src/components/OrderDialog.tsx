@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Minus, Trash2, ShoppingCart, MapPin, Home, Briefcase, Check } from "lucide-react";
-import type { Product, ClientAddress, Client } from "@shared/schema";
+import { Plus, Minus, Trash2, ShoppingCart, MapPin, Home, Briefcase, Check, CreditCard } from "lucide-react";
+import type { Product, ClientAddress, Client, PaymentMethod } from "@shared/schema";
+import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
 interface OrderItem {
@@ -32,6 +33,7 @@ interface OrderDialogProps {
   onSubmit: (data: {
     client: { name: string; phone: string };
     items: { productId: string; quantity: number }[];
+    paymentMethod: PaymentMethod;
     notes?: string;
     deliveryAddress?: DeliveryAddress;
     clientAddressId?: string;
@@ -52,6 +54,7 @@ export function OrderDialog({
   const [notes, setNotes] = useState("");
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
   
   // Estado do cliente encontrado
   const [foundClient, setFoundClient] = useState<Client | null>(null);
@@ -155,6 +158,7 @@ export function OrderDialog({
       setNotes("");
       setOrderItems([]);
       setSelectedProductId("");
+      setPaymentMethod("");
       setFoundClient(null);
       setClientAddresses([]);
       setSelectedAddressId(null);
@@ -282,6 +286,10 @@ export function OrderDialog({
       return;
     }
 
+    if (!paymentMethod) {
+      return;
+    }
+
     let deliveryAddress: DeliveryAddress | undefined;
     let clientAddressIdToSend: string | undefined;
     let shouldSaveAddress = false;
@@ -317,6 +325,7 @@ export function OrderDialog({
         productId: item.productId,
         quantity: item.quantity,
       })),
+      paymentMethod: paymentMethod as PaymentMethod,
       notes: notes.trim() || undefined,
       deliveryAddress,
       clientAddressId: clientAddressIdToSend,
@@ -493,6 +502,29 @@ export function OrderDialog({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Forma de Pagamento */}
+          <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <h4 className="text-sm font-medium text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              Forma de Pagamento
+              <span className="text-meta-1">*</span>
+            </h4>
+            <select
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+              className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              data-testid="select-payment-method"
+              required
+            >
+              <option value="">Selecione a forma de pagamento...</option>
+              {PAYMENT_METHODS.map((method) => (
+                <option key={method} value={method}>
+                  {PAYMENT_METHOD_LABELS[method]}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
@@ -715,7 +747,7 @@ export function OrderDialog({
           </Button>
           <Button
             type="submit"
-            disabled={isLoading || orderItems.length === 0 || !clientName.trim() || !clientPhone.trim()}
+            disabled={isLoading || orderItems.length === 0 || !clientName.trim() || !clientPhone.trim() || !paymentMethod}
             data-testid="button-submit-order"
           >
             {isLoading ? "Criando..." : "Criar Pedido"}

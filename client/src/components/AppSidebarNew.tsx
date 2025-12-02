@@ -1,4 +1,4 @@
-import { Calendar, LayoutDashboard, Users, Settings, Briefcase, UserCog, ChevronDown, UserCheck, Package, ShoppingCart, ChefHat } from "lucide-react";
+import { Calendar, LayoutDashboard, Users, Settings, Briefcase, UserCog, ChevronDown, UserCheck, Package, ShoppingCart, ChefHat, Wallet } from "lucide-react";
 import { useLocation } from "wouter";
 import { useSidebar } from "@/context/SidebarContext";
 
@@ -72,6 +72,13 @@ export function AppSidebarNew({ userRole, allowedModules = [] }: AppSidebarProps
       path: "/kitchen",
       testId: "link-cozinha",
       moduleId: "orders"
+    },
+    {
+      name: "Financeiro",
+      icon: <Wallet className="h-5 w-5" />,
+      path: "/finance",
+      testId: "link-financeiro",
+      moduleId: "finance"
     },
   ].filter(item => item.moduleId === null || hasModule(item.moduleId));
 

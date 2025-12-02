@@ -15,11 +15,19 @@ import {
   updateProductSchema,
   insertOrderSchema,
   updateOrderStatusSchema,
+  insertFinanceCategorySchema,
+  insertExpenseSchema,
+  insertIncomeSchema,
+  registerAppointmentPaymentSchema,
   loginSchema,
   setupSchema,
   type InsertUser,
   type OrderStatus,
   ORDER_STATUSES,
+  PAYMENT_METHODS,
+  PAYMENT_METHOD_LABELS,
+  TRANSACTION_TYPES,
+  TRANSACTION_TYPE_LABELS,
   isServiceInPromotion,
   getServiceEffectiveValue,
   MODULE_DEFINITIONS
@@ -2835,7 +2843,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         });
       }
 
-      const { client, items, notes, deliveryAddress, clientAddressId, saveAddress, addressLabel } = validation.data;
+      const { client, items, paymentMethod, notes, deliveryAddress, clientAddressId, saveAddress, addressLabel } = validation.data;
 
       // Verificar/criar cliente pelo telefone
       let existingClient = await storage.getClientByPhone(client.phone, tenantId);
@@ -2884,7 +2892,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       }
 
       // Criar pedido com endereço de entrega e referência ao endereço salvo
-      const order = await storage.createOrder(tenantId, existingClient.id, items, notes, finalDeliveryAddress, clientAddressId);
+      const order = await storage.createOrder(tenantId, existingClient.id, items, paymentMethod, notes, finalDeliveryAddress, clientAddressId);
 
       res.status(201).json(order);
     } catch (error: any) {
@@ -2924,6 +2932,20 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(404).json({ error: "Pedido não encontrado" });
       }
 
+      // Criar transação financeira quando pedido for entregue
+      if (validation.data.status === 'delivered') {
+        try {
+          // Check if finance module is enabled before creating transaction
+          const isFinanceEnabled = await storage.isModuleEnabledForTenant(tenantId, 'finance');
+          if (isFinanceEnabled) {
+            await storage.createTransactionFromOrder(order.id, tenantId);
+          }
+        } catch (txError) {
+          console.error("Error creating financial transaction:", txError);
+          // Don't fail the order update if transaction creation fails
+        }
+      }
+
       // Retornar pedido completo com detalhes
       const orderWithDetails = await storage.getOrderWithDetails(order.id, tenantId);
       res.json(orderWithDetails);
@@ -2952,6 +2974,262 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     } catch (error: any) {
       console.error("Error cancelling order:", error);
       res.status(500).json({ error: error.message || "Erro ao cancelar pedido" });
+    }
+  });
+
+  // ==================== FINANCIAL MODULE ROUTES ====================
+
+  // GET /api/finance/payment-methods - Listar formas de pagamento disponíveis
+  app.get("/api/finance/payment-methods", authenticateRequest, requireModule("finance"), async (req, res) => {
+    res.json({
+      methods: PAYMENT_METHODS,
+      labels: PAYMENT_METHOD_LABELS
+    });
+  });
+
+  // GET /api/finance/categories - Listar categorias financeiras
+  app.get("/api/finance/categories", authenticateRequest, requireModule("finance"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      // Seed default categories if none exist
+      await storage.seedDefaultCategories(tenantId);
+      
+      const type = req.query.type as string | undefined;
+      let categories;
+      
+      if (type && (type === 'income' || type === 'expense')) {
+        categories = await storage.getFinanceCategoriesByType(tenantId, type);
+      } else {
+        categories = await storage.getAllFinanceCategories(tenantId);
+      }
+      
+      res.json(categories);
+    } catch (error: any) {
+      console.error("Error fetching finance categories:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar categorias" });
+    }
+  });
+
+  // POST /api/finance/categories - Criar categoria financeira
+  app.post("/api/finance/categories", authenticateRequest, requireModule("finance"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const validation = insertFinanceCategorySchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Dados inválidos", 
+          details: validation.error.errors 
+        });
+      }
+
+      const category = await storage.createFinanceCategory({ ...validation.data, tenantId });
+      res.status(201).json(category);
+    } catch (error: any) {
+      console.error("Error creating finance category:", error);
+      res.status(500).json({ error: error.message || "Erro ao criar categoria" });
+    }
+  });
+
+  // PATCH /api/finance/categories/:id - Atualizar categoria
+  app.patch("/api/finance/categories/:id", authenticateRequest, requireModule("finance"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const category = await storage.updateFinanceCategory(req.params.id, tenantId, req.body);
+      if (!category) {
+        return res.status(404).json({ error: "Categoria não encontrada" });
+      }
+      
+      res.json(category);
+    } catch (error: any) {
+      console.error("Error updating finance category:", error);
+      res.status(500).json({ error: error.message || "Erro ao atualizar categoria" });
+    }
+  });
+
+  // DELETE /api/finance/categories/:id - Excluir categoria
+  app.delete("/api/finance/categories/:id", authenticateRequest, requireModule("finance"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const deleted = await storage.deleteFinanceCategory(req.params.id, tenantId);
+      if (!deleted) {
+        return res.status(404).json({ error: "Categoria não encontrada" });
+      }
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting finance category:", error);
+      res.status(500).json({ error: error.message || "Erro ao excluir categoria" });
+    }
+  });
+
+  // GET /api/finance/transactions - Listar transações financeiras
+  app.get("/api/finance/transactions", authenticateRequest, requireModule("finance"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const filters: any = {};
+      if (req.query.type) filters.type = req.query.type;
+      if (req.query.startDate) filters.startDate = req.query.startDate;
+      if (req.query.endDate) filters.endDate = req.query.endDate;
+      if (req.query.paymentMethod) filters.paymentMethod = req.query.paymentMethod;
+      if (req.query.categoryId) filters.categoryId = req.query.categoryId;
+
+      const transactions = await storage.getAllFinancialTransactions(tenantId, filters);
+      res.json(transactions);
+    } catch (error: any) {
+      console.error("Error fetching transactions:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar transações" });
+    }
+  });
+
+  // POST /api/finance/expenses - Criar despesa manual
+  app.post("/api/finance/expenses", authenticateRequest, requireModule("finance"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const validation = insertExpenseSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Dados inválidos", 
+          details: validation.error.errors 
+        });
+      }
+
+      const transaction = await storage.createExpense(tenantId, validation.data);
+      res.status(201).json(transaction);
+    } catch (error: any) {
+      console.error("Error creating expense:", error);
+      res.status(500).json({ error: error.message || "Erro ao criar despesa" });
+    }
+  });
+
+  // POST /api/finance/incomes - Criar receita manual
+  app.post("/api/finance/incomes", authenticateRequest, requireModule("finance"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const validation = insertIncomeSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Dados inválidos", 
+          details: validation.error.errors 
+        });
+      }
+
+      const transaction = await storage.createIncome(tenantId, validation.data);
+      res.status(201).json(transaction);
+    } catch (error: any) {
+      console.error("Error creating income:", error);
+      res.status(500).json({ error: error.message || "Erro ao criar receita" });
+    }
+  });
+
+  // DELETE /api/finance/transactions/:id - Excluir transação (só manuais)
+  app.delete("/api/finance/transactions/:id", authenticateRequest, requireModule("finance"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      // Get transaction to check if it's manual
+      const tx = await storage.getFinancialTransaction(req.params.id, tenantId);
+      if (!tx) {
+        return res.status(404).json({ error: "Transação não encontrada" });
+      }
+      
+      if (tx.source !== 'manual') {
+        return res.status(400).json({ error: "Apenas transações manuais podem ser excluídas" });
+      }
+
+      const deleted = await storage.deleteTransaction(req.params.id, tenantId);
+      res.json({ success: deleted });
+    } catch (error: any) {
+      console.error("Error deleting transaction:", error);
+      res.status(500).json({ error: error.message || "Erro ao excluir transação" });
+    }
+  });
+
+  // GET /api/finance/summary - Resumo financeiro
+  app.get("/api/finance/summary", authenticateRequest, requireModule("finance"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      // Default to current month if no dates provided
+      const today = new Date();
+      const startDate = (req.query.startDate as string) || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+      const endDate = (req.query.endDate as string) || today.toISOString().split('T')[0];
+
+      const summary = await storage.getFinancialSummary(tenantId, startDate, endDate);
+      res.json(summary);
+    } catch (error: any) {
+      console.error("Error fetching financial summary:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar resumo financeiro" });
+    }
+  });
+
+  // POST /api/appointments/:id/payment - Registrar pagamento do agendamento
+  app.post("/api/appointments/:id/payment", authenticateRequest, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const validation = registerAppointmentPaymentSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Dados inválidos", 
+          details: validation.error.errors 
+        });
+      }
+
+      const appointment = await storage.registerAppointmentPayment(
+        req.params.id, 
+        tenantId, 
+        validation.data
+      );
+      
+      res.json(appointment);
+    } catch (error: any) {
+      console.error("Error registering payment:", error);
+      
+      if (error.message.includes("não encontrado")) {
+        return res.status(404).json({ error: error.message });
+      }
+      if (error.message.includes("concluídos") || error.message.includes("já registrado")) {
+        return res.status(400).json({ error: error.message });
+      }
+      
+      res.status(500).json({ error: error.message || "Erro ao registrar pagamento" });
     }
   });
 

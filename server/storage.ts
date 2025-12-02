@@ -31,6 +31,14 @@ import {
   type OrderItem,
   type OrderWithDetails,
   type OrderStatus,
+  type FinanceCategory,
+  type InsertFinanceCategory,
+  type FinancialTransaction,
+  type InsertExpense,
+  type InsertIncome,
+  type RegisterAppointmentPayment,
+  type PaymentMethod,
+  type TransactionType,
   clients,
   clientAddresses,
   services,
@@ -47,9 +55,12 @@ import {
   products,
   orders,
   orderItems,
+  financeCategories,
+  financialTransactions,
   MODULE_DEFINITIONS,
   getCoreModuleIds,
-  getDefaultEnabledModules
+  getDefaultEnabledModules,
+  getServiceEffectiveValue
 } from "@shared/schema";
 import { randomBytes } from "crypto";
 import { db } from "./db";
@@ -195,6 +206,7 @@ export interface IStorage {
     tenantId: string, 
     clientId: string, 
     items: { productId: string; quantity: number }[], 
+    paymentMethod: PaymentMethod,
     notes?: string,
     deliveryAddress?: {
       street?: string;
@@ -209,6 +221,48 @@ export interface IStorage {
   ): Promise<OrderWithDetails>;
   updateOrderStatus(id: string, tenantId: string, status: OrderStatus): Promise<Order | undefined>;
   cancelOrder(id: string, tenantId: string): Promise<Order | undefined>;
+  
+  // ==================== FINANCIAL MODULE ====================
+  
+  // Finance Category operations (with tenant isolation)
+  getFinanceCategory(id: string, tenantId: string): Promise<FinanceCategory | undefined>;
+  getAllFinanceCategories(tenantId: string): Promise<FinanceCategory[]>;
+  getFinanceCategoriesByType(tenantId: string, type: TransactionType): Promise<FinanceCategory[]>;
+  createFinanceCategory(category: InsertFinanceCategory & { tenantId: string }): Promise<FinanceCategory>;
+  updateFinanceCategory(id: string, tenantId: string, category: Partial<InsertFinanceCategory>): Promise<FinanceCategory | undefined>;
+  deleteFinanceCategory(id: string, tenantId: string): Promise<boolean>;
+  seedDefaultCategories(tenantId: string): Promise<void>;
+  
+  // Financial Transaction operations (with tenant isolation)
+  getFinancialTransaction(id: string, tenantId: string): Promise<FinancialTransaction | undefined>;
+  getAllFinancialTransactions(tenantId: string, filters?: {
+    type?: TransactionType;
+    startDate?: string;
+    endDate?: string;
+    paymentMethod?: PaymentMethod;
+    categoryId?: string;
+  }): Promise<FinancialTransaction[]>;
+  createExpense(tenantId: string, expense: InsertExpense): Promise<FinancialTransaction>;
+  createIncome(tenantId: string, income: InsertIncome): Promise<FinancialTransaction>;
+  voidTransaction(id: string, tenantId: string): Promise<FinancialTransaction | undefined>;
+  deleteTransaction(id: string, tenantId: string): Promise<boolean>;
+  
+  // Automatic transaction creation from appointments and orders
+  createTransactionFromAppointment(appointmentId: string, tenantId: string, paymentMethod: PaymentMethod, amount: number): Promise<FinancialTransaction>;
+  createTransactionFromOrder(orderId: string, tenantId: string): Promise<FinancialTransaction>;
+  voidTransactionBySource(source: 'appointment' | 'order', sourceId: string, tenantId: string): Promise<boolean>;
+  
+  // Appointment payment registration
+  registerAppointmentPayment(appointmentId: string, tenantId: string, payment: RegisterAppointmentPayment): Promise<Appointment>;
+  
+  // Financial summary
+  getFinancialSummary(tenantId: string, startDate: string, endDate: string): Promise<{
+    totalIncome: number;
+    totalExpense: number;
+    balance: number;
+    incomeByPaymentMethod: Record<string, number>;
+    expenseByCategory: Record<string, number>;
+  }>;
 }
 
 export class DbStorage implements IStorage {
@@ -1719,6 +1773,7 @@ export class DbStorage implements IStorage {
     tenantId: string, 
     clientId: string, 
     items: { productId: string; quantity: number }[], 
+    paymentMethod: PaymentMethod,
     notes?: string,
     deliveryAddress?: {
       street?: string;
@@ -1764,6 +1819,7 @@ export class DbStorage implements IStorage {
         status: 'pending',
         total: String(total),
         notes,
+        paymentMethod,
         deliveryStreet: deliveryAddress?.street,
         deliveryNumber: deliveryAddress?.number,
         deliveryComplement: deliveryAddress?.complement,
@@ -1815,7 +1871,404 @@ export class DbStorage implements IStorage {
       await this.adjustProductStock(item.productId, tenantId, item.quantity);
     }
 
+    // Void financial transaction if exists
+    await this.voidTransactionBySource('order', id, tenantId);
+
     return this.updateOrderStatus(id, tenantId, 'cancelled');
+  }
+
+  // ==================== FINANCIAL MODULE IMPLEMENTATION ====================
+
+  async getFinanceCategory(id: string, tenantId: string): Promise<FinanceCategory | undefined> {
+    const result = await db
+      .select()
+      .from(financeCategories)
+      .where(and(eq(financeCategories.id, id), eq(financeCategories.tenantId, tenantId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getAllFinanceCategories(tenantId: string): Promise<FinanceCategory[]> {
+    return await db
+      .select()
+      .from(financeCategories)
+      .where(eq(financeCategories.tenantId, tenantId))
+      .orderBy(financeCategories.type, financeCategories.name);
+  }
+
+  async getFinanceCategoriesByType(tenantId: string, type: TransactionType): Promise<FinanceCategory[]> {
+    return await db
+      .select()
+      .from(financeCategories)
+      .where(and(eq(financeCategories.tenantId, tenantId), eq(financeCategories.type, type)))
+      .orderBy(financeCategories.name);
+  }
+
+  async createFinanceCategory(category: InsertFinanceCategory & { tenantId: string }): Promise<FinanceCategory> {
+    const [result] = await db
+      .insert(financeCategories)
+      .values(category)
+      .returning();
+    return result;
+  }
+
+  async updateFinanceCategory(id: string, tenantId: string, category: Partial<InsertFinanceCategory>): Promise<FinanceCategory | undefined> {
+    const [result] = await db
+      .update(financeCategories)
+      .set(category)
+      .where(and(eq(financeCategories.id, id), eq(financeCategories.tenantId, tenantId)))
+      .returning();
+    return result;
+  }
+
+  async deleteFinanceCategory(id: string, tenantId: string): Promise<boolean> {
+    const result = await db
+      .delete(financeCategories)
+      .where(and(eq(financeCategories.id, id), eq(financeCategories.tenantId, tenantId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async seedDefaultCategories(tenantId: string): Promise<void> {
+    const existingCategories = await this.getAllFinanceCategories(tenantId);
+    if (existingCategories.length > 0) return; // Already seeded
+
+    const defaultCategories = [
+      // Income categories
+      { name: 'Serviços', type: 'income' as const, isDefault: true },
+      { name: 'Pedidos', type: 'income' as const, isDefault: true },
+      { name: 'Outras Receitas', type: 'income' as const, isDefault: false },
+      // Expense categories
+      { name: 'Aluguel', type: 'expense' as const, isDefault: false },
+      { name: 'Funcionários', type: 'expense' as const, isDefault: false },
+      { name: 'Materiais', type: 'expense' as const, isDefault: false },
+      { name: 'Marketing', type: 'expense' as const, isDefault: false },
+      { name: 'Impostos', type: 'expense' as const, isDefault: false },
+      { name: 'Outras Despesas', type: 'expense' as const, isDefault: false },
+    ];
+
+    for (const category of defaultCategories) {
+      await this.createFinanceCategory({ ...category, tenantId });
+    }
+  }
+
+  async getFinancialTransaction(id: string, tenantId: string): Promise<FinancialTransaction | undefined> {
+    const result = await db
+      .select()
+      .from(financialTransactions)
+      .where(and(eq(financialTransactions.id, id), eq(financialTransactions.tenantId, tenantId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getAllFinancialTransactions(tenantId: string, filters?: {
+    type?: TransactionType;
+    startDate?: string;
+    endDate?: string;
+    paymentMethod?: PaymentMethod;
+    categoryId?: string;
+  }): Promise<FinancialTransaction[]> {
+    const conditions = [
+      eq(financialTransactions.tenantId, tenantId),
+      eq(financialTransactions.status, 'posted'),
+    ];
+
+    if (filters?.type) {
+      conditions.push(eq(financialTransactions.type, filters.type));
+    }
+    if (filters?.startDate) {
+      conditions.push(gte(financialTransactions.date, filters.startDate));
+    }
+    if (filters?.endDate) {
+      conditions.push(lte(financialTransactions.date, filters.endDate));
+    }
+    if (filters?.paymentMethod) {
+      conditions.push(eq(financialTransactions.paymentMethod, filters.paymentMethod));
+    }
+    if (filters?.categoryId) {
+      conditions.push(eq(financialTransactions.categoryId, filters.categoryId));
+    }
+
+    return await db
+      .select()
+      .from(financialTransactions)
+      .where(and(...conditions))
+      .orderBy(desc(financialTransactions.date), desc(financialTransactions.createdAt));
+  }
+
+  async createExpense(tenantId: string, expense: InsertExpense): Promise<FinancialTransaction> {
+    // Get category name snapshot
+    let categoryName: string | undefined;
+    if (expense.categoryId) {
+      const category = await this.getFinanceCategory(expense.categoryId, tenantId);
+      categoryName = category?.name;
+    }
+
+    const [result] = await db
+      .insert(financialTransactions)
+      .values({
+        tenantId,
+        type: 'expense',
+        source: 'manual',
+        sourceId: null,
+        categoryId: expense.categoryId || null,
+        categoryName: categoryName || null,
+        title: expense.title,
+        description: expense.description || null,
+        amount: String(expense.amount),
+        paymentMethod: expense.paymentMethod || null,
+        date: expense.date,
+        status: 'posted',
+      })
+      .returning();
+    return result;
+  }
+
+  async createIncome(tenantId: string, income: InsertIncome): Promise<FinancialTransaction> {
+    // Get category name snapshot
+    let categoryName: string | undefined;
+    if (income.categoryId) {
+      const category = await this.getFinanceCategory(income.categoryId, tenantId);
+      categoryName = category?.name;
+    }
+
+    const [result] = await db
+      .insert(financialTransactions)
+      .values({
+        tenantId,
+        type: 'income',
+        source: 'manual',
+        sourceId: null,
+        categoryId: income.categoryId || null,
+        categoryName: categoryName || null,
+        title: income.title,
+        description: income.description || null,
+        amount: String(income.amount),
+        paymentMethod: income.paymentMethod || null,
+        date: income.date,
+        status: 'posted',
+      })
+      .returning();
+    return result;
+  }
+
+  async voidTransaction(id: string, tenantId: string): Promise<FinancialTransaction | undefined> {
+    const [result] = await db
+      .update(financialTransactions)
+      .set({ status: 'voided' })
+      .where(and(eq(financialTransactions.id, id), eq(financialTransactions.tenantId, tenantId)))
+      .returning();
+    return result;
+  }
+
+  async deleteTransaction(id: string, tenantId: string): Promise<boolean> {
+    const result = await db
+      .delete(financialTransactions)
+      .where(and(eq(financialTransactions.id, id), eq(financialTransactions.tenantId, tenantId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async createTransactionFromAppointment(appointmentId: string, tenantId: string, paymentMethod: PaymentMethod, amount: number): Promise<FinancialTransaction> {
+    // Check if transaction already exists
+    const existing = await db
+      .select()
+      .from(financialTransactions)
+      .where(and(
+        eq(financialTransactions.tenantId, tenantId),
+        eq(financialTransactions.source, 'appointment'),
+        eq(financialTransactions.sourceId, appointmentId)
+      ))
+      .limit(1);
+
+    if (existing.length > 0 && existing[0].status === 'posted') {
+      return existing[0];
+    }
+
+    // Get appointment details for title
+    const appointment = await this.getAppointment(appointmentId, tenantId);
+    const client = appointment ? await this.getClient(appointment.clientId, tenantId) : null;
+
+    // Get default "Serviços" category
+    const categories = await this.getFinanceCategoriesByType(tenantId, 'income');
+    const servicesCategory = categories.find(c => c.name === 'Serviços');
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const [result] = await db
+      .insert(financialTransactions)
+      .values({
+        tenantId,
+        type: 'income',
+        source: 'appointment',
+        sourceId: appointmentId,
+        categoryId: servicesCategory?.id || null,
+        categoryName: servicesCategory?.name || 'Serviços',
+        title: client ? `Atendimento - ${client.name}` : 'Atendimento',
+        description: appointment ? `Agendamento ${appointment.date} ${appointment.time}` : null,
+        amount: String(amount),
+        paymentMethod,
+        date: today,
+        status: 'posted',
+      })
+      .returning();
+    return result;
+  }
+
+  async createTransactionFromOrder(orderId: string, tenantId: string): Promise<FinancialTransaction> {
+    // Check if transaction already exists
+    const existing = await db
+      .select()
+      .from(financialTransactions)
+      .where(and(
+        eq(financialTransactions.tenantId, tenantId),
+        eq(financialTransactions.source, 'order'),
+        eq(financialTransactions.sourceId, orderId)
+      ))
+      .limit(1);
+
+    if (existing.length > 0 && existing[0].status === 'posted') {
+      return existing[0];
+    }
+
+    // Get order details
+    const order = await this.getOrderWithDetails(orderId, tenantId);
+    if (!order) {
+      throw new Error('Pedido não encontrado');
+    }
+
+    // Get default "Pedidos" category
+    const categories = await this.getFinanceCategoriesByType(tenantId, 'income');
+    const ordersCategory = categories.find(c => c.name === 'Pedidos');
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const [result] = await db
+      .insert(financialTransactions)
+      .values({
+        tenantId,
+        type: 'income',
+        source: 'order',
+        sourceId: orderId,
+        categoryId: ordersCategory?.id || null,
+        categoryName: ordersCategory?.name || 'Pedidos',
+        title: `Pedido #${order.orderNumber} - ${order.client.name}`,
+        description: null,
+        amount: String(order.total),
+        paymentMethod: order.paymentMethod,
+        date: today,
+        status: 'posted',
+      })
+      .returning();
+    return result;
+  }
+
+  async voidTransactionBySource(source: 'appointment' | 'order', sourceId: string, tenantId: string): Promise<boolean> {
+    const result = await db
+      .update(financialTransactions)
+      .set({ status: 'voided' })
+      .where(and(
+        eq(financialTransactions.tenantId, tenantId),
+        eq(financialTransactions.source, source),
+        eq(financialTransactions.sourceId, sourceId)
+      ))
+      .returning();
+    return result.length > 0;
+  }
+
+  async registerAppointmentPayment(appointmentId: string, tenantId: string, payment: RegisterAppointmentPayment): Promise<Appointment> {
+    // Get appointment with services to calculate total
+    const appointment = await this.getAppointment(appointmentId, tenantId);
+    if (!appointment) {
+      throw new Error('Agendamento não encontrado');
+    }
+
+    if (appointment.status !== 'completed') {
+      throw new Error('Apenas agendamentos concluídos podem ter pagamento registrado');
+    }
+
+    if (appointment.paymentRegisteredAt) {
+      throw new Error('Pagamento já registrado para este agendamento');
+    }
+
+    // Get services to calculate original total
+    const appointmentServicesData = await this.getAppointmentServices(appointmentId);
+    const originalTotal = appointmentServicesData.reduce((sum, service) => {
+      return sum + getServiceEffectiveValue(service);
+    }, 0);
+
+    // Calculate final amount after discount
+    let discount = payment.discount || 0;
+    let finalAmount = originalTotal;
+
+    if (discount > 0) {
+      if (payment.discountType === 'percent') {
+        finalAmount = originalTotal * (1 - discount / 100);
+        discount = originalTotal - finalAmount;
+      } else {
+        finalAmount = originalTotal - discount;
+      }
+    }
+
+    if (finalAmount < 0) finalAmount = 0;
+
+    // Update appointment with payment info
+    const [updatedAppointment] = await db
+      .update(appointments)
+      .set({
+        paymentMethod: payment.paymentMethod,
+        paymentAmount: String(finalAmount),
+        paymentDiscount: String(discount),
+        paymentDiscountType: payment.discountType || 'amount',
+        paymentRegisteredAt: new Date(),
+      })
+      .where(and(eq(appointments.id, appointmentId), eq(appointments.tenantId, tenantId)))
+      .returning();
+
+    // Create financial transaction
+    await this.createTransactionFromAppointment(appointmentId, tenantId, payment.paymentMethod, finalAmount);
+
+    return updatedAppointment;
+  }
+
+  async getFinancialSummary(tenantId: string, startDate: string, endDate: string): Promise<{
+    totalIncome: number;
+    totalExpense: number;
+    balance: number;
+    incomeByPaymentMethod: Record<string, number>;
+    expenseByCategory: Record<string, number>;
+  }> {
+    const transactions = await this.getAllFinancialTransactions(tenantId, {
+      startDate,
+      endDate,
+    });
+
+    let totalIncome = 0;
+    let totalExpense = 0;
+    const incomeByPaymentMethod: Record<string, number> = {};
+    const expenseByCategory: Record<string, number> = {};
+
+    for (const tx of transactions) {
+      const amount = parseFloat(String(tx.amount));
+      
+      if (tx.type === 'income') {
+        totalIncome += amount;
+        const method = tx.paymentMethod || 'other';
+        incomeByPaymentMethod[method] = (incomeByPaymentMethod[method] || 0) + amount;
+      } else {
+        totalExpense += amount;
+        const category = tx.categoryName || 'Sem categoria';
+        expenseByCategory[category] = (expenseByCategory[category] || 0) + amount;
+      }
+    }
+
+    return {
+      totalIncome,
+      totalExpense,
+      balance: totalIncome - totalExpense,
+      incomeByPaymentMethod,
+      expenseByCategory,
+    };
   }
 }
 

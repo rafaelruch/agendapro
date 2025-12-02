@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ORDER_STATUS_LABELS, type OrderWithDetails, type OrderStatus } from "@shared/schema";
+import { ORDER_STATUS_LABELS, type OrderWithDetails, type OrderStatus, type PaymentMethod } from "@shared/schema";
 import { OrderDialog } from "@/components/OrderDialog";
 import { printThermalReceipt } from "@/components/ThermalReceipt";
 import { format } from "date-fns";
@@ -38,6 +38,7 @@ export default function OrdersPage() {
     mutationFn: (data: {
       client: { name: string; phone: string };
       items: { productId: string; quantity: number }[];
+      paymentMethod: PaymentMethod;
       notes?: string;
       deliveryAddress?: {
         street?: string;

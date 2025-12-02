@@ -1,11 +1,15 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, User, Briefcase, FileText, CheckCircle2, Circle, Pencil, Trash2, Tag } from "lucide-react";
-import type { AppointmentWithServices, Client, Service } from "@shared/schema";
-import { getServiceEffectiveValue, isServiceInPromotion } from "@shared/schema";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Calendar, Clock, User, Briefcase, FileText, CheckCircle2, Circle, Pencil, Trash2, Tag, CreditCard, DollarSign, Percent } from "lucide-react";
+import type { AppointmentWithServices, Client, Service, PaymentMethod } from "@shared/schema";
+import { getServiceEffectiveValue, isServiceInPromotion, PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface AppointmentDetailsDialogProps {
   appointmentId: string | null;
@@ -23,6 +27,11 @@ export function AppointmentDetailsDialog({
   onDelete,
 }: AppointmentDetailsDialogProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [discountType, setDiscountType] = useState<"value" | "percentage">("value");
+  const [discountValue, setDiscountValue] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
+  const { toast } = useToast();
 
   const { data: appointment, isLoading } = useQuery<AppointmentWithServices>({
     queryKey: ["/api/appointments", appointmentId],
@@ -50,6 +59,67 @@ export function AppointmentDetailsDialog({
       setShowDeleteConfirm(false);
       onOpenChange(false);
     }
+  };
+
+  const registerPaymentMutation = useMutation({
+    mutationFn: (data: {
+      paymentMethod: PaymentMethod;
+      discountValue?: number;
+      discountPercentage?: number;
+    }) => apiRequest("POST", `/api/appointments/${appointmentId}/payment`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments", appointmentId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/finance/transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/finance/summary"] });
+      setShowPaymentModal(false);
+      setDiscountValue("");
+      setPaymentMethod("");
+      toast({
+        title: "Pagamento registrado",
+        description: "O pagamento foi registrado com sucesso.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao registrar pagamento",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handlePaymentSubmit = () => {
+    if (!paymentMethod) return;
+
+    const data: {
+      paymentMethod: PaymentMethod;
+      discountValue?: number;
+      discountPercentage?: number;
+    } = {
+      paymentMethod: paymentMethod as PaymentMethod,
+    };
+
+    if (discountValue && parseFloat(discountValue) > 0) {
+      if (discountType === "value") {
+        data.discountValue = parseFloat(discountValue);
+      } else {
+        data.discountPercentage = parseFloat(discountValue);
+      }
+    }
+
+    registerPaymentMutation.mutate(data);
+  };
+
+  const resetPaymentForm = () => {
+    setDiscountType("value");
+    setDiscountValue("");
+    setPaymentMethod("");
+  };
+
+  const openPaymentModal = () => {
+    resetPaymentForm();
+    setShowPaymentModal(true);
   };
 
   if (isLoading) {
@@ -265,28 +335,62 @@ export function AppointmentDetailsDialog({
               </div>
             </div>
           )}
-          </div>
 
-          {(onEdit || onDelete) && (
-            <div className="flex flex-row gap-2 justify-end px-6 pb-6 sm:px-9.5 sm:pb-9.5">
-              {onDelete && (
-                <Button 
-                  variant="destructive" 
-                  onClick={() => setShowDeleteConfirm(true)} 
-                  data-testid="button-delete-appointment"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Excluir
-                </Button>
-              )}
-              {onEdit && (
-                <Button onClick={onEdit} data-testid="button-edit-appointment">
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Editar
-                </Button>
-              )}
+          {/* Informações de Pagamento (se já registrado) */}
+          {appointment.paymentMethod && (
+            <div className="flex items-start gap-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+              <CreditCard className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-green-600 dark:text-green-400">Pagamento Registrado</p>
+                <p className="text-sm text-muted-foreground">
+                  {PAYMENT_METHOD_LABELS[appointment.paymentMethod as PaymentMethod]}
+                </p>
+                {((appointment as any).discountValue || (appointment as any).discountPercentage) && (
+                  <p className="text-xs text-muted-foreground">
+                    Desconto: {(appointment as any).discountPercentage 
+                      ? `${(appointment as any).discountPercentage}%` 
+                      : `R$ ${Number((appointment as any).discountValue).toFixed(2).replace('.', ',')}`}
+                  </p>
+                )}
+                {(appointment as any).finalValue && (
+                  <p className="text-sm font-medium mt-1" data-testid="text-final-value">
+                    Valor final: R$ {Number((appointment as any).finalValue).toFixed(2).replace('.', ',')}
+                  </p>
+                )}
+              </div>
             </div>
           )}
+        </div>
+
+          <div className="flex flex-row gap-2 justify-end px-6 pb-6 sm:px-9.5 sm:pb-9.5">
+            {/* Botão Registrar Pagamento - só aparece para agendamentos concluídos sem pagamento */}
+            {appointment.status === "completed" && !appointment.paymentMethod && (
+              <Button 
+                onClick={openPaymentModal}
+                className="bg-green-600 hover:bg-green-700 text-white"
+                data-testid="button-register-payment"
+              >
+                <DollarSign className="h-4 w-4 mr-2" />
+                Registrar Pagamento
+              </Button>
+            )}
+            {onDelete && (
+              <Button 
+                variant="destructive" 
+                onClick={() => setShowDeleteConfirm(true)} 
+                data-testid="button-delete-appointment"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Excluir
+              </Button>
+            )}
+            {onEdit && (
+              <Button onClick={onEdit} data-testid="button-edit-appointment">
+                <Pencil className="h-4 w-4 mr-2" />
+                Editar
+              </Button>
+            )}
+          </div>
         </Modal>
 
         <Modal isOpen={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)}>
@@ -323,6 +427,137 @@ export function AppointmentDetailsDialog({
               data-testid="button-confirm-delete"
             >
               Excluir Agendamento
+            </Button>
+          </div>
+        </Modal>
+
+        {/* Modal de Registrar Pagamento */}
+        <Modal isOpen={showPaymentModal} onClose={() => setShowPaymentModal(false)}>
+          <div className="px-6 pt-6 pb-4 sm:px-9.5 sm:pt-9.5 sm:pb-6">
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
+              Registrar Pagamento
+            </h3>
+            <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
+              Registre o pagamento do agendamento.
+            </p>
+          </div>
+
+          <div className="grid gap-5 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
+            {/* Resumo do Valor */}
+            <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-800 dark:text-white">Valor Total</span>
+                <span className="text-lg font-bold text-primary" data-testid="text-payment-total">
+                  R$ {totalValue.toFixed(2).replace('.', ',')}
+                </span>
+              </div>
+              {discountValue && parseFloat(discountValue) > 0 && (
+                <>
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      Desconto ({discountType === "percentage" ? `${discountValue}%` : `R$ ${discountValue}`})
+                    </span>
+                    <span className="text-sm text-red-500">
+                      - R$ {(discountType === "percentage" 
+                        ? (totalValue * parseFloat(discountValue) / 100) 
+                        : parseFloat(discountValue)
+                      ).toFixed(2).replace('.', ',')}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <span className="text-sm font-semibold text-gray-800 dark:text-white">Valor Final</span>
+                    <span className="text-lg font-bold text-green-600 dark:text-green-400" data-testid="text-payment-final">
+                      R$ {(totalValue - (discountType === "percentage" 
+                        ? (totalValue * parseFloat(discountValue) / 100) 
+                        : parseFloat(discountValue)
+                      )).toFixed(2).replace('.', ',')}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Desconto */}
+            <div className="grid gap-2">
+              <Label>Desconto (opcional)</Label>
+              <div className="flex gap-2">
+                <div className="flex border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setDiscountType("value")}
+                    className={`px-3 py-2 text-sm flex items-center gap-1 ${
+                      discountType === "value"
+                        ? "bg-primary text-white"
+                        : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    }`}
+                    data-testid="button-discount-value"
+                  >
+                    <DollarSign className="h-4 w-4" />
+                    R$
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDiscountType("percentage")}
+                    className={`px-3 py-2 text-sm flex items-center gap-1 ${
+                      discountType === "percentage"
+                        ? "bg-primary text-white"
+                        : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    }`}
+                    data-testid="button-discount-percentage"
+                  >
+                    <Percent className="h-4 w-4" />
+                    %
+                  </button>
+                </div>
+                <input
+                  type="number"
+                  step={0.01}
+                  min={0}
+                  max={discountType === "percentage" ? 100 : totalValue}
+                  value={discountValue}
+                  onChange={(e) => setDiscountValue(e.target.value)}
+                  placeholder={discountType === "value" ? "0,00" : "0"}
+                  className="flex-1 h-9 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  data-testid="input-discount-value"
+                />
+              </div>
+            </div>
+
+            {/* Forma de Pagamento */}
+            <div className="grid gap-2">
+              <Label>Forma de Pagamento <span className="text-meta-1">*</span></Label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                data-testid="select-payment-method"
+              >
+                <option value="">Selecione...</option>
+                {PAYMENT_METHODS.map((method) => (
+                  <option key={method} value={method}>
+                    {PAYMENT_METHOD_LABELS[method]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setShowPaymentModal(false)} 
+              data-testid="button-cancel-payment"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handlePaymentSubmit}
+              disabled={!paymentMethod || registerPaymentMutation.isPending}
+              className="bg-green-600 hover:bg-green-700 text-white"
+              data-testid="button-confirm-payment"
+            >
+              {registerPaymentMutation.isPending ? "Registrando..." : "Confirmar Pagamento"}
             </Button>
           </div>
         </Modal>

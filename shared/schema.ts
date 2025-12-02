@@ -72,6 +72,13 @@ export const MODULE_DEFINITIONS: ModuleDefinition[] = [
     isCore: false,
     defaultEnabled: false,
   },
+  {
+    id: "finance",
+    label: "Financeiro",
+    description: "Gestão financeira com receitas e despesas",
+    isCore: false,
+    defaultEnabled: false,
+  },
 ];
 
 // Helper para obter módulos habilitados por padrão
@@ -156,6 +163,12 @@ export const appointments = pgTable("appointments", {
   duration: integer("duration").notNull(),
   status: text("status").notNull().default("scheduled"),
   notes: text("notes"),
+  // Campos de pagamento (preenchidos quando registra pagamento)
+  paymentMethod: text("payment_method"),
+  paymentAmount: numeric("payment_amount", { precision: 10, scale: 2 }),
+  paymentDiscount: numeric("payment_discount", { precision: 10, scale: 2 }),
+  paymentDiscountType: text("payment_discount_type"), // 'amount' ou 'percent'
+  paymentRegisteredAt: timestamp("payment_registered_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -256,6 +269,8 @@ export const orders = pgTable("orders", {
   status: text("status").notNull().default("pending"),
   total: numeric("total", { precision: 10, scale: 2 }).notNull(),
   notes: text("notes"),
+  // Forma de pagamento (obrigatória na criação)
+  paymentMethod: text("payment_method").notNull().default("cash"),
   // Snapshot do endereço no momento do pedido (imutável para histórico)
   deliveryStreet: text("delivery_street"),
   deliveryNumber: text("delivery_number"),
@@ -276,6 +291,78 @@ export const orderItems = pgTable("order_items", {
   quantity: integer("quantity").notNull(),
   unitPrice: numeric("unit_price", { precision: 10, scale: 2 }).notNull(),
 });
+
+// ==================== FINANCIAL MODULE ====================
+
+// Formas de pagamento disponíveis
+export const PAYMENT_METHODS = ['cash', 'pix', 'debit', 'credit', 'voucher', 'transfer', 'other'] as const;
+export type PaymentMethod = typeof PAYMENT_METHODS[number];
+
+// Labels em português para formas de pagamento
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  cash: 'Dinheiro',
+  pix: 'PIX',
+  debit: 'Cartão Débito',
+  credit: 'Cartão Crédito',
+  voucher: 'Vale/Voucher',
+  transfer: 'Transferência',
+  other: 'Outro',
+};
+
+// Tipos de transação financeira
+export const TRANSACTION_TYPES = ['income', 'expense'] as const;
+export type TransactionType = typeof TRANSACTION_TYPES[number];
+
+// Labels em português para tipos de transação
+export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
+  income: 'Receita',
+  expense: 'Despesa',
+};
+
+// Fontes de transação
+export const TRANSACTION_SOURCES = ['appointment', 'order', 'manual'] as const;
+export type TransactionSource = typeof TRANSACTION_SOURCES[number];
+
+// Labels em português para fontes de transação
+export const TRANSACTION_SOURCE_LABELS: Record<TransactionSource, string> = {
+  appointment: 'Agendamento',
+  order: 'Pedido',
+  manual: 'Manual',
+};
+
+// Status de transação
+export const TRANSACTION_STATUSES = ['posted', 'voided'] as const;
+export type TransactionStatus = typeof TRANSACTION_STATUSES[number];
+
+// Categorias financeiras
+export const financeCategories = pgTable("finance_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // 'income' ou 'expense'
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Transações financeiras
+export const financialTransactions = pgTable("financial_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  type: text("type").notNull(), // 'income' ou 'expense'
+  source: text("source").notNull(), // 'appointment', 'order' ou 'manual'
+  sourceId: varchar("source_id"), // ID do appointment ou order (null para manual)
+  categoryId: varchar("category_id").references(() => financeCategories.id, { onDelete: 'set null' }),
+  categoryName: text("category_name"), // Snapshot do nome da categoria
+  title: text("title").notNull(),
+  description: text("description"),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  paymentMethod: text("payment_method"),
+  date: text("date").notNull(), // YYYY-MM-DD
+  status: text("status").notNull().default("posted"), // 'posted' ou 'voided'
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  uniqueSourceTransaction: unique().on(table.tenantId, table.source, table.sourceId)
+}));
 
 export const insertTenantSchema = createInsertSchema(tenants).omit({
   id: true,
@@ -453,6 +540,7 @@ export const insertOrderSchema = z.object({
     productId: z.string().min(1, "ID do produto é obrigatório"),
     quantity: z.coerce.number().int().positive("Quantidade deve ser positiva"),
   })).min(1, "Pelo menos um item é obrigatório"),
+  paymentMethod: z.enum(PAYMENT_METHODS, { required_error: "Forma de pagamento é obrigatória" }),
   notes: z.string().optional(),
   deliveryAddress: deliveryAddressSchema.optional(),
   clientAddressId: z.string().optional(), // ID do endereço existente selecionado
@@ -471,6 +559,53 @@ export const insertOrderItemSchema = createInsertSchema(orderItems).omit({
 }).extend({
   quantity: z.coerce.number().int().positive(),
   unitPrice: z.coerce.number().positive(),
+});
+
+// ==================== FINANCIAL SCHEMAS ====================
+
+export const insertFinanceCategorySchema = createInsertSchema(financeCategories).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  type: z.enum(TRANSACTION_TYPES),
+});
+
+export const insertFinancialTransactionSchema = createInsertSchema(financialTransactions).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  type: z.enum(TRANSACTION_TYPES),
+  source: z.enum(TRANSACTION_SOURCES),
+  amount: z.coerce.number().positive("Valor deve ser positivo"),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato inválido. Use YYYY-MM-DD"),
+  paymentMethod: z.enum(PAYMENT_METHODS).optional(),
+});
+
+// Schema para registrar pagamento de agendamento
+export const registerAppointmentPaymentSchema = z.object({
+  paymentMethod: z.enum(PAYMENT_METHODS, { required_error: "Forma de pagamento é obrigatória" }),
+  discount: z.coerce.number().min(0, "Desconto não pode ser negativo").optional().default(0),
+  discountType: z.enum(['amount', 'percent']).optional().default('amount'),
+});
+
+// Schema para criar despesa manual
+export const insertExpenseSchema = z.object({
+  categoryId: z.string().optional(),
+  title: z.string().min(1, "Título é obrigatório"),
+  description: z.string().optional(),
+  amount: z.coerce.number().positive("Valor deve ser positivo"),
+  paymentMethod: z.enum(PAYMENT_METHODS).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato inválido. Use YYYY-MM-DD"),
+});
+
+// Schema para criar receita manual
+export const insertIncomeSchema = z.object({
+  categoryId: z.string().optional(),
+  title: z.string().min(1, "Título é obrigatório"),
+  description: z.string().optional(),
+  amount: z.coerce.number().positive("Valor deve ser positivo"),
+  paymentMethod: z.enum(PAYMENT_METHODS).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato inválido. Use YYYY-MM-DD"),
 });
 
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
@@ -546,6 +681,32 @@ export type ProfessionalWithDetails = Professional & {
     startTime: string;
     endTime: string;
   }[];
+};
+
+// ==================== FINANCIAL TYPES ====================
+
+export type InsertFinanceCategory = z.infer<typeof insertFinanceCategorySchema>;
+export type FinanceCategory = typeof financeCategories.$inferSelect;
+
+export type InsertFinancialTransaction = z.infer<typeof insertFinancialTransactionSchema>;
+export type FinancialTransaction = typeof financialTransactions.$inferSelect;
+
+export type RegisterAppointmentPayment = z.infer<typeof registerAppointmentPaymentSchema>;
+export type InsertExpense = z.infer<typeof insertExpenseSchema>;
+export type InsertIncome = z.infer<typeof insertIncomeSchema>;
+
+// Transação com detalhes da categoria
+export type TransactionWithCategory = FinancialTransaction & {
+  category?: FinanceCategory;
+};
+
+// Resumo financeiro
+export type FinancialSummary = {
+  totalIncome: number;
+  totalExpense: number;
+  balance: number;
+  incomeByPaymentMethod: Record<PaymentMethod, number>;
+  expenseByCategory: Record<string, number>;
 };
 
 // Função helper para verificar se serviço está em promoção
