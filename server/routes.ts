@@ -289,8 +289,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let tenant = null;
+      let allowedModules: string[] = [];
+      
       if (user.tenantId) {
         tenant = await storage.getTenant(user.tenantId);
+        // Buscar módulos permitidos para o tenant
+        const tenantModules = await storage.getTenantModules(user.tenantId);
+        allowedModules = tenantModules;
+      } else if (user.role === 'master_admin') {
+        // Master admin tem acesso a todos os módulos
+        allowedModules = MODULE_DEFINITIONS.map(m => m.id);
       }
       
       res.json({ 
@@ -304,7 +312,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tenant: tenant ? {
           id: tenant.id,
           name: tenant.name
-        } : null
+        } : null,
+        allowedModules
       });
     } catch (error) {
       console.error("Error fetching current user:", error);
@@ -464,6 +473,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error revoking API token:", error);
       res.status(500).json({ error: "Erro ao revogar token" });
+    }
+  });
+
+  // ===========================================
+  // ROTAS MASTER ADMIN - GESTÃO DE MÓDULOS POR TENANT
+  // ===========================================
+
+  // GET /api/admin/modules - List all available modules
+  app.get("/api/admin/modules", requireMasterAdmin, async (req, res) => {
+    try {
+      const modules = await storage.listAllModules();
+      res.json(modules);
+    } catch (error) {
+      console.error("Error fetching modules:", error);
+      res.status(500).json({ error: "Erro ao buscar módulos" });
+    }
+  });
+
+  // GET /api/admin/tenants/:id/modules - Get tenant module permissions
+  app.get("/api/admin/tenants/:id/modules", requireMasterAdmin, async (req, res) => {
+    try {
+      const tenant = await storage.getTenant(req.params.id);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant não encontrado" });
+      }
+
+      const enabledModules = await storage.getTenantModules(req.params.id);
+      const allModules = await storage.listAllModules();
+      
+      // Retorna lista detalhada de módulos com status de habilitação
+      const modulesWithStatus = allModules.map(m => ({
+        ...m,
+        enabled: enabledModules.includes(m.id)
+      }));
+
+      res.json({
+        tenantId: req.params.id,
+        tenantName: tenant.name,
+        modules: modulesWithStatus
+      });
+    } catch (error) {
+      console.error("Error fetching tenant modules:", error);
+      res.status(500).json({ error: "Erro ao buscar módulos do tenant" });
+    }
+  });
+
+  // PUT /api/admin/tenants/:id/modules - Update tenant module permissions
+  app.put("/api/admin/tenants/:id/modules", requireMasterAdmin, async (req, res) => {
+    try {
+      const tenant = await storage.getTenant(req.params.id);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant não encontrado" });
+      }
+
+      const { enabledModules } = req.body;
+      if (!Array.isArray(enabledModules)) {
+        return res.status(400).json({ error: "enabledModules deve ser um array de IDs de módulos" });
+      }
+
+      // Validar que todos os IDs são válidos
+      const allModules = await storage.listAllModules();
+      const validIds = allModules.map(m => m.id);
+      const invalidIds = enabledModules.filter((id: string) => !validIds.includes(id));
+      if (invalidIds.length > 0) {
+        return res.status(400).json({ 
+          error: "IDs de módulos inválidos", 
+          invalidIds 
+        });
+      }
+
+      await storage.setTenantModules(req.params.id, enabledModules);
+      
+      // Retorna estado atualizado
+      const updatedModules = await storage.getTenantModules(req.params.id);
+      const modulesWithStatus = allModules.map(m => ({
+        ...m,
+        enabled: updatedModules.includes(m.id)
+      }));
+
+      res.json({
+        tenantId: req.params.id,
+        tenantName: tenant.name,
+        modules: modulesWithStatus
+      });
+    } catch (error) {
+      console.error("Error updating tenant modules:", error);
+      res.status(500).json({ error: "Erro ao atualizar módulos do tenant" });
     }
   });
 
