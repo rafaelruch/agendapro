@@ -110,6 +110,31 @@ function requireTenantAdmin(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+// Middleware factory para verificar se módulo está habilitado para o tenant
+function requireModule(moduleId: string) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    // Master admin sempre tem acesso a todos os módulos
+    if (req.session.role === 'master_admin') {
+      return next();
+    }
+
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return res.status(401).json({ error: "Não autenticado" });
+    }
+
+    const isEnabled = await storage.isModuleEnabledForTenant(tenantId, moduleId);
+    if (!isEnabled) {
+      return res.status(403).json({ 
+        error: "Módulo não disponível",
+        message: `O módulo '${moduleId}' não está habilitado para o seu tenant. Entre em contato com o administrador.`
+      });
+    }
+
+    next();
+  };
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // ===========================================
@@ -497,10 +522,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===========================================
   // ROTAS DE GERENCIAMENTO DE USUÁRIOS (TENANT ADMIN)
+  // Protegido pelo módulo "users"
   // ===========================================
   
   // GET /api/users - List all users of current tenant (admin only)
-  app.get("/api/users", requireTenantAdmin, async (req, res) => {
+  app.get("/api/users", requireModule("users"), requireTenantAdmin, async (req, res) => {
     try {
       const tenantId = req.session.tenantId!;
       const users = await storage.getUsersByTenant(tenantId);
@@ -513,7 +539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/users/:id - Get specific user (admin only)
-  app.get("/api/users/:id", requireTenantAdmin, async (req, res) => {
+  app.get("/api/users/:id", requireModule("users"), requireTenantAdmin, async (req, res) => {
     try {
       const tenantId = req.session.tenantId!;
       const user = await storage.getUserWithTenantIsolation(req.params.id, tenantId);
@@ -529,7 +555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/users - Create new user in current tenant (admin only)
-  app.post("/api/users", requireTenantAdmin, async (req, res) => {
+  app.post("/api/users", requireModule("users"), requireTenantAdmin, async (req, res) => {
     try {
       const tenantId = req.session.tenantId!;
       const { password, role, ...userData } = req.body;
@@ -565,7 +591,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PUT /api/users/:id - Update user (admin only)
-  app.put("/api/users/:id", requireTenantAdmin, async (req, res) => {
+  app.put("/api/users/:id", requireModule("users"), requireTenantAdmin, async (req, res) => {
     try {
       const tenantId = req.session.tenantId!;
       const { password, role, ...userData } = req.body;
@@ -603,7 +629,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // DELETE /api/users/:id - Delete user (admin only)
-  app.delete("/api/users/:id", requireTenantAdmin, async (req, res) => {
+  app.delete("/api/users/:id", requireModule("users"), requireTenantAdmin, async (req, res) => {
     try {
       const tenantId = req.session.tenantId!;
       
@@ -635,10 +661,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===========================================
   // ROTAS DE API TOKENS (GERENCIAMENTO)
+  // Protegido pelo módulo "api-tokens"
   // ===========================================
   
   // GET /api/settings/api-tokens - List API tokens for current tenant
-  app.get("/api/settings/api-tokens", authenticateRequest, async (req, res) => {
+  app.get("/api/settings/api-tokens", authenticateRequest, requireModule("api-tokens"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -655,7 +682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/settings/api-tokens - Create new API token
-  app.post("/api/settings/api-tokens", authenticateRequest, async (req, res) => {
+  app.post("/api/settings/api-tokens", authenticateRequest, requireModule("api-tokens"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       const userId = req.session.userId;
@@ -683,7 +710,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // DELETE /api/settings/api-tokens/:id - Revoke API token
-  app.delete("/api/settings/api-tokens/:id", authenticateRequest, async (req, res) => {
+  app.delete("/api/settings/api-tokens/:id", authenticateRequest, requireModule("api-tokens"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -704,10 +731,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===========================================
   // ROTAS DE HORÁRIOS DE FUNCIONAMENTO (COM ISOLAMENTO TENANT)
+  // Protegido pelo módulo "business-hours"
   // ===========================================
 
   // GET /api/business-hours - List business hours for current tenant
-  app.get("/api/business-hours", authenticateRequest, async (req, res) => {
+  app.get("/api/business-hours", authenticateRequest, requireModule("business-hours"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -723,7 +751,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/business-hours - Create business hours
-  app.post("/api/business-hours", authenticateRequest, requireTenantAdmin, async (req, res) => {
+  app.post("/api/business-hours", authenticateRequest, requireModule("business-hours"), requireTenantAdmin, async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -747,7 +775,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PUT /api/business-hours/:id - Update business hours
-  app.put("/api/business-hours/:id", authenticateRequest, requireTenantAdmin, async (req, res) => {
+  app.put("/api/business-hours/:id", authenticateRequest, requireModule("business-hours"), requireTenantAdmin, async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -773,7 +801,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // DELETE /api/business-hours/:id - Delete business hours
-  app.delete("/api/business-hours/:id", authenticateRequest, requireTenantAdmin, async (req, res) => {
+  app.delete("/api/business-hours/:id", authenticateRequest, requireModule("business-hours"), requireTenantAdmin, async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -794,10 +822,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===========================================
   // ROTAS DE PROFISSIONAIS (COM ISOLAMENTO TENANT)
+  // Protegido pelo módulo "professionals"
   // ===========================================
 
   // GET /api/professionals - List all professionals of current tenant
-  app.get("/api/professionals", authenticateRequest, async (req, res) => {
+  app.get("/api/professionals", authenticateRequest, requireModule("professionals"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -829,7 +858,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/professionals/:id - Get a specific professional
-  app.get("/api/professionals/:id", authenticateRequest, async (req, res) => {
+  app.get("/api/professionals/:id", authenticateRequest, requireModule("professionals"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -849,7 +878,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/professionals - Create a new professional
-  app.post("/api/professionals", authenticateRequest, async (req, res) => {
+  app.post("/api/professionals", authenticateRequest, requireModule("professionals"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -894,7 +923,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PUT /api/professionals/:id - Update a professional
-  app.put("/api/professionals/:id", authenticateRequest, async (req, res) => {
+  app.put("/api/professionals/:id", authenticateRequest, requireModule("professionals"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -943,7 +972,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // DELETE /api/professionals/:id - Delete a professional
-  app.delete("/api/professionals/:id", authenticateRequest, async (req, res) => {
+  app.delete("/api/professionals/:id", authenticateRequest, requireModule("professionals"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -964,10 +993,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===========================================
   // ROTAS DE CLIENTES (COM ISOLAMENTO TENANT)
+  // Protegido pelo módulo "clients"
   // ===========================================
   
   // GET /api/clients - List all clients of current tenant
-  app.get("/api/clients", authenticateRequest, async (req, res) => {
+  app.get("/api/clients", authenticateRequest, requireModule("clients"), async (req, res) => {
     try {
       const userRole = req.session.role;
       let tenantId: string | null;
@@ -1000,7 +1030,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/clients/:id - Get a specific client
-  app.get("/api/clients/:id", authenticateRequest, async (req, res) => {
+  app.get("/api/clients/:id", authenticateRequest, requireModule("clients"), async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
       const client = await storage.getClient(req.params.id, tenantId);
@@ -1015,7 +1045,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/clients - Create a new client
-  app.post("/api/clients", authenticateRequest, async (req, res) => {
+  app.post("/api/clients", authenticateRequest, requireModule("clients"), async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
       const validatedData = insertClientSchema.parse({
@@ -1043,7 +1073,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PUT /api/clients/:id - Update a client
-  app.put("/api/clients/:id", authenticateRequest, async (req, res) => {
+  app.put("/api/clients/:id", authenticateRequest, requireModule("clients"), async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
       const validatedData = insertClientSchema.partial().parse(req.body);
@@ -1073,7 +1103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // DELETE /api/clients/:id - Delete a client
-  app.delete("/api/clients/:id", authenticateRequest, async (req, res) => {
+  app.delete("/api/clients/:id", authenticateRequest, requireModule("clients"), async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
       const success = await storage.deleteClient(req.params.id, tenantId);
@@ -1088,7 +1118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/clients/:id/appointments - Get all appointments for a specific client
-  app.get("/api/clients/:id/appointments", authenticateRequest, async (req, res) => {
+  app.get("/api/clients/:id/appointments", authenticateRequest, requireModule("clients"), async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
       const client = await storage.getClient(req.params.id, tenantId);
@@ -1105,7 +1135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/clients/:id/stats - Get statistics for a specific client
-  app.get("/api/clients/:id/stats", authenticateRequest, async (req, res) => {
+  app.get("/api/clients/:id/stats", authenticateRequest, requireModule("clients"), async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
       const client = await storage.getClient(req.params.id, tenantId);
@@ -1123,10 +1153,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===========================================
   // ROTAS DE SERVIÇOS (COM ISOLAMENTO TENANT)
+  // Protegido pelo módulo "services"
   // ===========================================
 
   // GET /api/services - List all services of current tenant
-  app.get("/api/services", authenticateRequest, async (req, res) => {
+  app.get("/api/services", authenticateRequest, requireModule("services"), async (req, res) => {
     try {
       const userRole = req.session.role;
       let tenantId: string | null;
@@ -1167,7 +1198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // GET /api/services/template - Download CSV template for bulk import
   // IMPORTANTE: Deve vir ANTES de /api/services/:id para não ser capturado como :id
-  app.get("/api/services/template", authenticateRequest, async (req, res) => {
+  app.get("/api/services/template", authenticateRequest, requireModule("services"), async (req, res) => {
     try {
       // CSV template with headers and example row
       const csvContent = `nome,categoria,valor,descricao
@@ -1213,7 +1244,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // SEGURANÇA: Rate limiting para uploads (10 uploads por hora)
-  app.post("/api/services/import", uploadLimiter, authenticateRequest, upload.single('file'), async (req, res) => {
+  app.post("/api/services/import", uploadLimiter, authenticateRequest, requireModule("services"), upload.single('file'), async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
       
@@ -1331,7 +1362,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // GET /api/services/:id - Get a specific service
-  app.get("/api/services/:id", authenticateRequest, async (req, res) => {
+  app.get("/api/services/:id", authenticateRequest, requireModule("services"), async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
       const service = await storage.getService(req.params.id, tenantId);
@@ -1354,7 +1385,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // POST /api/services - Create a new service
-  app.post("/api/services", authenticateRequest, async (req, res) => {
+  app.post("/api/services", authenticateRequest, requireModule("services"), async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
       const validatedData = insertServiceSchema.parse({
@@ -1373,7 +1404,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // PUT /api/services/:id - Update a service
-  app.put("/api/services/:id", authenticateRequest, async (req, res) => {
+  app.put("/api/services/:id", authenticateRequest, requireModule("services"), async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
       
@@ -1427,7 +1458,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // DELETE /api/services/:id - Delete a service
-  app.delete("/api/services/:id", authenticateRequest, async (req, res) => {
+  app.delete("/api/services/:id", authenticateRequest, requireModule("services"), async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
       const success = await storage.deleteService(req.params.id, tenantId);
@@ -1442,7 +1473,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // GET /api/services/:id/appointments - Get all appointments for a specific service
-  app.get("/api/services/:id/appointments", authenticateRequest, async (req, res) => {
+  app.get("/api/services/:id/appointments", authenticateRequest, requireModule("services"), async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
       const service = await storage.getService(req.params.id, tenantId);
