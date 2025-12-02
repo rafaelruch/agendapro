@@ -109,6 +109,59 @@ Recent production bug fixes addressed cache invalidation race conditions, premat
 - **Data Validation**: Zod for robust schema validation.
 - **Core Features**: Multi-tenant, secure auth, master admin panel, user/service/professional management, appointment scheduling/editing, business hours, availability, full REST API.
 - **Advanced Features**: Appointment conflict detection (including professional double-booking prevention), flexible business hours, availability API, secure API token system, role-based access control, dynamic API documentation, bulk service import, detailed calendar views, client phone uniqueness, multi-service appointments (total duration calculation), promotional pricing with date-based activation, **professional management with flexible multi-interval schedules, professional filtering in calendar, and professional-specific appointment assignment**.
+- **Tenant Module Permissions**: Sistema de permissões de módulos por tenant que permite habilitar/desabilitar funcionalidades específicas para cada cliente.
+
+### Tenant Module Permissions System (CRITICAL - FOLLOW WHEN ADDING NEW MODULES)
+
+**IMPORTANT**: When creating ANY new module/feature in the system, you MUST:
+1. Add the module definition to `MODULE_DEFINITIONS` in `shared/schema.ts`
+2. Protect the backend routes with `requireModule('module-id')` middleware
+3. Update the Sidebar component to respect module permissions
+4. Document the new module in this section
+
+**Current Module Registry** (defined in `shared/schema.ts`):
+| Module ID | Label | Core? | Default? | Description |
+|-----------|-------|-------|----------|-------------|
+| `calendar` | Agenda | ✅ Yes | ✅ | Calendário e agendamentos (sempre ativo) |
+| `clients` | Clientes | ❌ No | ✅ | Gestão de clientes |
+| `services` | Serviços | ❌ No | ✅ | Gestão de serviços |
+| `professionals` | Profissionais | ❌ No | ✅ | Gestão de profissionais |
+| `business-hours` | Horários | ❌ No | ✅ | Horários de funcionamento |
+| `api-tokens` | Tokens API | ❌ No | ❌ | Integração com N8N |
+| `users` | Usuários | ❌ No | ❌ | Gestão de usuários do tenant |
+
+**How to add a new module:**
+```typescript
+// 1. Add to MODULE_DEFINITIONS in shared/schema.ts
+export const MODULE_DEFINITIONS: ModuleDefinition[] = [
+  // ... existing modules ...
+  {
+    id: "new-module",
+    label: "Novo Módulo",
+    description: "Descrição do novo módulo",
+    isCore: false,
+    defaultEnabled: true, // true = habilitado por padrão para novos tenants
+  },
+];
+
+// 2. Protect routes in server/routes.ts
+app.get("/api/new-module", requireModule("new-module"), async (req, res) => {
+  // ...
+});
+
+// 3. Update Sidebar.tsx to include module in navigation
+// (already handles visibility via allowedModules from auth context)
+```
+
+**Database Table**: `tenant_module_permissions`
+- Stores per-tenant module overrides
+- Core modules are always enabled (not stored, implicit)
+- Only non-core module overrides are stored
+
+**API Endpoints**:
+- `GET /api/admin/tenants/:id/modules` - Get tenant module permissions
+- `PUT /api/admin/tenants/:id/modules` - Update tenant module permissions
+- Module permissions are included in `/api/auth/me` response as `allowedModules[]`
 - **Production Security**: Critical requirements include a mandatory, high-entropy `SESSION_SECRET` environment variable. Security measures include httpOnly, secure, and strict sameSite cookies; rate limiting on auth and API endpoints; trust proxy configuration for Replit and production environments; Zod-based input validation; and secure file upload handling for CSVs (max 5MB, 1000 rows, strict type validation).
 
 ### System Design Choices
