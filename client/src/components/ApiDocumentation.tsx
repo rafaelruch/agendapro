@@ -563,6 +563,70 @@ curl -X PUT "${baseUrl}/api/appointments?id=apt-789" \\
       curlExample: `curl -X DELETE "${baseUrl}/api/settings/api-tokens/token-123" \\
   -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     }
+  ],
+  modulos: [
+    {
+      method: "GET",
+      path: "/api/admin/tenants/:tenantId/modules",
+      description: "Listar permissões de módulos de um tenant (Master Admin)",
+      auth: "Master Admin",
+      parameters: [
+        { name: "tenantId", type: "string", required: true, description: "ID do tenant" }
+      ],
+      responseExample: `{
+  "tenantId": "tenant-123",
+  "tenantName": "Empresa ABC",
+  "modules": [
+    {
+      "id": "calendar",
+      "label": "Agenda",
+      "description": "Calendário e agendamentos",
+      "isCore": true,
+      "enabled": true
+    },
+    {
+      "id": "clients",
+      "label": "Clientes",
+      "description": "Gestão de clientes",
+      "isCore": false,
+      "enabled": true
+    },
+    {
+      "id": "api-tokens",
+      "label": "Tokens API",
+      "description": "Integração com N8N",
+      "isCore": false,
+      "enabled": false
+    }
+  ]
+}`,
+      curlExample: `curl -X GET "${baseUrl}/api/admin/tenants/tenant-123/modules" \\
+  -H "Cookie: connect.sid=SEU_COOKIE_DE_SESSAO"`
+    },
+    {
+      method: "PUT",
+      path: "/api/admin/tenants/:tenantId/modules",
+      description: "Atualizar permissões de módulos de um tenant (Master Admin)",
+      auth: "Master Admin",
+      parameters: [
+        { name: "tenantId", type: "string", required: true, description: "ID do tenant" }
+      ],
+      requestBody: `{
+  "enabledModules": ["clients", "services", "professionals", "business-hours"]
+}`,
+      responseExample: `{
+  "success": true,
+  "tenantId": "tenant-123",
+  "enabledModules": ["calendar", "clients", "services", "professionals", "business-hours"],
+  "message": "Permissões de módulos atualizadas com sucesso"
+}`,
+      curlExample: `curl -X PUT "${baseUrl}/api/admin/tenants/tenant-123/modules" \\
+  -H "Cookie: connect.sid=SEU_COOKIE_DE_SESSAO" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "enabledModules": ["clients", "services", "professionals", "business-hours"]
+  }'`
+    }
   ]
 });
 
@@ -573,7 +637,8 @@ const sections = [
   { id: "servicos", label: "Serviços" },
   { id: "profissionais", label: "Profissionais" },
   { id: "agendamentos", label: "Agendamentos" },
-  { id: "tokens", label: "Tokens de API" }
+  { id: "tokens", label: "Tokens de API" },
+  { id: "modulos", label: "Módulos (Master Admin)" }
 ];
 
 function CopyButton({ text }: { text: string }) {
