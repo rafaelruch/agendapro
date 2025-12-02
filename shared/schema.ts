@@ -52,13 +52,6 @@ export const MODULE_DEFINITIONS: ModuleDefinition[] = [
     defaultEnabled: true,
   },
   {
-    id: "api-tokens",
-    label: "Tokens API",
-    description: "Integração com N8N e automações",
-    isCore: false,
-    defaultEnabled: false,
-  },
-  {
     id: "users",
     label: "Usuários",
     description: "Gestão de usuários do tenant",
