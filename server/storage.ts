@@ -146,6 +146,11 @@ export interface IStorage {
   getTenantAllowedModules(tenantId: string): Promise<string[]>;
   updateTenantModulePermissions(tenantId: string, modules: Record<string, boolean>): Promise<void>;
   isModuleEnabledForTenant(tenantId: string, moduleId: string): Promise<boolean>;
+  
+  // Module Management operations (for admin routes)
+  listAllModules(): Promise<{ id: string; label: string; description: string; isCore: boolean; defaultEnabled: boolean }[]>;
+  getTenantModules(tenantId: string): Promise<string[]>;
+  setTenantModules(tenantId: string, enabledModuleIds: string[]): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -1346,6 +1351,46 @@ export class DbStorage implements IStorage {
     // No explicit permission, check default
     const moduleDef = MODULE_DEFINITIONS.find(m => m.id === moduleId);
     return moduleDef?.defaultEnabled ?? false;
+  }
+
+  // Module Management operations (for admin routes)
+  async listAllModules(): Promise<{ id: string; label: string; description: string; isCore: boolean; defaultEnabled: boolean }[]> {
+    return MODULE_DEFINITIONS.map(m => ({
+      id: m.id,
+      label: m.label,
+      description: m.description,
+      isCore: m.isCore,
+      defaultEnabled: m.defaultEnabled
+    }));
+  }
+
+  async getTenantModules(tenantId: string): Promise<string[]> {
+    // Get all enabled modules for the tenant
+    return this.getTenantAllowedModules(tenantId);
+  }
+
+  async setTenantModules(tenantId: string, enabledModuleIds: string[]): Promise<void> {
+    const coreModuleIds = getCoreModuleIds();
+    
+    // Delete all existing non-core module permissions for this tenant
+    await db
+      .delete(tenantModulePermissions)
+      .where(eq(tenantModulePermissions.tenantId, tenantId));
+
+    // Insert new permissions for non-core modules
+    for (const moduleDef of MODULE_DEFINITIONS) {
+      if (moduleDef.isCore) {
+        continue; // Skip core modules - they're always enabled
+      }
+
+      const enabled = enabledModuleIds.includes(moduleDef.id);
+      
+      await db.insert(tenantModulePermissions).values({
+        tenantId,
+        moduleId: moduleDef.id,
+        enabled,
+      });
+    }
   }
 }
 
