@@ -124,6 +124,23 @@ export const clients = pgTable("clients", {
   uniquePhonePerTenant: unique().on(table.tenantId, table.phone)
 }));
 
+// Endereços de clientes (1:N - um cliente pode ter múltiplos endereços)
+export const clientAddresses = pgTable("client_addresses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  clientId: varchar("client_id").notNull().references(() => clients.id, { onDelete: 'cascade' }),
+  label: text("label").notNull().default("Casa"), // Casa, Trabalho, Outro, etc.
+  street: text("street"),
+  number: text("number"),
+  complement: text("complement"),
+  neighborhood: text("neighborhood"),
+  city: text("city"),
+  zipCode: text("zip_code"),
+  reference: text("reference"),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const services = pgTable("services", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
@@ -277,6 +294,11 @@ export const insertUserSchema = createInsertSchema(users).omit({
 
 export const insertClientSchema = createInsertSchema(clients).omit({
   id: true,
+});
+
+export const insertClientAddressSchema = createInsertSchema(clientAddresses).omit({
+  id: true,
+  createdAt: true,
 });
 
 // Schema base para serviços (sem validação de promoção)
@@ -461,6 +483,9 @@ export type User = typeof users.$inferSelect;
 
 export type InsertClient = z.infer<typeof insertClientSchema>;
 export type Client = typeof clients.$inferSelect;
+
+export type InsertClientAddress = z.infer<typeof insertClientAddressSchema>;
+export type ClientAddress = typeof clientAddresses.$inferSelect;
 
 export type InsertService = z.infer<typeof insertServiceSchema>;
 export type Service = typeof services.$inferSelect;
