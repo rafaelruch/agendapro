@@ -3,6 +3,82 @@ import { pgTable, text, varchar, timestamp, integer, numeric, boolean, unique } 
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// ==================== MODULE DEFINITIONS ====================
+// IMPORTANTE: Ao criar novos módulos, SEMPRE adicionar aqui!
+// Isso garante que o sistema de permissões funcione corretamente.
+
+export interface ModuleDefinition {
+  id: string;
+  label: string;
+  description: string;
+  isCore: boolean;      // Módulos core são sempre habilitados
+  defaultEnabled: boolean; // Habilitado por padrão para novos tenants
+}
+
+export const MODULE_DEFINITIONS: ModuleDefinition[] = [
+  {
+    id: "calendar",
+    label: "Agenda",
+    description: "Calendário e agendamentos",
+    isCore: true,
+    defaultEnabled: true,
+  },
+  {
+    id: "clients",
+    label: "Clientes",
+    description: "Gestão de clientes",
+    isCore: false,
+    defaultEnabled: true,
+  },
+  {
+    id: "services",
+    label: "Serviços",
+    description: "Gestão de serviços",
+    isCore: false,
+    defaultEnabled: true,
+  },
+  {
+    id: "professionals",
+    label: "Profissionais",
+    description: "Gestão de profissionais",
+    isCore: false,
+    defaultEnabled: true,
+  },
+  {
+    id: "business-hours",
+    label: "Horários",
+    description: "Horários de funcionamento",
+    isCore: false,
+    defaultEnabled: true,
+  },
+  {
+    id: "api-tokens",
+    label: "Tokens API",
+    description: "Integração com N8N e automações",
+    isCore: false,
+    defaultEnabled: false,
+  },
+  {
+    id: "users",
+    label: "Usuários",
+    description: "Gestão de usuários do tenant",
+    isCore: false,
+    defaultEnabled: false,
+  },
+];
+
+// Helper para obter módulos habilitados por padrão
+export function getDefaultEnabledModules(): string[] {
+  return MODULE_DEFINITIONS
+    .filter(m => m.isCore || m.defaultEnabled)
+    .map(m => m.id);
+}
+
+// Helper para obter IDs de módulos core (sempre habilitados)
+export function getCoreModuleIds(): string[] {
+  return MODULE_DEFINITIONS.filter(m => m.isCore).map(m => m.id);
+}
+
 export const tenants = pgTable("tenants", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
@@ -107,6 +183,16 @@ export const professionalSchedules = pgTable("professional_schedules", {
   startTime: text("start_time").notNull(),
   endTime: text("end_time").notNull(),
 });
+
+// Tabela de permissões de módulos por tenant
+export const tenantModulePermissions = pgTable("tenant_module_permissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  moduleId: text("module_id").notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+}, (table) => ({
+  uniqueTenantModule: unique().on(table.tenantId, table.moduleId)
+}));
 
 export const insertTenantSchema = createInsertSchema(tenants).omit({
   id: true,
@@ -238,6 +324,15 @@ export const insertProfessionalScheduleSchema = createInsertSchema(professionalS
   endTime: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, "Formato inválido. Use HH:MM"),
 });
 
+export const insertTenantModulePermissionSchema = createInsertSchema(tenantModulePermissions).omit({
+  id: true,
+});
+
+// Schema para atualizar permissões de módulos em lote
+export const updateTenantModulesSchema = z.object({
+  modules: z.record(z.string(), z.boolean()), // { "clients": true, "api-tokens": false }
+});
+
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type Tenant = typeof tenants.$inferSelect;
 
@@ -275,6 +370,10 @@ export type ProfessionalService = typeof professionalServices.$inferSelect;
 
 export type InsertProfessionalSchedule = z.infer<typeof insertProfessionalScheduleSchema>;
 export type ProfessionalSchedule = typeof professionalSchedules.$inferSelect;
+
+export type InsertTenantModulePermission = z.infer<typeof insertTenantModulePermissionSchema>;
+export type TenantModulePermission = typeof tenantModulePermissions.$inferSelect;
+export type UpdateTenantModules = z.infer<typeof updateTenantModulesSchema>;
 
 export type ProfessionalWithDetails = Professional & {
   serviceIds: string[];
