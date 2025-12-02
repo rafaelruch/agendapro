@@ -86,15 +86,29 @@ export default function FinancePage() {
 
   const { data: summary, isLoading: summaryLoading } = useQuery<FinancialSummary>({
     queryKey: ["/api/finance/summary", dateRange.startDate, dateRange.endDate],
+    queryFn: async () => {
+      const res = await fetch(`/api/finance/summary/${dateRange.startDate}/${dateRange.endDate}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Erro ao buscar resumo");
+      return res.json();
+    },
   });
 
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery<FinancialTransaction[]>({
-    queryKey: ["/api/finance/transactions", { 
-      startDate: dateRange.startDate, 
-      endDate: dateRange.endDate,
-      type: typeFilter !== "all" ? typeFilter : undefined,
-      paymentMethod: paymentMethodFilter !== "all" ? paymentMethodFilter : undefined,
-    }],
+    queryKey: ["/api/finance/transactions", dateRange.startDate, dateRange.endDate, typeFilter, paymentMethodFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.set("startDate", dateRange.startDate);
+      params.set("endDate", dateRange.endDate);
+      if (typeFilter !== "all") params.set("type", typeFilter);
+      if (paymentMethodFilter !== "all") params.set("paymentMethod", paymentMethodFilter);
+      const res = await fetch(`/api/finance/transactions?${params.toString()}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Erro ao buscar transações");
+      return res.json();
+    },
   });
 
   const { data: categories = [] } = useQuery<FinanceCategory[]>({
@@ -107,8 +121,10 @@ export default function FinancePage() {
   const createExpenseMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/finance/expenses", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/finance/transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/finance/summary"] });
+      queryClient.invalidateQueries({ predicate: (query) => 
+        (query.queryKey[0] as string)?.startsWith("/api/finance/transactions") ||
+        (query.queryKey[0] as string)?.startsWith("/api/finance/summary")
+      });
       setExpenseDialogOpen(false);
       resetExpenseForm();
       toast({ title: "Despesa registrada", description: "A despesa foi registrada com sucesso." });
@@ -121,8 +137,10 @@ export default function FinancePage() {
   const createIncomeMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/finance/incomes", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/finance/transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/finance/summary"] });
+      queryClient.invalidateQueries({ predicate: (query) => 
+        (query.queryKey[0] as string)?.startsWith("/api/finance/transactions") ||
+        (query.queryKey[0] as string)?.startsWith("/api/finance/summary")
+      });
       setIncomeDialogOpen(false);
       resetIncomeForm();
       toast({ title: "Receita registrada", description: "A receita foi registrada com sucesso." });
@@ -159,8 +177,10 @@ export default function FinancePage() {
   const deleteTransactionMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/finance/transactions/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/finance/transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/finance/summary"] });
+      queryClient.invalidateQueries({ predicate: (query) => 
+        (query.queryKey[0] as string)?.startsWith("/api/finance/transactions") ||
+        (query.queryKey[0] as string)?.startsWith("/api/finance/summary")
+      });
       toast({ title: "Transação excluída", description: "A transação foi excluída com sucesso." });
     },
     onError: (error: Error) => {
