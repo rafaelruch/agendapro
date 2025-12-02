@@ -109,6 +109,7 @@ Recent production bug fixes addressed cache invalidation race conditions, premat
 - **Data Validation**: Zod for robust schema validation.
 - **Core Features**: Multi-tenant, secure auth, master admin panel, user/service/professional management, appointment scheduling/editing, business hours, availability, full REST API.
 - **Advanced Features**: Appointment conflict detection (including professional double-booking prevention), flexible business hours, availability API, secure API token system, role-based access control, dynamic API documentation, bulk service import, detailed calendar views, client phone uniqueness, multi-service appointments (total duration calculation), promotional pricing with date-based activation, **professional management with flexible multi-interval schedules, professional filtering in calendar, and professional-specific appointment assignment**.
+- **Multi-Address System (Dec 2025)**: Clients can have multiple saved addresses with labels (Casa, Trabalho, Outro). Orders reference `clientAddressId` (FK to client_addresses, ON DELETE SET NULL) while also storing address snapshot fields for historical immutability. OrderDialog supports: phone-based client search, existing address selection, new address creation with optional save to client profile, and label customization.
 - **Tenant Module Permissions**: Sistema de permissões de módulos por tenant que permite habilitar/desabilitar funcionalidades específicas para cada cliente.
 
 ### Tenant Module Permissions System (CRITICAL - FOLLOW WHEN ADDING NEW MODULES)
