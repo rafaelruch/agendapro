@@ -401,6 +401,7 @@ export const updateTenantModulesSchema = z.object({
 
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
+  tenantId: true,
   createdAt: true,
 }).extend({
   price: z.coerce.number().positive("Preço deve ser positivo"),
