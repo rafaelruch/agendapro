@@ -165,11 +165,53 @@ app.get("/api/new-module", requireModule("new-module"), async (req, res) => {
 - Module permissions are included in `/api/auth/me` response as `allowedModules[]`
 - **Production Security**: Critical requirements include a mandatory, high-entropy `SESSION_SECRET` environment variable. Security measures include httpOnly, secure, and strict sameSite cookies; rate limiting on auth and API endpoints; trust proxy configuration for Replit and production environments; Zod-based input validation; and secure file upload handling for CSVs (max 5MB, 1000 rows, strict type validation).
 
+### Production Deployment & Migrations (CRITICAL)
+
+**IMPORTANTE**: A aplicação é deployada no **Easypanel** (NÃO no Replit). O banco de dados de produção já existe.
+
+**Processo de Migração para Produção**:
+1. O painel do **Master Admin** possui uma seção de **Migração SQL**
+2. Sempre que criar novas tabelas ou modificar schema, DEVE-SE gerar o script SQL correspondente
+3. O script SQL deve ser executado via painel Master Admin em produção
+
+**Ao implementar novas funcionalidades que alteram o banco**:
+1. Modificar `shared/schema.ts` com as novas tabelas/colunas
+2. Gerar script SQL para a migração (CREATE TABLE, ALTER TABLE, etc.)
+3. Documentar o script SQL para o usuário executar no Master Admin
+4. Incluir índices necessários para performance
+
+**Exemplo de script de migração**:
+```sql
+-- Nova tabela client_addresses (Dezembro 2025)
+CREATE TABLE IF NOT EXISTS client_addresses (
+    id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id VARCHAR NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    client_id VARCHAR NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    label TEXT NOT NULL DEFAULT 'Casa',
+    street TEXT,
+    number TEXT,
+    complement TEXT,
+    neighborhood TEXT,
+    city TEXT,
+    zip_code TEXT,
+    reference TEXT,
+    is_default BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Nova coluna em orders
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS client_address_id VARCHAR REFERENCES client_addresses(id) ON DELETE SET NULL;
+
+-- Índices
+CREATE INDEX IF NOT EXISTS idx_client_addresses_client ON client_addresses(client_id);
+```
+
 ### System Design Choices
 - **Backend**: Express.js.
 - **Database**: PostgreSQL with Drizzle ORM.
 - **Frontend State Management**: TanStack Query.
 - **Schema Management**: Shared schemas (`shared/schema.ts`) using Drizzle and Zod ensure consistency.
+- **Production Deployment**: Easypanel with PostgreSQL. Migrations via Master Admin SQL panel.
 
 ## External Dependencies
 - **Database**: PostgreSQL.
