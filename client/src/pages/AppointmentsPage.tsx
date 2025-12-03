@@ -24,7 +24,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { DayPicker } from "react-day-picker";
+import { DayPicker, DateRange } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -33,7 +33,7 @@ import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, sub
 import { ptBR } from 'date-fns/locale';
 import { AppointmentDetailsDialog } from "@/components/AppointmentDetailsDialog";
 
-type DateFilter = 'today' | 'tomorrow' | 'week' | 'month' | 'last7' | 'last30' | 'custom' | 'all';
+type DateFilter = 'today' | 'tomorrow' | 'week' | 'month' | 'last7' | 'last30' | 'custom' | 'range' | 'all';
 type StatusFilter = 'all' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
 
 interface AppointmentWithDetails extends Appointment {
@@ -61,6 +61,8 @@ export default function AppointmentsPage() {
   const [dateFilter, setDateFilter] = useState<DateFilter>('today');
   const [customDate, setCustomDate] = useState<Date | undefined>(undefined);
   const [customDateOpen, setCustomDateOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [dateRangeOpen, setDateRangeOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [professionalFilter, setProfessionalFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -126,6 +128,13 @@ export default function AppointmentsPage() {
       case 'custom':
         if (customDate) {
           return { start: customDate, end: customDate };
+        }
+        return null;
+      case 'range':
+        if (dateRange?.from && dateRange?.to) {
+          return { start: dateRange.from, end: dateRange.to };
+        } else if (dateRange?.from) {
+          return { start: dateRange.from, end: dateRange.from };
         }
         return null;
       case 'all':
@@ -285,6 +294,8 @@ export default function AppointmentsPage() {
           onValueChange={(value) => {
             if (value === 'custom') {
               setCustomDateOpen(true);
+            } else if (value === 'range') {
+              setDateRangeOpen(true);
             }
             setDateFilter(value as DateFilter);
             setCurrentPage(1);
@@ -302,6 +313,7 @@ export default function AppointmentsPage() {
             <SelectItem value="last7">Últimos 7 dias</SelectItem>
             <SelectItem value="last30">Últimos 30 dias</SelectItem>
             <SelectItem value="custom">Data específica</SelectItem>
+            <SelectItem value="range">Intervalo de datas</SelectItem>
             <SelectItem value="all">Todos</SelectItem>
           </SelectContent>
         </Select>
@@ -351,6 +363,93 @@ export default function AppointmentsPage() {
                   day_hidden: "invisible",
                 }}
               />
+            </PopoverContent>
+          </Popover>
+        )}
+
+        {/* Date Range Picker */}
+        {dateFilter === 'range' && (
+          <Popover open={dateRangeOpen} onOpenChange={setDateRangeOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-auto min-w-[220px] justify-start text-left font-normal"
+                data-testid="button-date-range"
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                {dateRange?.from ? (
+                  dateRange.to ? (
+                    <>
+                      {format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })} - {format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })}
+                    </>
+                  ) : (
+                    format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                  )
+                ) : (
+                  "Selecione o período"
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <div className="p-3">
+                <DayPicker
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={(range) => {
+                    setDateRange(range);
+                    if (range?.from && range?.to) {
+                      setDateRangeOpen(false);
+                      setCurrentPage(1);
+                    }
+                  }}
+                  locale={ptBR}
+                  numberOfMonths={2}
+                  classNames={{
+                    months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                    month: "space-y-4",
+                    caption: "flex justify-center pt-1 relative items-center",
+                    caption_label: "text-sm font-medium",
+                    nav: "space-x-1 flex items-center",
+                    nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+                    nav_button_previous: "absolute left-1",
+                    nav_button_next: "absolute right-1",
+                    table: "w-full border-collapse space-y-1",
+                    head_row: "flex",
+                    head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
+                    row: "flex w-full mt-2",
+                    cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md",
+                    day: "h-9 w-9 p-0 font-normal hover-elevate rounded-md inline-flex items-center justify-center aria-selected:opacity-100",
+                    day_range_start: "day-range-start",
+                    day_range_end: "day-range-end",
+                    day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                    day_today: "bg-accent text-accent-foreground",
+                    day_outside: "text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
+                    day_disabled: "text-muted-foreground opacity-50",
+                    day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                    day_hidden: "invisible",
+                  }}
+                />
+                {dateRange?.from && (
+                  <div className="mt-3 pt-3 border-t flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">
+                      {dateRange.to 
+                        ? `${format(dateRange.from, "dd/MM", { locale: ptBR })} até ${format(dateRange.to, "dd/MM", { locale: ptBR })}`
+                        : "Selecione a data final"
+                      }
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setDateRange(undefined);
+                      }}
+                      data-testid="button-clear-range"
+                    >
+                      Limpar
+                    </Button>
+                  </div>
+                )}
+              </div>
             </PopoverContent>
           </Popover>
         )}
