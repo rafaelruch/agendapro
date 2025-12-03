@@ -624,11 +624,10 @@ export default function AppointmentsPage() {
                           {apt.status === 'scheduled' && (
                             <Button
                               size="icon"
-                              variant="ghost"
                               onClick={() => handleConfirm(apt)}
                               title="Confirmar"
                               data-testid={`button-confirm-${apt.id}`}
-                              className="text-green-600 hover:text-green-700 hover-elevate"
+                              className="bg-green-600 hover:bg-green-700 text-white"
                             >
                               <Check className="h-4 w-4" />
                             </Button>
@@ -638,21 +637,19 @@ export default function AppointmentsPage() {
                             <>
                               <Button
                                 size="icon"
-                                variant="ghost"
                                 onClick={() => handleComplete(apt)}
                                 title="Marcar como concluído"
                                 data-testid={`button-complete-${apt.id}`}
-                                className="text-blue-600 hover:text-blue-700 hover-elevate"
+                                className="bg-primary hover:bg-primary/90 text-primary-foreground"
                               >
                                 <CheckCircle2 className="h-4 w-4" />
                               </Button>
                               <Button
                                 size="icon"
-                                variant="ghost"
                                 onClick={() => handleCancel(apt)}
                                 title="Cancelar"
                                 data-testid={`button-cancel-${apt.id}`}
-                                className="text-red-600 hover:text-red-700 hover-elevate"
+                                className="bg-red-600 hover:bg-red-700 text-white"
                               >
                                 <X className="h-4 w-4" />
                               </Button>
