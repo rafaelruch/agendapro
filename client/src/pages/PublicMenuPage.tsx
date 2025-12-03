@@ -971,7 +971,7 @@ export default function PublicMenuPage() {
           {showMobileCart && (
             <div className="lg:hidden fixed inset-0 z-[55] bg-black/50" onClick={() => setShowMobileCart(false)}>
               <div 
-                className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[80vh] flex flex-col"
+                className="absolute bottom-[60px] left-0 right-0 bg-white rounded-t-2xl max-h-[70vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="p-4 border-b flex items-center justify-between">
