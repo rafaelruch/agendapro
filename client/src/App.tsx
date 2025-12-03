@@ -22,9 +22,12 @@ import LoginPage from "@/pages/LoginPage";
 import AdminPage from "@/pages/AdminPage";
 import SetupPage from "@/pages/SetupPage";
 import InventoryPage from "@/pages/InventoryPage";
+import ProductCategoriesPage from "@/pages/ProductCategoriesPage";
+import MenuSettingsPage from "@/pages/MenuSettingsPage";
 import OrdersPage from "@/pages/OrdersPage";
 import KitchenPage from "@/pages/KitchenPage";
 import FinancePage from "@/pages/FinancePage";
+import PublicMenuPage from "@/pages/PublicMenuPage";
 import NotFound from "@/pages/not-found";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
@@ -60,6 +63,8 @@ function Router() {
       <Route path="/settings" component={SettingsPage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/inventory" component={InventoryPage} />
+      <Route path="/inventory/categories" component={ProductCategoriesPage} />
+      <Route path="/menu-settings" component={MenuSettingsPage} />
       <Route path="/orders" component={OrdersPage} />
       <Route path="/kitchen" component={KitchenPage} />
       <Route path="/finance" component={FinancePage} />
@@ -192,6 +197,14 @@ function Header({ onLogout, userName, userRole }: { onLogout: () => void; userNa
 }
 
 function AppContent() {
+  // Check if current path is a public menu page
+  const isPublicMenuPage = window.location.pathname.startsWith('/menu/');
+  
+  // If it's a public menu page, render it directly without authentication
+  if (isPublicMenuPage) {
+    return <PublicMenuPage />;
+  }
+
   // Check if system is installed
   const { data: setupStatus, isLoading: setupLoading } = useQuery<{ installed: boolean }>({
     queryKey: ["/api/setup/status"],
