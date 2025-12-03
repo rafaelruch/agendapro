@@ -418,7 +418,7 @@ export default function PublicMenuPage() {
       {/* Layout Principal com Sidebar */}
       <div className="max-w-6xl mx-auto flex">
         {/* Sidebar Desktop */}
-        <aside className="hidden md:block w-56 flex-shrink-0 p-4 sticky top-[112px] h-[calc(100vh-112px)]">
+        <aside className="hidden md:block w-56 flex-shrink-0 p-4">
           <nav className="space-y-2">
             {sidebarMenus.map((menu) => {
               const Icon = menu.icon;
@@ -516,7 +516,7 @@ export default function PublicMenuPage() {
           {activeSection === "cardapio" && (
             <div className="flex">
               {/* Área de Produtos */}
-              <div className="flex-1 min-w-0 p-4 pb-24">
+              <div className="flex-1 min-w-0 p-4">
                 {/* Título Categorias */}
                 <h2 className="text-lg font-bold text-gray-800 mb-4">Explorar Categorias</h2>
                 
@@ -672,7 +672,7 @@ export default function PublicMenuPage() {
               </div>
 
               {/* Carrinho Desktop */}
-              <aside className="hidden lg:block w-80 flex-shrink-0 p-4 sticky top-[112px] h-[calc(100vh-112px)]">
+              <aside className="hidden lg:block w-80 flex-shrink-0 p-4">
                 <div className="bg-white rounded-2xl border border-gray-200 h-full flex flex-col">
                   {/* Header do Carrinho */}
                   <div className="p-4 border-b">
@@ -839,7 +839,7 @@ export default function PublicMenuPage() {
 
           {/* Seção: Pedidos */}
           {activeSection === "pedidos" && (
-            <div className="px-4 py-6 pb-24">
+            <div className="px-4 py-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Meus Pedidos</h2>
               <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
                 <ClipboardList className="h-16 w-16 text-gray-300 mx-auto mb-4" />
@@ -857,7 +857,7 @@ export default function PublicMenuPage() {
 
           {/* Seção: Histórico */}
           {activeSection === "historico" && (
-            <div className="px-4 py-6 pb-24">
+            <div className="px-4 py-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Histórico de Pedidos</h2>
               <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
                 <History className="h-16 w-16 text-gray-300 mx-auto mb-4" />
@@ -868,7 +868,7 @@ export default function PublicMenuPage() {
 
           {/* Seção: Endereços */}
           {activeSection === "enderecos" && (
-            <div className="px-4 py-6 pb-24">
+            <div className="px-4 py-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Meus Endereços</h2>
               <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
                 <MapPin className="h-16 w-16 text-gray-300 mx-auto mb-4" />
@@ -885,7 +885,7 @@ export default function PublicMenuPage() {
         </div>
       </div>
 
-      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t py-3 text-center text-xs text-gray-400">
+      <footer className="bg-white border-t py-4 text-center text-xs text-gray-400">
         Cardápio Digital - {menuData.tenant.name}
       </footer>
 
