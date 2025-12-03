@@ -27,8 +27,12 @@ import {
   type TenantModulePermission,
   type ProductCategory,
   type InsertProductCategory,
+  type DeliveryNeighborhood,
+  type InsertDeliveryNeighborhood,
   type Product,
   type InsertProduct,
+  type ProductAddon,
+  type InsertProductAddon,
   type Order,
   type OrderItem,
   type OrderWithDetails,
@@ -55,7 +59,9 @@ import {
   professionalSchedules,
   tenantModulePermissions,
   productCategories,
+  deliveryNeighborhoods,
   products,
+  productAddons,
   orders,
   orderItems,
   financeCategories,
@@ -198,15 +204,34 @@ export interface IStorage {
   deleteProductCategory(id: string, tenantId: string): Promise<boolean>;
   reorderProductCategories(tenantId: string, orderedIds: string[]): Promise<boolean>;
   
+  // Delivery Neighborhood operations (with tenant isolation)
+  getDeliveryNeighborhood(id: string, tenantId: string): Promise<DeliveryNeighborhood | undefined>;
+  getAllDeliveryNeighborhoods(tenantId: string): Promise<DeliveryNeighborhood[]>;
+  getActiveDeliveryNeighborhoods(tenantId: string): Promise<DeliveryNeighborhood[]>;
+  createDeliveryNeighborhood(neighborhood: InsertDeliveryNeighborhood & { tenantId: string }): Promise<DeliveryNeighborhood>;
+  updateDeliveryNeighborhood(id: string, tenantId: string, neighborhood: Partial<InsertDeliveryNeighborhood>): Promise<DeliveryNeighborhood | undefined>;
+  deleteDeliveryNeighborhood(id: string, tenantId: string): Promise<boolean>;
+  
   // Product operations (with tenant isolation)
   getProduct(id: string, tenantId: string): Promise<Product | undefined>;
   getAllProducts(tenantId: string): Promise<Product[]>;
   getActiveProducts(tenantId: string): Promise<Product[]>;
+  getFeaturedProducts(tenantId: string): Promise<Product[]>;
+  getProductsOnSale(tenantId: string): Promise<Product[]>;
   searchProducts(tenantId: string, searchTerm: string): Promise<Product[]>;
   createProduct(product: InsertProduct & { tenantId: string }): Promise<Product>;
   updateProduct(id: string, tenantId: string, product: Partial<InsertProduct>): Promise<Product | undefined>;
   deleteProduct(id: string, tenantId: string): Promise<boolean>;
   adjustProductStock(id: string, tenantId: string, adjustment: number): Promise<Product | undefined>;
+  
+  // Product Addon operations (with tenant isolation)
+  getProductAddon(id: string, tenantId: string): Promise<ProductAddon | undefined>;
+  getProductAddons(productId: string, tenantId: string): Promise<ProductAddon[]>;
+  getAllProductAddons(tenantId: string): Promise<ProductAddon[]>;
+  createProductAddon(addon: InsertProductAddon & { tenantId: string }): Promise<ProductAddon>;
+  updateProductAddon(id: string, tenantId: string, addon: Partial<InsertProductAddon>): Promise<ProductAddon | undefined>;
+  deleteProductAddon(id: string, tenantId: string): Promise<boolean>;
+  deleteProductAddonsByProduct(productId: string, tenantId: string): Promise<boolean>;
   
   // Order operations (with tenant isolation)
   getOrder(id: string, tenantId: string): Promise<Order | undefined>;
@@ -1690,6 +1715,61 @@ export class DbStorage implements IStorage {
     return true;
   }
 
+  // Delivery Neighborhood operations
+  async getDeliveryNeighborhood(id: string, tenantId: string): Promise<DeliveryNeighborhood | undefined> {
+    const result = await db
+      .select()
+      .from(deliveryNeighborhoods)
+      .where(and(eq(deliveryNeighborhoods.id, id), eq(deliveryNeighborhoods.tenantId, tenantId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getAllDeliveryNeighborhoods(tenantId: string): Promise<DeliveryNeighborhood[]> {
+    return await db
+      .select()
+      .from(deliveryNeighborhoods)
+      .where(eq(deliveryNeighborhoods.tenantId, tenantId))
+      .orderBy(deliveryNeighborhoods.name);
+  }
+
+  async getActiveDeliveryNeighborhoods(tenantId: string): Promise<DeliveryNeighborhood[]> {
+    return await db
+      .select()
+      .from(deliveryNeighborhoods)
+      .where(and(eq(deliveryNeighborhoods.tenantId, tenantId), eq(deliveryNeighborhoods.isActive, true)))
+      .orderBy(deliveryNeighborhoods.name);
+  }
+
+  async createDeliveryNeighborhood(neighborhood: InsertDeliveryNeighborhood & { tenantId: string }): Promise<DeliveryNeighborhood> {
+    const result = await db.insert(deliveryNeighborhoods).values({
+      ...neighborhood,
+      deliveryFee: String(neighborhood.deliveryFee),
+    }).returning();
+    return result[0];
+  }
+
+  async updateDeliveryNeighborhood(id: string, tenantId: string, neighborhood: Partial<InsertDeliveryNeighborhood>): Promise<DeliveryNeighborhood | undefined> {
+    const data: Record<string, any> = { ...neighborhood };
+    if (neighborhood.deliveryFee !== undefined) {
+      data.deliveryFee = String(neighborhood.deliveryFee);
+    }
+    const result = await db
+      .update(deliveryNeighborhoods)
+      .set(data)
+      .where(and(eq(deliveryNeighborhoods.id, id), eq(deliveryNeighborhoods.tenantId, tenantId)))
+      .returning();
+    return result[0];
+  }
+
+  async deleteDeliveryNeighborhood(id: string, tenantId: string): Promise<boolean> {
+    const result = await db
+      .delete(deliveryNeighborhoods)
+      .where(and(eq(deliveryNeighborhoods.id, id), eq(deliveryNeighborhoods.tenantId, tenantId)))
+      .returning();
+    return result.length > 0;
+  }
+
   // Product operations
   async getProduct(id: string, tenantId: string): Promise<Product | undefined> {
     const result = await db
@@ -1716,6 +1796,30 @@ export class DbStorage implements IStorage {
       .orderBy(products.name);
   }
 
+  async getFeaturedProducts(tenantId: string): Promise<Product[]> {
+    return await db
+      .select()
+      .from(products)
+      .where(and(
+        eq(products.tenantId, tenantId), 
+        eq(products.isActive, true),
+        eq(products.isFeatured, true)
+      ))
+      .orderBy(products.name);
+  }
+
+  async getProductsOnSale(tenantId: string): Promise<Product[]> {
+    return await db
+      .select()
+      .from(products)
+      .where(and(
+        eq(products.tenantId, tenantId), 
+        eq(products.isActive, true),
+        eq(products.isOnSale, true)
+      ))
+      .orderBy(products.name);
+  }
+
   async searchProducts(tenantId: string, searchTerm: string): Promise<Product[]> {
     return await db
       .select()
@@ -1731,11 +1835,20 @@ export class DbStorage implements IStorage {
   }
 
   async createProduct(product: InsertProduct & { tenantId: string }): Promise<Product> {
-    const productData = {
-      ...product,
+    const result = await db.insert(products).values({
+      tenantId: product.tenantId,
+      name: product.name,
+      description: product.description,
+      categoryId: product.categoryId,
+      imageUrl: product.imageUrl,
       price: String(product.price),
-    };
-    const result = await db.insert(products).values(productData).returning();
+      manageStock: product.manageStock ?? false,
+      quantity: product.quantity,
+      isActive: product.isActive ?? true,
+      isFeatured: product.isFeatured ?? false,
+      isOnSale: product.isOnSale ?? false,
+      salePrice: product.salePrice ? String(product.salePrice) : null,
+    }).returning();
     return result[0];
   }
 
@@ -1743,6 +1856,11 @@ export class DbStorage implements IStorage {
     const productData: Record<string, any> = { ...product };
     if (product.price !== undefined) {
       productData.price = String(product.price);
+    }
+    if (product.salePrice !== undefined && product.salePrice !== null) {
+      productData.salePrice = String(product.salePrice);
+    } else if (product.salePrice === null) {
+      productData.salePrice = null;
     }
     const result = await db
       .update(products)
@@ -1768,6 +1886,71 @@ export class DbStorage implements IStorage {
 
     const newQuantity = Math.max(0, product.quantity + adjustment);
     return this.updateProduct(id, tenantId, { quantity: newQuantity });
+  }
+
+  // Product Addon operations
+  async getProductAddon(id: string, tenantId: string): Promise<ProductAddon | undefined> {
+    const result = await db
+      .select()
+      .from(productAddons)
+      .where(and(eq(productAddons.id, id), eq(productAddons.tenantId, tenantId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getProductAddons(productId: string, tenantId: string): Promise<ProductAddon[]> {
+    return await db
+      .select()
+      .from(productAddons)
+      .where(and(
+        eq(productAddons.productId, productId), 
+        eq(productAddons.tenantId, tenantId)
+      ))
+      .orderBy(productAddons.name);
+  }
+
+  async getAllProductAddons(tenantId: string): Promise<ProductAddon[]> {
+    return await db
+      .select()
+      .from(productAddons)
+      .where(eq(productAddons.tenantId, tenantId))
+      .orderBy(productAddons.name);
+  }
+
+  async createProductAddon(addon: InsertProductAddon & { tenantId: string }): Promise<ProductAddon> {
+    const result = await db.insert(productAddons).values({
+      ...addon,
+      price: String(addon.price),
+    }).returning();
+    return result[0];
+  }
+
+  async updateProductAddon(id: string, tenantId: string, addon: Partial<InsertProductAddon>): Promise<ProductAddon | undefined> {
+    const data: Record<string, any> = { ...addon };
+    if (addon.price !== undefined) {
+      data.price = String(addon.price);
+    }
+    const result = await db
+      .update(productAddons)
+      .set(data)
+      .where(and(eq(productAddons.id, id), eq(productAddons.tenantId, tenantId)))
+      .returning();
+    return result[0];
+  }
+
+  async deleteProductAddon(id: string, tenantId: string): Promise<boolean> {
+    const result = await db
+      .delete(productAddons)
+      .where(and(eq(productAddons.id, id), eq(productAddons.tenantId, tenantId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async deleteProductAddonsByProduct(productId: string, tenantId: string): Promise<boolean> {
+    await db
+      .delete(productAddons)
+      .where(and(eq(productAddons.productId, productId), eq(productAddons.tenantId, tenantId)));
+    return true;
   }
 
   // Order operations

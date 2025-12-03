@@ -3497,27 +3497,60 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       // Buscar produtos ativos
       const allProducts = await storage.getActiveProducts(tenant.id);
 
-      // Organizar produtos por categoria
-      const productsWithCategory = allProducts.map(product => ({
+      // Buscar produtos em destaque
+      const featuredProducts = await storage.getFeaturedProducts(tenant.id);
+
+      // Buscar produtos em promoção
+      const productsOnSale = await storage.getProductsOnSale(tenant.id);
+
+      // Buscar bairros de entrega
+      const deliveryNeighborhoods = await storage.getActiveDeliveryNeighborhoods(tenant.id);
+
+      // Buscar adicionais de todos os produtos
+      const allAddons = await storage.getAllProductAddons(tenant.id);
+
+      // Mapear produtos com seus adicionais
+      const formatProduct = (product: any) => ({
         id: product.id,
         name: product.name,
         description: product.description,
         price: parseFloat(String(product.price)),
+        salePrice: product.salePrice ? parseFloat(String(product.salePrice)) : null,
+        isOnSale: product.isOnSale,
+        isFeatured: product.isFeatured,
         imageUrl: product.imageUrl,
         categoryId: product.categoryId,
-      }));
+        addons: allAddons
+          .filter(addon => addon.productId === product.id && addon.isActive)
+          .map(addon => ({
+            id: addon.id,
+            name: addon.name,
+            price: parseFloat(String(addon.price)),
+            isRequired: addon.isRequired,
+            maxQuantity: addon.maxQuantity,
+          })),
+      });
 
       res.json({
         tenant: {
           name: tenant.name,
           logoUrl: tenant.menuLogoUrl,
           brandColor: tenant.menuBrandColor || '#ea7c3f',
+          bannerUrl: tenant.menuBannerUrl,
+          minOrderValue: tenant.minOrderValue ? parseFloat(String(tenant.minOrderValue)) : null,
         },
         categories: categories.map(cat => ({
           id: cat.id,
           name: cat.name,
         })),
-        products: productsWithCategory,
+        products: allProducts.map(formatProduct),
+        featuredProducts: featuredProducts.map(formatProduct),
+        productsOnSale: productsOnSale.map(formatProduct),
+        deliveryNeighborhoods: deliveryNeighborhoods.map(n => ({
+          id: n.id,
+          name: n.name,
+          deliveryFee: parseFloat(String(n.deliveryFee)),
+        })),
       });
     } catch (error: any) {
       console.error("Error fetching menu:", error);
@@ -3546,6 +3579,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         menuSlug: tenant.menuSlug,
         menuLogoUrl: tenant.menuLogoUrl,
         menuBrandColor: tenant.menuBrandColor || '#ea7c3f',
+        menuBannerUrl: tenant.menuBannerUrl,
+        minOrderValue: tenant.minOrderValue ? parseFloat(String(tenant.minOrderValue)) : null,
       });
     } catch (error: any) {
       console.error("Error fetching menu settings:", error);
@@ -3561,7 +3596,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(401).json({ error: "Não autenticado" });
       }
 
-      const { menuSlug, menuLogoUrl, menuBrandColor } = req.body;
+      const { menuSlug, menuLogoUrl, menuBrandColor, menuBannerUrl, minOrderValue } = req.body;
 
       // Validar slug
       if (menuSlug) {
@@ -3583,6 +3618,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         menuSlug: menuSlug || null,
         menuLogoUrl: menuLogoUrl || null,
         menuBrandColor: menuBrandColor || '#ea7c3f',
+        menuBannerUrl: menuBannerUrl || null,
+        minOrderValue: minOrderValue ? String(minOrderValue) : null,
       });
 
       if (!updated) {
@@ -3593,10 +3630,239 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         menuSlug: updated.menuSlug,
         menuLogoUrl: updated.menuLogoUrl,
         menuBrandColor: updated.menuBrandColor,
+        menuBannerUrl: updated.menuBannerUrl,
+        minOrderValue: updated.minOrderValue ? parseFloat(String(updated.minOrderValue)) : null,
       });
     } catch (error: any) {
       console.error("Error updating menu settings:", error);
       res.status(500).json({ error: error.message || "Erro ao atualizar configurações" });
+    }
+  });
+
+  // ===========================================
+  // ROTAS DE BAIRROS DE ENTREGA (COM AUTENTICAÇÃO)
+  // ===========================================
+
+  // GET /api/delivery-neighborhoods - Listar bairros
+  app.get("/api/delivery-neighborhoods", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const activeOnly = req.query.active === 'true';
+      const neighborhoods = activeOnly 
+        ? await storage.getActiveDeliveryNeighborhoods(tenantId)
+        : await storage.getAllDeliveryNeighborhoods(tenantId);
+
+      res.json(neighborhoods.map(n => ({
+        ...n,
+        deliveryFee: parseFloat(String(n.deliveryFee)),
+      })));
+    } catch (error: any) {
+      console.error("Error fetching neighborhoods:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar bairros" });
+    }
+  });
+
+  // POST /api/delivery-neighborhoods - Criar bairro
+  app.post("/api/delivery-neighborhoods", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const { name, deliveryFee, isActive } = req.body;
+
+      if (!name || deliveryFee === undefined) {
+        return res.status(400).json({ error: "Nome e taxa de entrega são obrigatórios" });
+      }
+
+      const neighborhood = await storage.createDeliveryNeighborhood({
+        name,
+        deliveryFee: Number(deliveryFee),
+        isActive: isActive ?? true,
+        tenantId,
+      });
+
+      res.status(201).json({
+        ...neighborhood,
+        deliveryFee: parseFloat(String(neighborhood.deliveryFee)),
+      });
+    } catch (error: any) {
+      console.error("Error creating neighborhood:", error);
+      res.status(500).json({ error: error.message || "Erro ao criar bairro" });
+    }
+  });
+
+  // PUT /api/delivery-neighborhoods/:id - Atualizar bairro
+  app.put("/api/delivery-neighborhoods/:id", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const { name, deliveryFee, isActive } = req.body;
+
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = name;
+      if (deliveryFee !== undefined) updateData.deliveryFee = Number(deliveryFee);
+      if (isActive !== undefined) updateData.isActive = isActive;
+
+      const neighborhood = await storage.updateDeliveryNeighborhood(req.params.id, tenantId, updateData);
+      if (!neighborhood) {
+        return res.status(404).json({ error: "Bairro não encontrado" });
+      }
+
+      res.json({
+        ...neighborhood,
+        deliveryFee: parseFloat(String(neighborhood.deliveryFee)),
+      });
+    } catch (error: any) {
+      console.error("Error updating neighborhood:", error);
+      res.status(500).json({ error: error.message || "Erro ao atualizar bairro" });
+    }
+  });
+
+  // DELETE /api/delivery-neighborhoods/:id - Excluir bairro
+  app.delete("/api/delivery-neighborhoods/:id", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const deleted = await storage.deleteDeliveryNeighborhood(req.params.id, tenantId);
+      if (!deleted) {
+        return res.status(404).json({ error: "Bairro não encontrado" });
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting neighborhood:", error);
+      res.status(500).json({ error: error.message || "Erro ao excluir bairro" });
+    }
+  });
+
+  // ===========================================
+  // ROTAS DE ADICIONAIS DE PRODUTOS (COM AUTENTICAÇÃO)
+  // ===========================================
+
+  // GET /api/product-addons - Listar adicionais
+  app.get("/api/product-addons", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const productId = req.query.productId as string;
+      const addons = productId
+        ? await storage.getProductAddons(productId, tenantId)
+        : await storage.getAllProductAddons(tenantId);
+
+      res.json(addons.map(a => ({
+        ...a,
+        price: parseFloat(String(a.price)),
+      })));
+    } catch (error: any) {
+      console.error("Error fetching addons:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar adicionais" });
+    }
+  });
+
+  // POST /api/product-addons - Criar adicional
+  app.post("/api/product-addons", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const { productId, name, price, isRequired, maxQuantity, isActive } = req.body;
+
+      if (!productId || !name || price === undefined) {
+        return res.status(400).json({ error: "Produto, nome e preço são obrigatórios" });
+      }
+
+      // Verificar se o produto existe
+      const product = await storage.getProduct(productId, tenantId);
+      if (!product) {
+        return res.status(404).json({ error: "Produto não encontrado" });
+      }
+
+      const addon = await storage.createProductAddon({
+        productId,
+        name,
+        price: Number(price),
+        isRequired: isRequired ?? false,
+        maxQuantity: maxQuantity ?? 1,
+        isActive: isActive ?? true,
+        tenantId,
+      });
+
+      res.status(201).json({
+        ...addon,
+        price: parseFloat(String(addon.price)),
+      });
+    } catch (error: any) {
+      console.error("Error creating addon:", error);
+      res.status(500).json({ error: error.message || "Erro ao criar adicional" });
+    }
+  });
+
+  // PUT /api/product-addons/:id - Atualizar adicional
+  app.put("/api/product-addons/:id", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const { name, price, isRequired, maxQuantity, isActive } = req.body;
+
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = name;
+      if (price !== undefined) updateData.price = Number(price);
+      if (isRequired !== undefined) updateData.isRequired = isRequired;
+      if (maxQuantity !== undefined) updateData.maxQuantity = maxQuantity;
+      if (isActive !== undefined) updateData.isActive = isActive;
+
+      const addon = await storage.updateProductAddon(req.params.id, tenantId, updateData);
+      if (!addon) {
+        return res.status(404).json({ error: "Adicional não encontrado" });
+      }
+
+      res.json({
+        ...addon,
+        price: parseFloat(String(addon.price)),
+      });
+    } catch (error: any) {
+      console.error("Error updating addon:", error);
+      res.status(500).json({ error: error.message || "Erro ao atualizar adicional" });
+    }
+  });
+
+  // DELETE /api/product-addons/:id - Excluir adicional
+  app.delete("/api/product-addons/:id", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const deleted = await storage.deleteProductAddon(req.params.id, tenantId);
+      if (!deleted) {
+        return res.status(404).json({ error: "Adicional não encontrado" });
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting addon:", error);
+      res.status(500).json({ error: error.message || "Erro ao excluir adicional" });
     }
   });
 
