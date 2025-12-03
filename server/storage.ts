@@ -263,6 +263,19 @@ export interface IStorage {
     incomeByPaymentMethod: Record<string, number>;
     expenseByCategory: Record<string, number>;
   }>;
+  
+  // Chart data
+  getMonthlyFinanceData(tenantId: string, year: number): Promise<{
+    months: string[];
+    income: number[];
+    expense: number[];
+  }>;
+  
+  getTopSellingProducts(tenantId: string, limit: number): Promise<{
+    name: string;
+    quantity: number;
+    revenue: number;
+  }[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -2269,6 +2282,104 @@ export class DbStorage implements IStorage {
       incomeByPaymentMethod,
       expenseByCategory,
     };
+  }
+
+  async getMonthlyFinanceData(tenantId: string, year: number): Promise<{
+    months: string[];
+    income: number[];
+    expense: number[];
+  }> {
+    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const income: number[] = new Array(12).fill(0);
+    const expense: number[] = new Array(12).fill(0);
+
+    // Get all transactions for the year
+    const startDate = `${year}-01-01`;
+    const endDate = `${year}-12-31`;
+    
+    const transactions = await this.getAllFinancialTransactions(tenantId, {
+      startDate,
+      endDate,
+    });
+
+    for (const tx of transactions) {
+      const txDate = new Date(tx.date);
+      const month = txDate.getMonth(); // 0-11
+      const amount = parseFloat(String(tx.amount));
+      
+      if (tx.type === 'income') {
+        income[month] += amount;
+      } else {
+        expense[month] += amount;
+      }
+    }
+
+    return {
+      months: monthNames,
+      income,
+      expense,
+    };
+  }
+
+  async getTopSellingProducts(tenantId: string, limit: number): Promise<{
+    name: string;
+    quantity: number;
+    revenue: number;
+  }[]> {
+    // Get all delivered orders for this tenant
+    const allOrders = await db
+      .select()
+      .from(orders)
+      .where(and(
+        eq(orders.tenantId, tenantId),
+        eq(orders.status, 'delivered')
+      ));
+
+    // Get order items for these orders
+    const orderIds = allOrders.map(o => o.id);
+    if (orderIds.length === 0) {
+      return [];
+    }
+
+    // Get all order items
+    const allOrderItems = await db
+      .select()
+      .from(orderItems)
+      .where(or(...orderIds.map(id => eq(orderItems.orderId, id))));
+
+    // Get all products
+    const allProducts = await db
+      .select()
+      .from(products)
+      .where(eq(products.tenantId, tenantId));
+
+    const productMap = new Map(allProducts.map(p => [p.id, p]));
+
+    // Aggregate by product
+    const productStats: Record<string, { name: string; quantity: number; revenue: number }> = {};
+
+    for (const item of allOrderItems) {
+      const product = productMap.get(item.productId);
+      if (!product) continue;
+
+      if (!productStats[item.productId]) {
+        productStats[item.productId] = {
+          name: product.name,
+          quantity: 0,
+          revenue: 0,
+        };
+      }
+
+      productStats[item.productId].quantity += item.quantity;
+      productStats[item.productId].revenue += parseFloat(String(item.unitPrice)) * item.quantity;
+    }
+
+    // Sort by quantity and take top N
+    const sorted = Object.values(productStats)
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, limit);
+
+    return sorted;
   }
 }
 

@@ -3200,6 +3200,40 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
+  // GET /api/finance/monthly-chart - Dados para gráfico mensal de receitas e despesas
+  app.get("/api/finance/monthly-chart", authenticateRequest, requireModule("finance"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const monthlyData = await storage.getMonthlyFinanceData(tenantId, year);
+      res.json(monthlyData);
+    } catch (error: any) {
+      console.error("Error fetching monthly chart data:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar dados do gráfico" });
+    }
+  });
+
+  // GET /api/finance/top-products - Produtos mais vendidos
+  app.get("/api/finance/top-products", authenticateRequest, requireModule("finance"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const limit = parseInt(req.query.limit as string) || 10;
+      const topProducts = await storage.getTopSellingProducts(tenantId, limit);
+      res.json(topProducts);
+    } catch (error: any) {
+      console.error("Error fetching top products:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar produtos mais vendidos" });
+    }
+  });
+
   // POST /api/appointments/:id/payment - Registrar pagamento do agendamento
   app.post("/api/appointments/:id/payment", authenticateRequest, async (req, res) => {
     try {

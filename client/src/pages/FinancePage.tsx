@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import Chart from "react-apexcharts";
+import { ApexOptions } from "apexcharts";
 import { 
   DollarSign, 
   TrendingUp, 
@@ -13,7 +15,9 @@ import {
   Receipt,
   PiggyBank,
   CreditCard,
-  Trash2
+  Trash2,
+  BarChart3,
+  ShoppingBag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,6 +120,38 @@ export default function FinancePage() {
 
   const { data: categories = [] } = useQuery<FinanceCategory[]>({
     queryKey: ["/api/finance/categories"],
+  });
+
+  const currentYear = new Date().getFullYear();
+  
+  const { data: monthlyChartData } = useQuery<{
+    months: string[];
+    income: number[];
+    expense: number[];
+  }>({
+    queryKey: ["/api/finance/monthly-chart", currentYear],
+    queryFn: async () => {
+      const res = await fetch(`/api/finance/monthly-chart?year=${currentYear}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Erro ao buscar dados do gráfico");
+      return res.json();
+    },
+  });
+
+  const { data: topProducts = [] } = useQuery<{
+    name: string;
+    quantity: number;
+    revenue: number;
+  }[]>({
+    queryKey: ["/api/finance/top-products"],
+    queryFn: async () => {
+      const res = await fetch(`/api/finance/top-products?limit=10`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Erro ao buscar produtos mais vendidos");
+      return res.json();
+    },
   });
 
   const expenseCategories = categories.filter(c => c.type === "expense");
@@ -359,6 +395,195 @@ export default function FinancePage() {
               </p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Gráficos */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Gráfico de Receitas vs Despesas */}
+        <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-white/[0.05] dark:bg-white/[0.03]">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+              Receitas vs Despesas - {currentYear}
+            </h3>
+          </div>
+          <div className="w-full overflow-x-auto">
+            <div className="min-w-[500px]">
+              <Chart
+                options={{
+                  colors: ["#22c55e", "#ef4444"],
+                  chart: {
+                    fontFamily: "Outfit, sans-serif",
+                    type: "bar",
+                    height: 300,
+                    toolbar: { show: false },
+                    background: "transparent",
+                  },
+                  plotOptions: {
+                    bar: {
+                      horizontal: false,
+                      columnWidth: "55%",
+                      borderRadius: 4,
+                      borderRadiusApplication: "end",
+                    },
+                  },
+                  dataLabels: { enabled: false },
+                  stroke: {
+                    show: true,
+                    width: 4,
+                    colors: ["transparent"],
+                  },
+                  xaxis: {
+                    categories: monthlyChartData?.months || [],
+                    axisBorder: { show: false },
+                    axisTicks: { show: false },
+                    labels: {
+                      style: {
+                        colors: "#64748b",
+                        fontSize: "12px",
+                      },
+                    },
+                  },
+                  yaxis: {
+                    labels: {
+                      formatter: (val: number) => `R$ ${val.toFixed(0)}`,
+                      style: {
+                        colors: "#64748b",
+                        fontSize: "12px",
+                      },
+                    },
+                  },
+                  legend: {
+                    show: true,
+                    position: "top",
+                    horizontalAlign: "left",
+                    fontFamily: "Outfit",
+                    labels: {
+                      colors: "#64748b",
+                    },
+                  },
+                  grid: {
+                    borderColor: "#e2e8f0",
+                    strokeDashArray: 4,
+                    yaxis: { lines: { show: true } },
+                  },
+                  fill: { opacity: 1 },
+                  tooltip: {
+                    theme: "dark",
+                    y: {
+                      formatter: (val: number) => `R$ ${val.toFixed(2).replace('.', ',')}`,
+                    },
+                  },
+                } as ApexOptions}
+                series={[
+                  {
+                    name: "Receitas",
+                    data: monthlyChartData?.income || [],
+                  },
+                  {
+                    name: "Despesas",
+                    data: monthlyChartData?.expense || [],
+                  },
+                ]}
+                type="bar"
+                height={300}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Gráfico de Produtos Mais Vendidos */}
+        <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-white/[0.05] dark:bg-white/[0.03]">
+          <div className="flex items-center gap-2 mb-4">
+            <ShoppingBag className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+              Produtos Mais Vendidos
+            </h3>
+          </div>
+          {topProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
+              <ShoppingBag className="h-12 w-12 mb-3 opacity-50" />
+              <p className="text-sm">Nenhum produto vendido ainda</p>
+            </div>
+          ) : (
+            <div className="w-full overflow-x-auto">
+              <div className="min-w-[400px]">
+                <Chart
+                  options={{
+                    colors: ["#3b82f6"],
+                    chart: {
+                      fontFamily: "Outfit, sans-serif",
+                      type: "bar",
+                      height: 300,
+                      toolbar: { show: false },
+                      background: "transparent",
+                    },
+                    plotOptions: {
+                      bar: {
+                        horizontal: true,
+                        barHeight: "60%",
+                        borderRadius: 4,
+                        borderRadiusApplication: "end",
+                      },
+                    },
+                    dataLabels: {
+                      enabled: true,
+                      formatter: (val: number) => `${val} un.`,
+                      style: {
+                        fontSize: "11px",
+                        colors: ["#fff"],
+                      },
+                    },
+                    xaxis: {
+                      categories: topProducts.map(p => p.name),
+                      axisBorder: { show: false },
+                      axisTicks: { show: false },
+                      labels: {
+                        style: {
+                          colors: "#64748b",
+                          fontSize: "12px",
+                        },
+                      },
+                    },
+                    yaxis: {
+                      labels: {
+                        style: {
+                          colors: "#64748b",
+                          fontSize: "12px",
+                        },
+                      },
+                    },
+                    grid: {
+                      borderColor: "#e2e8f0",
+                      strokeDashArray: 4,
+                      xaxis: { lines: { show: true } },
+                      yaxis: { lines: { show: false } },
+                    },
+                    fill: { opacity: 1 },
+                    tooltip: {
+                      theme: "dark",
+                      y: {
+                        formatter: (val: number, opts: any) => {
+                          const idx = opts.dataPointIndex;
+                          const product = topProducts[idx];
+                          return `${val} unidades - R$ ${product?.revenue.toFixed(2).replace('.', ',')}`;
+                        },
+                      },
+                    },
+                  } as ApexOptions}
+                  series={[
+                    {
+                      name: "Quantidade",
+                      data: topProducts.map(p => p.quantity),
+                    },
+                  ]}
+                  type="bar"
+                  height={300}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
