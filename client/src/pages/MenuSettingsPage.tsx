@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Upload, X, Copy, ExternalLink, Palette, Link as LinkIcon, Image, DollarSign, MapPin, Plus, Trash2, Edit2 } from "lucide-react";
+import { Upload, X, Copy, ExternalLink, Palette, Link as LinkIcon, Image, DollarSign, MapPin, Plus, Trash2, Edit2, ShoppingBag, Calendar } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ interface MenuSettings {
   menuLogoUrl: string | null;
   menuBrandColor: string;
   menuBannerUrl: string | null;
+  menuType: 'delivery' | 'services';
   minOrderValue: number | null;
 }
 
@@ -34,6 +35,7 @@ export default function MenuSettingsPage() {
     menuLogoUrl: "",
     menuBrandColor: "#ea7c3f",
     menuBannerUrl: "",
+    menuType: "delivery" as 'delivery' | 'services',
     minOrderValue: "",
   });
   const [neighborhoodModalOpen, setNeighborhoodModalOpen] = useState(false);
@@ -60,6 +62,7 @@ export default function MenuSettingsPage() {
         menuLogoUrl: settings.menuLogoUrl || "",
         menuBrandColor: settings.menuBrandColor || "#ea7c3f",
         menuBannerUrl: settings.menuBannerUrl || "",
+        menuType: settings.menuType || "delivery",
         minOrderValue: settings.minOrderValue ? String(settings.minOrderValue) : "",
       });
     }
@@ -206,6 +209,7 @@ export default function MenuSettingsPage() {
     e.preventDefault();
     updateMutation.mutate({
       ...formData,
+      menuType: formData.menuType,
       minOrderValue: formData.minOrderValue ? parseFloat(formData.minOrderValue) : null,
     });
   };
@@ -331,6 +335,67 @@ export default function MenuSettingsPage() {
               </div>
             )}
           </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-white/[0.05] dark:bg-white/[0.03]">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            Tipo de Cardápio
+          </h2>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, menuType: "delivery" })}
+              className={`p-4 rounded-lg border-2 transition-all ${
+                formData.menuType === "delivery"
+                  ? "border-primary bg-primary/5"
+                  : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+              }`}
+              data-testid="button-menu-type-delivery"
+            >
+              <ShoppingBag className={`w-8 h-8 mx-auto mb-2 ${
+                formData.menuType === "delivery" ? "text-primary" : "text-gray-400"
+              }`} />
+              <p className={`font-medium ${
+                formData.menuType === "delivery" ? "text-primary" : "text-gray-600 dark:text-gray-300"
+              }`}>
+                Delivery
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Venda de produtos com entrega
+              </p>
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, menuType: "services" })}
+              className={`p-4 rounded-lg border-2 transition-all ${
+                formData.menuType === "services"
+                  ? "border-primary bg-primary/5"
+                  : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+              }`}
+              data-testid="button-menu-type-services"
+            >
+              <Calendar className={`w-8 h-8 mx-auto mb-2 ${
+                formData.menuType === "services" ? "text-primary" : "text-gray-400"
+              }`} />
+              <p className={`font-medium ${
+                formData.menuType === "services" ? "text-primary" : "text-gray-600 dark:text-gray-300"
+              }`}>
+                Serviços
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Agendamento de serviços
+              </p>
+            </button>
+          </div>
+          
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+            {formData.menuType === "delivery" 
+              ? "O cardápio mostrará seus produtos para pedidos de delivery."
+              : "O cardápio mostrará seus serviços para agendamentos online."
+            }
+          </p>
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -494,32 +559,34 @@ export default function MenuSettingsPage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-white/[0.05] dark:bg-white/[0.03]">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            Valor Mínimo do Pedido
-          </h2>
-          
-          <div className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="minOrderValue">Valor Mínimo (R$)</Label>
-              <Input
-                id="minOrderValue"
-                type="number"
-                step={0.01}
-                min="0"
-                value={formData.minOrderValue}
-                onChange={(e) => setFormData({ ...formData, minOrderValue: e.target.value })}
-                placeholder="0.00"
-                className="max-w-[200px]"
-                data-testid="input-min-order-value"
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Deixe em branco para não exigir valor mínimo.
-              </p>
+        {formData.menuType === "delivery" && (
+          <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-white/[0.05] dark:bg-white/[0.03]">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Valor Mínimo do Pedido
+            </h2>
+            
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="minOrderValue">Valor Mínimo (R$)</Label>
+                <Input
+                  id="minOrderValue"
+                  type="number"
+                  step={0.01}
+                  min="0"
+                  value={formData.minOrderValue}
+                  onChange={(e) => setFormData({ ...formData, minOrderValue: e.target.value })}
+                  placeholder="0.00"
+                  className="max-w-[200px]"
+                  data-testid="input-min-order-value"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Deixe em branco para não exigir valor mínimo.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="flex justify-end">
           <Button
@@ -532,66 +599,67 @@ export default function MenuSettingsPage() {
         </div>
       </form>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-white/[0.05] dark:bg-white/[0.03]">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Taxas de Entrega por Bairro
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Configure as taxas de entrega para cada bairro
-            </p>
+      {formData.menuType === "delivery" && (
+        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-white/[0.05] dark:bg-white/[0.03]">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Taxas de Entrega por Bairro
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Configure as taxas de entrega para cada bairro
+              </p>
+            </div>
+            <Button
+              type="button"
+              onClick={() => openNeighborhoodModal()}
+              data-testid="button-add-neighborhood"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Bairro
+            </Button>
           </div>
-          <Button
-            type="button"
-            onClick={() => openNeighborhoodModal()}
-            data-testid="button-add-neighborhood"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Bairro
-          </Button>
-        </div>
 
-        {neighborhoods.length === 0 ? (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-            Nenhum bairro cadastrado ainda.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {neighborhoods.map((neighborhood) => (
-              <div
-                key={neighborhood.id}
-                className={`flex items-center justify-between p-4 rounded-lg border ${
-                  neighborhood.isActive 
-                    ? 'border-gray-200 dark:border-gray-700' 
-                    : 'border-gray-200 dark:border-gray-700 opacity-50'
-                }`}
-                data-testid={`row-neighborhood-${neighborhood.id}`}
-              >
-                <div className="flex-1">
-                  <p className="font-medium text-gray-800 dark:text-white">
-                    {neighborhood.name}
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Taxa: R$ {neighborhood.deliveryFee.toFixed(2)}
-                    {!neighborhood.isActive && <span className="ml-2 text-red-500">(Inativo)</span>}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openNeighborhoodModal(neighborhood)}
-                    data-testid={`button-edit-neighborhood-${neighborhood.id}`}
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
+          {neighborhoods.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              Nenhum bairro cadastrado ainda.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {neighborhoods.map((neighborhood) => (
+                <div
+                  key={neighborhood.id}
+                  className={`flex items-center justify-between p-4 rounded-lg border ${
+                    neighborhood.isActive 
+                      ? 'border-gray-200 dark:border-gray-700' 
+                      : 'border-gray-200 dark:border-gray-700 opacity-50'
+                  }`}
+                  data-testid={`row-neighborhood-${neighborhood.id}`}
+                >
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-800 dark:text-white">
+                      {neighborhood.name}
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Taxa: R$ {neighborhood.deliveryFee.toFixed(2)}
+                      {!neighborhood.isActive && <span className="ml-2 text-red-500">(Inativo)</span>}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openNeighborhoodModal(neighborhood)}
+                      data-testid={`button-edit-neighborhood-${neighborhood.id}`}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
                     onClick={() => deleteNeighborhoodMutation.mutate(neighborhood.id)}
                     disabled={deleteNeighborhoodMutation.isPending}
                     data-testid={`button-delete-neighborhood-${neighborhood.id}`}
@@ -603,7 +671,8 @@ export default function MenuSettingsPage() {
             ))}
           </div>
         )}
-      </div>
+        </div>
+      )}
 
       <Modal isOpen={neighborhoodModalOpen} onClose={() => setNeighborhoodModalOpen(false)}>
         <form onSubmit={handleNeighborhoodSubmit}>
