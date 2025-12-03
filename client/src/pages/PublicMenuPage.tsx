@@ -673,14 +673,14 @@ export default function PublicMenuPage() {
 
               {/* Carrinho Desktop */}
               <aside className="hidden lg:block w-96 flex-shrink-0 p-6">
-                <div className="bg-white rounded-2xl border border-gray-200 h-full flex flex-col">
+                <div className="bg-white rounded-2xl border border-gray-200">
                   {/* Header do Carrinho */}
                   <div className="p-4 border-b">
                     <h3 className="font-bold text-gray-900">Carrinho</h3>
                   </div>
 
                   {/* Itens do Carrinho */}
-                  <div className="flex-1 overflow-auto p-4 space-y-3">
+                  <div className="p-4 space-y-3 max-h-96 overflow-auto">
                     {cart.length === 0 ? (
                       <div className="text-center py-8">
                         <ShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-2" />
