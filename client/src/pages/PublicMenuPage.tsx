@@ -198,15 +198,15 @@ export default function PublicMenuPage() {
                 <img
                   src={menuData.tenant.logoUrl}
                   alt={menuData.tenant.name}
-                  className="h-12 w-12 object-contain rounded-xl"
+                  className="h-[6rem] w-[6rem] object-contain rounded-xl"
                   data-testid="img-tenant-logo"
                 />
               ) : (
                 <div 
-                  className="h-12 w-12 rounded-xl flex items-center justify-center"
+                  className="h-[6rem] w-[6rem] rounded-xl flex items-center justify-center"
                   style={{ backgroundColor: brandColor }}
                 >
-                  <ShoppingBag className="h-7 w-7 text-white" />
+                  <ShoppingBag className="h-10 w-10 text-white" />
                 </div>
               )}
             </div>
@@ -357,7 +357,7 @@ export default function PublicMenuPage() {
 
       {/* Pills de Categorias */}
       {menuData.categories.length > 0 && (
-        <div className="sticky top-[65px] z-40 bg-white shadow-sm border-b">
+        <div className="sticky top-[112px] z-40 bg-white shadow-sm border-b">
           <div className="overflow-x-auto scrollbar-hide">
             <div className="max-w-6xl mx-auto px-4 py-3 flex gap-2">
               <button
