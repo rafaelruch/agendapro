@@ -1,8 +1,7 @@
 -- ==================== MIGRAÇÃO COMPLETA - AgendaPro ====================
 -- Data: 2025-12-03
 -- Descrição: Script completo para criação de todas as tabelas do sistema
--- ATENÇÃO: Execute este script apenas em um banco de dados LIMPO ou 
---          use as migrações incrementais se já existem dados
+-- ATENÇÃO: Execute este script apenas em um banco de dados LIMPO
 
 -- ==================== 1. TABELA TENANTS ====================
 CREATE TABLE IF NOT EXISTS tenants (
@@ -155,7 +154,7 @@ CREATE TABLE IF NOT EXISTS tenant_module_permissions (
     UNIQUE(tenant_id, module_id)
 );
 
--- ==================== 14. TABELA PRODUCT_CATEGORIES ====================
+-- ==================== 14. TABELA PRODUCT_CATEGORIES (ANTES DE PRODUCTS!) ====================
 CREATE TABLE IF NOT EXISTS product_categories (
     id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id VARCHAR NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -175,7 +174,7 @@ CREATE TABLE IF NOT EXISTS delivery_neighborhoods (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- ==================== 16. TABELA PRODUCTS ====================
+-- ==================== 16. TABELA PRODUCTS (DEPOIS DE PRODUCT_CATEGORIES!) ====================
 CREATE TABLE IF NOT EXISTS products (
     id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id VARCHAR NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
