@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, Eye, Check, X, Filter, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Eye, Check, X, Filter, CalendarDays, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,14 +19,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Appointment, Client, Service, Professional } from "@shared/schema";
-import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays, isToday, isTomorrow, isYesterday } from 'date-fns';
+import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays, isToday, isTomorrow, isYesterday, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AppointmentDetailsDialog } from "@/components/AppointmentDetailsDialog";
 
-type DateFilter = 'today' | 'tomorrow' | 'week' | 'month' | 'last7' | 'last30' | 'all';
+type DateFilter = 'today' | 'tomorrow' | 'week' | 'month' | 'last7' | 'last30' | 'custom' | 'all';
 type StatusFilter = 'all' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
 
 interface AppointmentWithDetails extends Appointment {
@@ -52,6 +59,8 @@ const STATUS_COLORS: Record<string, string> = {
 export default function AppointmentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<DateFilter>('today');
+  const [customDate, setCustomDate] = useState<Date | undefined>(undefined);
+  const [customDateOpen, setCustomDateOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [professionalFilter, setProfessionalFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -114,6 +123,11 @@ export default function AppointmentsPage() {
         return { start: subDays(today, 7), end: today };
       case 'last30':
         return { start: subDays(today, 30), end: today };
+      case 'custom':
+        if (customDate) {
+          return { start: customDate, end: customDate };
+        }
+        return null;
       case 'all':
         return null;
     }
@@ -269,6 +283,9 @@ export default function AppointmentsPage() {
         <Select 
           value={dateFilter} 
           onValueChange={(value) => {
+            if (value === 'custom') {
+              setCustomDateOpen(true);
+            }
             setDateFilter(value as DateFilter);
             setCurrentPage(1);
           }}
@@ -284,9 +301,59 @@ export default function AppointmentsPage() {
             <SelectItem value="month">Este Mês</SelectItem>
             <SelectItem value="last7">Últimos 7 dias</SelectItem>
             <SelectItem value="last30">Últimos 30 dias</SelectItem>
+            <SelectItem value="custom">Data específica</SelectItem>
             <SelectItem value="all">Todos</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* Custom Date Picker */}
+        {dateFilter === 'custom' && (
+          <Popover open={customDateOpen} onOpenChange={setCustomDateOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-[180px] justify-start text-left font-normal"
+                data-testid="button-custom-date"
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                {customDate ? format(customDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecione a data"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <DayPicker
+                mode="single"
+                selected={customDate}
+                onSelect={(date) => {
+                  setCustomDate(date);
+                  setCustomDateOpen(false);
+                  setCurrentPage(1);
+                }}
+                locale={ptBR}
+                classNames={{
+                  months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                  month: "space-y-4",
+                  caption: "flex justify-center pt-1 relative items-center",
+                  caption_label: "text-sm font-medium",
+                  nav: "space-x-1 flex items-center",
+                  nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+                  nav_button_previous: "absolute left-1",
+                  nav_button_next: "absolute right-1",
+                  table: "w-full border-collapse space-y-1",
+                  head_row: "flex",
+                  head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
+                  row: "flex w-full mt-2",
+                  cell: "h-9 w-9 text-center text-sm p-0 relative",
+                  day: "h-9 w-9 p-0 font-normal hover-elevate rounded-md inline-flex items-center justify-center",
+                  day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                  day_today: "bg-accent text-accent-foreground",
+                  day_outside: "text-muted-foreground opacity-50",
+                  day_disabled: "text-muted-foreground opacity-50",
+                  day_hidden: "invisible",
+                }}
+              />
+            </PopoverContent>
+          </Popover>
+        )}
 
         {/* Status Filter */}
         <Select 
