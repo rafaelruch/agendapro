@@ -322,6 +322,7 @@ export default function PublicMenuPage() {
         complement?: string;
         neighborhood?: string;
         city?: string;
+        zipCode?: string;
         reference?: string;
       };
       saveAddress?: boolean;
@@ -729,8 +730,7 @@ export default function PublicMenuPage() {
         number: checkoutForm.number || undefined,
         complement: checkoutForm.complement || undefined,
         neighborhood: checkoutForm.neighborhood || undefined,
-        city: checkoutForm.city || undefined,
-        state: checkoutForm.state || undefined,
+        city: checkoutForm.city ? (checkoutForm.state ? `${checkoutForm.city}/${checkoutForm.state}` : checkoutForm.city) : undefined,
         zipCode: checkoutForm.zipCode?.replace(/\D/g, "") || undefined,
         reference: checkoutForm.reference || undefined,
       },
@@ -982,7 +982,7 @@ export default function PublicMenuPage() {
 
                   {/* Menu Dropdown do Perfil */}
                   {showProfileMenu && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[100]">
                       <div className="px-4 py-2 border-b border-gray-100">
                         <p className="text-sm font-medium text-gray-900 truncate">{customer.name}</p>
                         <p className="text-xs text-gray-500">{customer.phone}</p>
@@ -1073,7 +1073,7 @@ export default function PublicMenuPage() {
 
           {/* Dropdown Perfil Mobile */}
           {showProfileMenu && customer && (
-            <div className="absolute right-4 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+            <div className="absolute right-4 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[100]">
               <div className="px-4 py-2 border-b border-gray-100">
                 <p className="text-sm font-medium text-gray-900 truncate">{customer.name}</p>
                 <p className="text-xs text-gray-500">{customer.phone}</p>
