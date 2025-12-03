@@ -1,15 +1,14 @@
 import { useState } from "react";
-import { Plus, Search, Edit2, Trash2, Package, AlertTriangle } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Package, AlertTriangle, Image as ImageIcon } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { ProductDialog } from "@/components/ProductDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Product } from "@shared/schema";
+import type { Product, ProductCategory } from "@shared/schema";
 
 export default function InventoryPage() {
   const [showProductDialog, setShowProductDialog] = useState(false);
@@ -22,6 +21,12 @@ export default function InventoryPage() {
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["/api/inventory/products"],
   });
+
+  const { data: categories = [] } = useQuery<ProductCategory[]>({
+    queryKey: ["/api/inventory/categories"],
+  });
+
+  const categoryMap = new Map(categories.map(c => [c.id, c.name]));
 
   const createProductMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/inventory/products", data),
@@ -224,6 +229,9 @@ export default function InventoryPage() {
                       Produto
                     </TableHead>
                     <TableHead className="px-4 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                      Categoria
+                    </TableHead>
+                    <TableHead className="px-4 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
                       Preço
                     </TableHead>
                     <TableHead className="px-4 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400">
@@ -241,16 +249,39 @@ export default function InventoryPage() {
                   {paginatedProducts.map((product) => (
                     <TableRow key={product.id} data-testid={`row-product-${product.id}`}>
                       <TableCell className="px-5 py-4 sm:px-6 text-start">
-                        <div>
-                          <p className="text-gray-800 text-theme-sm dark:text-white/90 font-medium">
-                            {product.name}
-                          </p>
-                          {product.description && (
-                            <p className="text-gray-500 text-theme-xs dark:text-gray-400 truncate max-w-xs">
-                              {product.description}
-                            </p>
+                        <div className="flex items-center gap-3">
+                          {product.imageUrl ? (
+                            <img
+                              src={product.imageUrl}
+                              alt={product.name}
+                              className="w-10 h-10 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                              data-testid={`img-product-${product.id}`}
+                            />
+                          ) : (
+                            <div className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg">
+                              <ImageIcon className="w-5 h-5 text-gray-400" />
+                            </div>
                           )}
+                          <div>
+                            <p className="text-gray-800 text-theme-sm dark:text-white/90 font-medium">
+                              {product.name}
+                            </p>
+                            {product.description && (
+                              <p className="text-gray-500 text-theme-xs dark:text-gray-400 truncate max-w-xs">
+                                {product.description}
+                              </p>
+                            )}
+                          </div>
                         </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-start">
+                        {product.categoryId && categoryMap.get(product.categoryId) ? (
+                          <Badge variant="outline" className="text-gray-600 dark:text-gray-300">
+                            {categoryMap.get(product.categoryId)}
+                          </Badge>
+                        ) : (
+                          <span className="text-gray-400 text-theme-xs">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="px-4 py-3 text-start">
                         <span className="text-gray-800 text-theme-sm dark:text-white/90 font-medium">
