@@ -452,36 +452,34 @@ export function OrderDialog({
                     <div className="flex items-center gap-2">
                       <Button
                         type="button"
-                        size="sm"
+                        size="icon"
                         variant="outline"
                         onClick={() => updateQuantity(item.productId, -1)}
-                        className="h-8 w-8 p-0"
                         data-testid={`button-decrease-${item.productId}`}
                       >
-                        <Minus className="h-3 w-3" />
+                        <Minus className="h-4 w-4" />
                       </Button>
                       <span className="w-8 text-center text-sm font-medium text-gray-800 dark:text-white">
                         {item.quantity}
                       </span>
                       <Button
                         type="button"
-                        size="sm"
+                        size="icon"
                         variant="outline"
                         onClick={() => updateQuantity(item.productId, 1)}
-                        className="h-8 w-8 p-0"
                         data-testid={`button-increase-${item.productId}`}
                       >
-                        <Plus className="h-3 w-3" />
+                        <Plus className="h-4 w-4" />
                       </Button>
                       <Button
                         type="button"
-                        size="sm"
+                        size="icon"
                         variant="ghost"
                         onClick={() => removeItem(item.productId)}
-                        className="h-8 w-8 p-0 text-meta-1 hover:text-meta-1"
+                        className="text-red-600 hover:text-red-700"
                         data-testid={`button-remove-${item.productId}`}
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                     <div className="text-right min-w-[80px]">
