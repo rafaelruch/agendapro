@@ -1,12 +1,17 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, SlidersHorizontal, Package, ShoppingBag, User, X, ChevronDown, LogOut, UtensilsCrossed, ClipboardList, History, MapPin, Menu as MenuIcon } from "lucide-react";
+import { Search, SlidersHorizontal, Package, ShoppingBag, User, X, ChevronDown, LogOut, UtensilsCrossed, ClipboardList, History, MapPin, Menu as MenuIcon, Plus, Minus, Trash2, ShoppingCart } from "lucide-react";
 
 type ActiveSection = "cardapio" | "pedidos" | "historico" | "enderecos";
 
 interface CustomerData {
   name: string;
   phone: string;
+}
+
+interface CartItem {
+  product: MenuProduct;
+  quantity: number;
 }
 
 interface MenuProduct {
@@ -56,6 +61,49 @@ export default function PublicMenuPage() {
   const [registerForm, setRegisterForm] = useState({ name: "", phone: "" });
   const [activeSection, setActiveSection] = useState<ActiveSection>("cardapio");
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [showMobileCart, setShowMobileCart] = useState(false);
+
+  const addToCart = (product: MenuProduct) => {
+    setCart((prev) => {
+      const existing = prev.find((item) => item.product.id === product.id);
+      if (existing) {
+        return prev.map((item) =>
+          item.product.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart((prev) => prev.filter((item) => item.product.id !== productId));
+  };
+
+  const updateQuantity = (productId: string, delta: number) => {
+    setCart((prev) =>
+      prev
+        .map((item) =>
+          item.product.id === productId
+            ? { ...item, quantity: Math.max(0, item.quantity + delta) }
+            : item
+        )
+        .filter((item) => item.quantity > 0)
+    );
+  };
+
+  const getProductPrice = (product: MenuProduct) => {
+    return product.isOnSale && product.salePrice ? product.salePrice : product.price;
+  };
+
+  const cartTotal = cart.reduce(
+    (sum, item) => sum + getProductPrice(item.product) * item.quantity,
+    0
+  );
+
+  const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const sidebarMenus = [
     { id: "cardapio" as ActiveSection, label: "Cardápio", icon: UtensilsCrossed },
@@ -465,45 +513,46 @@ export default function PublicMenuPage() {
         <div className="flex-1 min-w-0">
           {/* Seção: Cardápio */}
           {activeSection === "cardapio" && (
-            <>
-              {/* Pills de Categorias */}
-              {menuData.categories.length > 0 && (
-                <div className="sticky top-[112px] z-40 bg-white shadow-sm border-b">
-                  <div className="overflow-x-auto scrollbar-hide">
-                    <div className="px-4 py-3 flex gap-2">
-                      <button
-                        onClick={() => setActiveCategory(null)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                          activeCategory === null
-                            ? "text-white shadow-md"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                        style={activeCategory === null ? { backgroundColor: brandColor } : {}}
-                        data-testid="button-category-all"
-                      >
-                        Todos
-                      </button>
-                      {menuData.categories.map((category) => (
-                        <button
-                          key={category.id}
-                          onClick={() => setActiveCategory(category.id)}
-                          className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                            activeCategory === category.id
-                              ? "text-white shadow-md"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          }`}
-                          style={activeCategory === category.id ? { backgroundColor: brandColor } : {}}
-                          data-testid={`button-category-${category.id}`}
-                        >
-                          {category.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+            <div className="flex">
+              {/* Área de Produtos */}
+              <div className="flex-1 min-w-0 p-4 pb-24">
+                {/* Título Categorias */}
+                <h2 className="text-lg font-bold text-gray-800 mb-4">Explorar Categorias</h2>
+                
+                {/* Pills de Categorias em Grid */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  <button
+                    onClick={() => setActiveCategory(null)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all ${
+                      activeCategory === null
+                        ? "text-white border-transparent"
+                        : "bg-white border-gray-200 text-gray-700 hover:border-gray-300"
+                    }`}
+                    style={activeCategory === null ? { backgroundColor: brandColor } : {}}
+                    data-testid="button-category-all"
+                  >
+                    <UtensilsCrossed className="h-4 w-4" />
+                    <span className="font-medium text-sm">Todos</span>
+                  </button>
+                  {menuData.categories.map((category) => (
+                    <button
+                      key={category.id}
+                      onClick={() => setActiveCategory(category.id)}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all ${
+                        activeCategory === category.id
+                          ? "text-white border-transparent"
+                          : "bg-white border-gray-200 text-gray-700 hover:border-gray-300"
+                      }`}
+                      style={activeCategory === category.id ? { backgroundColor: brandColor } : {}}
+                      data-testid={`button-category-${category.id}`}
+                    >
+                      <Package className="h-4 w-4" />
+                      <span className="font-medium text-sm">{category.name}</span>
+                    </button>
+                  ))}
                 </div>
-              )}
 
-              <main className="px-4 py-6 pb-24">
+                {/* Grid de Produtos */}
                 {filteredProducts.length === 0 ? (
                   <div className="text-center py-12">
                     <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
@@ -514,61 +563,237 @@ export default function PublicMenuPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-8">
-                    {Array.from(groupedProducts.entries()).map(([categoryId, products]) => (
-                      <section key={categoryId}>
-                        <h2
-                          className="text-lg font-bold mb-4 pb-2 border-b-2"
-                          style={{ borderColor: brandColor, color: brandColor }}
-                          data-testid={`text-category-${categoryId}`}
-                        >
-                          {getCategoryName(categoryId)}
-                        </h2>
-                        <div className="space-y-4">
-                          {products.map((product) => (
-                            <div
-                              key={product.id}
-                              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
-                              data-testid={`card-product-${product.id}`}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredProducts.map((product) => (
+                      <div
+                        key={product.id}
+                        className="bg-white rounded-2xl border-2 border-gray-100 overflow-hidden hover:border-gray-200 hover:shadow-lg transition-all"
+                        data-testid={`card-product-${product.id}`}
+                      >
+                        {/* Imagem do Produto */}
+                        <div className="relative bg-gray-50 p-4 flex items-center justify-center h-40">
+                          {product.isOnSale && (
+                            <div 
+                              className="absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-bold text-white"
+                              style={{ backgroundColor: brandColor }}
                             >
-                              <div className="flex">
-                                <div className="flex-1 p-4">
-                                  <h3 className="font-semibold text-gray-900 mb-1">
-                                    {product.name}
-                                  </h3>
-                                  {product.description && (
-                                    <p className="text-sm text-gray-500 line-clamp-2 mb-2">
-                                      {product.description}
-                                    </p>
-                                  )}
-                                  <p
-                                    className="font-bold text-lg"
-                                    style={{ color: brandColor }}
-                                  >
-                                    {formatCurrency(product.price)}
-                                  </p>
-                                </div>
-                                {product.imageUrl && (
-                                  <div className="w-28 h-28 sm:w-32 sm:h-32 flex-shrink-0">
-                                    <img
-                                      src={product.imageUrl}
-                                      alt={product.name}
-                                      className="w-full h-full object-cover"
-                                      loading="lazy"
-                                      data-testid={`img-product-${product.id}`}
-                                    />
-                                  </div>
-                                )}
-                              </div>
+                              OFERTA
                             </div>
-                          ))}
+                          )}
+                          {product.imageUrl ? (
+                            <img
+                              src={product.imageUrl}
+                              alt={product.name}
+                              className="max-h-full max-w-full object-contain"
+                              loading="lazy"
+                              data-testid={`img-product-${product.id}`}
+                            />
+                          ) : (
+                            <Package className="h-16 w-16 text-gray-300" />
+                          )}
                         </div>
-                      </section>
+
+                        {/* Info do Produto */}
+                        <div className="p-4">
+                          <h3 className="font-semibold text-gray-900 mb-1 line-clamp-1">
+                            {product.name}
+                          </h3>
+                          
+                          {/* Preços */}
+                          <div className="flex items-center gap-2 mb-3">
+                            <span 
+                              className="font-bold text-lg"
+                              style={{ color: brandColor }}
+                            >
+                              {formatCurrency(getProductPrice(product))}
+                            </span>
+                            {product.isOnSale && product.salePrice && (
+                              <span className="text-sm text-gray-400 line-through">
+                                {formatCurrency(product.price)}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Botão Adicionar */}
+                          <button
+                            onClick={() => addToCart(product)}
+                            className="w-full py-2.5 rounded-xl text-white font-medium transition-opacity hover:opacity-90"
+                            style={{ backgroundColor: brandColor }}
+                            data-testid={`button-add-${product.id}`}
+                          >
+                            Adicionar
+                          </button>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
-              </main>
-            </>
+              </div>
+
+              {/* Carrinho Desktop */}
+              <aside className="hidden lg:block w-80 flex-shrink-0 p-4 sticky top-[112px] h-[calc(100vh-112px)]">
+                <div className="bg-white rounded-2xl border border-gray-200 h-full flex flex-col">
+                  {/* Header do Carrinho */}
+                  <div className="p-4 border-b">
+                    <h3 className="font-bold text-gray-900">Carrinho</h3>
+                  </div>
+
+                  {/* Itens do Carrinho */}
+                  <div className="flex-1 overflow-auto p-4 space-y-3">
+                    {cart.length === 0 ? (
+                      <div className="text-center py-8">
+                        <ShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500">Seu carrinho está vazio</p>
+                      </div>
+                    ) : (
+                      cart.map((item) => (
+                        <div key={item.product.id} className="flex items-center gap-3 p-2 rounded-xl bg-gray-50">
+                          {item.product.imageUrl ? (
+                            <img 
+                              src={item.product.imageUrl} 
+                              alt={item.product.name}
+                              className="w-12 h-12 object-cover rounded-lg"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                              <Package className="h-6 w-6 text-gray-400" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{item.product.name}</p>
+                            <p className="text-sm font-bold" style={{ color: brandColor }}>
+                              {formatCurrency(getProductPrice(item.product))}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => updateQuantity(item.product.id, -1)}
+                              className="p-1 rounded-lg hover:bg-gray-200 transition-colors"
+                            >
+                              <Minus className="h-4 w-4 text-gray-600" />
+                            </button>
+                            <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
+                            <button
+                              onClick={() => updateQuantity(item.product.id, 1)}
+                              className="p-1 rounded-lg hover:bg-gray-200 transition-colors"
+                            >
+                              <Plus className="h-4 w-4 text-gray-600" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Resumo e Botão */}
+                  {cart.length > 0 && (
+                    <div className="p-4 border-t space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Subtotal</span>
+                        <span className="font-medium">{formatCurrency(cartTotal)}</span>
+                      </div>
+                      <div className="flex justify-between font-bold">
+                        <span>Total</span>
+                        <span style={{ color: brandColor }}>{formatCurrency(cartTotal)}</span>
+                      </div>
+                      <button
+                        className="w-full py-3 rounded-xl text-white font-medium transition-opacity hover:opacity-90"
+                        style={{ backgroundColor: brandColor }}
+                        data-testid="button-checkout"
+                      >
+                        Fazer Pedido
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </aside>
+            </div>
+          )}
+
+          {/* Botão Carrinho Mobile */}
+          {activeSection === "cardapio" && cart.length > 0 && (
+            <button
+              onClick={() => setShowMobileCart(true)}
+              className="lg:hidden fixed bottom-20 right-4 z-40 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg text-white"
+              style={{ backgroundColor: brandColor }}
+              data-testid="button-mobile-cart"
+            >
+              <ShoppingCart className="h-5 w-5" />
+              <span className="font-medium">{formatCurrency(cartTotal)}</span>
+              <span className="bg-white text-xs font-bold px-2 py-0.5 rounded-full" style={{ color: brandColor }}>
+                {cartItemCount}
+              </span>
+            </button>
+          )}
+
+          {/* Modal Carrinho Mobile */}
+          {showMobileCart && (
+            <div className="lg:hidden fixed inset-0 z-[55] bg-black/50" onClick={() => setShowMobileCart(false)}>
+              <div 
+                className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[80vh] flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-4 border-b flex items-center justify-between">
+                  <h3 className="font-bold text-gray-900">Carrinho ({cartItemCount} itens)</h3>
+                  <button onClick={() => setShowMobileCart(false)} className="p-1 hover:bg-gray-100 rounded-full">
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-auto p-4 space-y-3">
+                  {cart.map((item) => (
+                    <div key={item.product.id} className="flex items-center gap-3 p-2 rounded-xl bg-gray-50">
+                      {item.product.imageUrl ? (
+                        <img 
+                          src={item.product.imageUrl} 
+                          alt={item.product.name}
+                          className="w-14 h-14 object-cover rounded-lg"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 bg-gray-200 rounded-lg flex items-center justify-center">
+                          <Package className="h-7 w-7 text-gray-400" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{item.product.name}</p>
+                        <p className="font-bold" style={{ color: brandColor }}>
+                          {formatCurrency(getProductPrice(item.product) * item.quantity)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => updateQuantity(item.product.id, -1)}
+                          className="p-1.5 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+                        >
+                          <Minus className="h-4 w-4 text-gray-600" />
+                        </button>
+                        <span className="w-6 text-center font-medium">{item.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(item.product.id, 1)}
+                          className="p-1.5 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+                        >
+                          <Plus className="h-4 w-4 text-gray-600" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="p-4 border-t space-y-3">
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Total</span>
+                    <span style={{ color: brandColor }}>{formatCurrency(cartTotal)}</span>
+                  </div>
+                  <button
+                    className="w-full py-3.5 rounded-xl text-white font-medium text-lg transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: brandColor }}
+                    data-testid="button-checkout-mobile"
+                  >
+                    Fazer Pedido
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Seção: Pedidos */}
