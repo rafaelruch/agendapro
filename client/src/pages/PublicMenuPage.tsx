@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Search, SlidersHorizontal, Package, ShoppingBag, User, X, ChevronDown, LogOut, UtensilsCrossed, ClipboardList, History, MapPin, Menu as MenuIcon, Plus, Minus, Trash2, ShoppingCart } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Search, SlidersHorizontal, Package, ShoppingBag, User, X, ChevronDown, LogOut, UtensilsCrossed, ClipboardList, History, MapPin, Menu as MenuIcon, Plus, Minus, Trash2, ShoppingCart, CreditCard, Banknote, Smartphone, Check, Loader2 } from "lucide-react";
 
 type ActiveSection = "cardapio" | "pedidos" | "historico" | "enderecos";
+type PaymentMethod = "cash" | "pix" | "debit" | "credit";
 
 interface CustomerData {
   name: string;
@@ -63,6 +64,22 @@ export default function PublicMenuPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [activeTab, setActiveTab] = useState<"populares" | "promocoes">("populares");
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState<"dados" | "endereco" | "pagamento" | "confirmacao">("dados");
+  const [checkoutForm, setCheckoutForm] = useState({
+    name: "",
+    phone: "",
+    street: "",
+    number: "",
+    complement: "",
+    neighborhood: "",
+    city: "",
+    reference: "",
+    paymentMethod: "pix" as PaymentMethod,
+    notes: "",
+    saveAddress: true,
+  });
+  const [orderSuccess, setOrderSuccess] = useState<{ orderId: string; orderNumber: number } | null>(null);
 
   const addToCart = (product: MenuProduct) => {
     setCart((prev) => {
@@ -162,6 +179,141 @@ export default function PublicMenuPage() {
   });
 
   const brandColor = menuData?.tenant.brandColor || "#ea7c3f";
+
+  // Mutation para criar pedido
+  const createOrderMutation = useMutation({
+    mutationFn: async (orderData: {
+      client: { name: string; phone: string };
+      items: { productId: string; quantity: number }[];
+      paymentMethod: string;
+      notes?: string;
+      deliveryAddress?: {
+        street?: string;
+        number?: string;
+        complement?: string;
+        neighborhood?: string;
+        city?: string;
+        reference?: string;
+      };
+      saveAddress?: boolean;
+    }) => {
+      const res = await fetch(`/api/menu/${slug}/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderData),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Erro ao criar pedido");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setOrderSuccess({ orderId: data.orderId, orderNumber: data.orderNumber });
+      setCheckoutStep("confirmacao");
+      // Salvar cliente no localStorage
+      const newCustomer = { name: checkoutForm.name, phone: checkoutForm.phone };
+      setCustomer(newCustomer);
+      localStorage.setItem(`menu_customer_${slug}`, JSON.stringify(newCustomer));
+      // Limpar carrinho
+      setCart([]);
+    },
+  });
+
+  // Abrir checkout
+  const openCheckout = () => {
+    // Preencher dados do cliente se já estiver logado
+    if (customer) {
+      setCheckoutForm((prev) => ({
+        ...prev,
+        name: customer.name,
+        phone: customer.phone,
+      }));
+    }
+    setCheckoutStep("dados");
+    setOrderSuccess(null);
+    setShowCheckout(true);
+    setShowMobileCart(false);
+  };
+
+  // Enviar pedido
+  const submitOrder = () => {
+    createOrderMutation.mutate({
+      client: {
+        name: checkoutForm.name,
+        phone: checkoutForm.phone,
+      },
+      items: cart.map((item) => ({
+        productId: item.product.id,
+        quantity: item.quantity,
+      })),
+      paymentMethod: checkoutForm.paymentMethod,
+      notes: checkoutForm.notes || undefined,
+      deliveryAddress: {
+        street: checkoutForm.street || undefined,
+        number: checkoutForm.number || undefined,
+        complement: checkoutForm.complement || undefined,
+        neighborhood: checkoutForm.neighborhood || undefined,
+        city: checkoutForm.city || undefined,
+        reference: checkoutForm.reference || undefined,
+      },
+      saveAddress: checkoutForm.saveAddress,
+    });
+  };
+
+  // Validar passo atual
+  const canProceed = () => {
+    if (checkoutStep === "dados") {
+      return checkoutForm.name.trim().length >= 2 && checkoutForm.phone.replace(/\D/g, "").length >= 10;
+    }
+    if (checkoutStep === "endereco") {
+      return true; // Endereço é opcional
+    }
+    if (checkoutStep === "pagamento") {
+      return !!checkoutForm.paymentMethod;
+    }
+    return false;
+  };
+
+  // Próximo passo
+  const nextStep = () => {
+    if (checkoutStep === "dados") setCheckoutStep("endereco");
+    else if (checkoutStep === "endereco") setCheckoutStep("pagamento");
+    else if (checkoutStep === "pagamento") submitOrder();
+  };
+
+  // Voltar passo
+  const prevStep = () => {
+    if (checkoutStep === "endereco") setCheckoutStep("dados");
+    else if (checkoutStep === "pagamento") setCheckoutStep("endereco");
+  };
+
+  // Fechar checkout
+  const closeCheckout = () => {
+    setShowCheckout(false);
+    if (orderSuccess) {
+      setCheckoutForm({
+        name: customer?.name || "",
+        phone: customer?.phone || "",
+        street: "",
+        number: "",
+        complement: "",
+        neighborhood: "",
+        city: "",
+        reference: "",
+        paymentMethod: "pix",
+        notes: "",
+        saveAddress: true,
+      });
+    }
+  };
+
+  const paymentMethods = [
+    { id: "pix" as PaymentMethod, label: "PIX", icon: Smartphone },
+    { id: "cash" as PaymentMethod, label: "Dinheiro", icon: Banknote },
+    { id: "credit" as PaymentMethod, label: "Crédito", icon: CreditCard },
+    { id: "debit" as PaymentMethod, label: "Débito", icon: CreditCard },
+  ];
 
   const filteredProducts = useMemo(() => {
     if (!menuData) return [];
@@ -784,6 +936,7 @@ export default function PublicMenuPage() {
                         <span style={{ color: brandColor }}>{formatCurrency(cartTotal)}</span>
                       </div>
                       <button
+                        onClick={openCheckout}
                         className="w-full py-3 rounded-xl text-white font-medium transition-opacity hover:opacity-90"
                         style={{ backgroundColor: brandColor }}
                         data-testid="button-checkout"
@@ -873,12 +1026,299 @@ export default function PublicMenuPage() {
                     <span style={{ color: brandColor }}>{formatCurrency(cartTotal)}</span>
                   </div>
                   <button
+                    onClick={openCheckout}
                     className="w-full py-3.5 rounded-xl text-white font-medium text-lg transition-opacity hover:opacity-90"
                     style={{ backgroundColor: brandColor }}
                     data-testid="button-checkout-mobile"
                   >
                     Fazer Pedido
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal de Checkout */}
+          {showCheckout && (
+            <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4" onClick={closeCheckout}>
+              <div 
+                className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header do Checkout */}
+                <div className="p-4 border-b flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">
+                      {checkoutStep === "confirmacao" ? "Pedido Confirmado!" : "Finalizar Pedido"}
+                    </h2>
+                    {checkoutStep !== "confirmacao" && (
+                      <p className="text-sm text-gray-500">
+                        {checkoutStep === "dados" && "Passo 1 de 3 - Seus dados"}
+                        {checkoutStep === "endereco" && "Passo 2 de 3 - Endereço de entrega"}
+                        {checkoutStep === "pagamento" && "Passo 3 de 3 - Pagamento"}
+                      </p>
+                    )}
+                  </div>
+                  <button 
+                    onClick={closeCheckout}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
+                </div>
+
+                {/* Conteúdo do Checkout */}
+                <div className="flex-1 overflow-auto p-4">
+                  {/* Passo 1: Dados do Cliente */}
+                  {checkoutStep === "dados" && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nome completo *
+                        </label>
+                        <input
+                          type="text"
+                          value={checkoutForm.name}
+                          onChange={(e) => setCheckoutForm({ ...checkoutForm, name: e.target.value })}
+                          placeholder="Seu nome"
+                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                          style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                          data-testid="input-checkout-name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Telefone / WhatsApp *
+                        </label>
+                        <input
+                          type="tel"
+                          value={checkoutForm.phone}
+                          onChange={(e) => setCheckoutForm({ ...checkoutForm, phone: formatPhone(e.target.value) })}
+                          placeholder="(00) 00000-0000"
+                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                          style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                          data-testid="input-checkout-phone"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Passo 2: Endereço */}
+                  {checkoutStep === "endereco" && (
+                    <div className="space-y-4">
+                      <p className="text-sm text-gray-500 mb-2">Preencha o endereço de entrega (opcional para retirada)</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Rua</label>
+                          <input
+                            type="text"
+                            value={checkoutForm.street}
+                            onChange={(e) => setCheckoutForm({ ...checkoutForm, street: e.target.value })}
+                            placeholder="Nome da rua"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                            style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                            data-testid="input-checkout-street"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Número</label>
+                          <input
+                            type="text"
+                            value={checkoutForm.number}
+                            onChange={(e) => setCheckoutForm({ ...checkoutForm, number: e.target.value })}
+                            placeholder="Nº"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                            style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                            data-testid="input-checkout-number"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Complemento</label>
+                        <input
+                          type="text"
+                          value={checkoutForm.complement}
+                          onChange={(e) => setCheckoutForm({ ...checkoutForm, complement: e.target.value })}
+                          placeholder="Apto, bloco, etc."
+                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                          style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                          data-testid="input-checkout-complement"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+                          <input
+                            type="text"
+                            value={checkoutForm.neighborhood}
+                            onChange={(e) => setCheckoutForm({ ...checkoutForm, neighborhood: e.target.value })}
+                            placeholder="Bairro"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                            style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                            data-testid="input-checkout-neighborhood"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                          <input
+                            type="text"
+                            value={checkoutForm.city}
+                            onChange={(e) => setCheckoutForm({ ...checkoutForm, city: e.target.value })}
+                            placeholder="Cidade"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                            style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                            data-testid="input-checkout-city"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Ponto de referência</label>
+                        <input
+                          type="text"
+                          value={checkoutForm.reference}
+                          onChange={(e) => setCheckoutForm({ ...checkoutForm, reference: e.target.value })}
+                          placeholder="Próximo a..."
+                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                          style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                          data-testid="input-checkout-reference"
+                        />
+                      </div>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checkoutForm.saveAddress}
+                          onChange={(e) => setCheckoutForm({ ...checkoutForm, saveAddress: e.target.checked })}
+                          className="w-4 h-4 rounded border-gray-300"
+                          style={{ accentColor: brandColor }}
+                        />
+                        <span className="text-sm text-gray-700">Salvar endereço para próximos pedidos</span>
+                      </label>
+                    </div>
+                  )}
+
+                  {/* Passo 3: Pagamento */}
+                  {checkoutStep === "pagamento" && (
+                    <div className="space-y-4">
+                      <p className="text-sm text-gray-500 mb-2">Escolha a forma de pagamento</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        {paymentMethods.map((method) => {
+                          const Icon = method.icon;
+                          const isSelected = checkoutForm.paymentMethod === method.id;
+                          return (
+                            <button
+                              key={method.id}
+                              onClick={() => setCheckoutForm({ ...checkoutForm, paymentMethod: method.id })}
+                              className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                                isSelected ? "border-2" : "border-gray-200 hover:border-gray-300"
+                              }`}
+                              style={isSelected ? { borderColor: brandColor, backgroundColor: `${brandColor}10` } : {}}
+                              data-testid={`button-payment-${method.id}`}
+                            >
+                              <Icon className="h-6 w-6" style={{ color: isSelected ? brandColor : '#6B7280' }} />
+                              <span className={`text-sm font-medium ${isSelected ? '' : 'text-gray-700'}`} style={isSelected ? { color: brandColor } : {}}>
+                                {method.label}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+                        <textarea
+                          value={checkoutForm.notes}
+                          onChange={(e) => setCheckoutForm({ ...checkoutForm, notes: e.target.value })}
+                          placeholder="Alguma observação sobre o pedido?"
+                          rows={3}
+                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm resize-none"
+                          style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                          data-testid="input-checkout-notes"
+                        />
+                      </div>
+
+                      {/* Resumo do Pedido */}
+                      <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                        <h4 className="font-medium text-gray-900 mb-2">Resumo do Pedido</h4>
+                        {cart.map((item) => (
+                          <div key={item.product.id} className="flex justify-between text-sm">
+                            <span className="text-gray-600">{item.quantity}x {item.product.name}</span>
+                            <span className="font-medium">{formatCurrency(getProductPrice(item.product) * item.quantity)}</span>
+                          </div>
+                        ))}
+                        <div className="border-t pt-2 mt-2 flex justify-between font-bold">
+                          <span>Total</span>
+                          <span style={{ color: brandColor }}>{formatCurrency(cartTotal)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Confirmação */}
+                  {checkoutStep === "confirmacao" && orderSuccess && (
+                    <div className="text-center py-8">
+                      <div 
+                        className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
+                        style={{ backgroundColor: `${brandColor}20` }}
+                      >
+                        <Check className="h-10 w-10" style={{ color: brandColor }} />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Pedido Realizado!</h3>
+                      <p className="text-gray-600 mb-4">
+                        Seu pedido #{orderSuccess.orderNumber} foi enviado com sucesso.
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Em breve você receberá atualizações sobre o status do seu pedido.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Erro */}
+                  {createOrderMutation.isError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
+                      <p className="text-red-700 text-sm">{createOrderMutation.error?.message || "Erro ao criar pedido"}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer do Checkout */}
+                <div className="p-4 border-t space-y-3">
+                  {checkoutStep !== "confirmacao" ? (
+                    <div className="flex gap-3">
+                      {checkoutStep !== "dados" && (
+                        <button
+                          onClick={prevStep}
+                          className="flex-1 py-3 rounded-xl border border-gray-300 font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                          data-testid="button-checkout-back"
+                        >
+                          Voltar
+                        </button>
+                      )}
+                      <button
+                        onClick={nextStep}
+                        disabled={!canProceed() || createOrderMutation.isPending}
+                        className="flex-1 py-3 rounded-xl text-white font-medium transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        style={{ backgroundColor: brandColor }}
+                        data-testid="button-checkout-next"
+                      >
+                        {createOrderMutation.isPending ? (
+                          <>
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                            Enviando...
+                          </>
+                        ) : (
+                          checkoutStep === "pagamento" ? "Confirmar Pedido" : "Continuar"
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={closeCheckout}
+                      className="w-full py-3 rounded-xl text-white font-medium transition-opacity hover:opacity-90"
+                      style={{ backgroundColor: brandColor }}
+                      data-testid="button-checkout-close"
+                    >
+                      Voltar ao Cardápio
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

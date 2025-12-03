@@ -3558,6 +3558,100 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
+  // POST /api/menu/:slug/orders - Criar pedido público (sem autenticação)
+  app.post("/api/menu/:slug/orders", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const normalizedSlug = slug.toLowerCase();
+      
+      // Buscar tenant pelo slug
+      const tenant = await storage.getTenantByMenuSlug(normalizedSlug);
+      if (!tenant || !tenant.active) {
+        return res.status(404).json({ error: "Cardápio não encontrado" });
+      }
+
+      // Verificar se o módulo de pedidos está habilitado
+      const modules = await storage.getTenantAllowedModules(tenant.id);
+      if (!modules.includes('orders')) {
+        return res.status(400).json({ error: "Pedidos não habilitados para este estabelecimento" });
+      }
+
+      // Validar dados do pedido
+      const validation = insertOrderSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Dados inválidos", 
+          details: validation.error.errors 
+        });
+      }
+
+      const { client, items, paymentMethod, notes, deliveryAddress, saveAddress, addressLabel } = validation.data;
+
+      // Verificar/criar cliente pelo telefone
+      let existingClient = await storage.getClientByPhone(client.phone, tenant.id);
+      if (!existingClient) {
+        existingClient = await storage.createClient({
+          tenantId: tenant.id,
+          name: client.name,
+          phone: client.phone,
+        });
+      } else {
+        // Atualizar nome se diferente
+        if (existingClient.name !== client.name) {
+          await storage.updateClient(existingClient.id, tenant.id, { name: client.name });
+        }
+      }
+
+      // Salvar novo endereço se solicitado
+      let clientAddressId: string | undefined;
+      if (saveAddress && deliveryAddress && (deliveryAddress.street || deliveryAddress.neighborhood)) {
+        const newAddress = await storage.createClientAddress({
+          tenantId: tenant.id,
+          clientId: existingClient.id,
+          label: addressLabel || "Casa",
+          street: deliveryAddress.street || null,
+          number: deliveryAddress.number || null,
+          complement: deliveryAddress.complement || null,
+          neighborhood: deliveryAddress.neighborhood || null,
+          city: deliveryAddress.city || null,
+          zipCode: deliveryAddress.zipCode || null,
+          reference: deliveryAddress.reference || null,
+          isDefault: false,
+        });
+        clientAddressId = newAddress.id;
+      }
+
+      // Criar pedido
+      const order = await storage.createOrder(
+        tenant.id, 
+        existingClient.id, 
+        items, 
+        paymentMethod, 
+        notes, 
+        deliveryAddress, 
+        clientAddressId
+      );
+
+      res.status(201).json({
+        success: true,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        message: "Pedido realizado com sucesso!",
+      });
+    } catch (error: any) {
+      console.error("Error creating public order:", error);
+      
+      if (error.message.includes("Estoque insuficiente")) {
+        return res.status(409).json({ error: error.message });
+      }
+      if (error.message.includes("Produto não encontrado") || error.message.includes("indisponível")) {
+        return res.status(404).json({ error: error.message });
+      }
+      
+      res.status(500).json({ error: error.message || "Erro ao criar pedido" });
+    }
+  });
+
   // ===========================================
   // ROTAS DE CONFIGURAÇÃO DO CARDÁPIO (COM AUTENTICAÇÃO)
   // ===========================================
