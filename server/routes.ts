@@ -3485,73 +3485,145 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(404).json({ error: "Cardápio não encontrado" });
       }
 
-      // Verificar se o módulo de inventário está habilitado
+      const menuType = tenant.menuType || 'delivery';
       const modules = await storage.getTenantAllowedModules(tenant.id);
-      if (!modules.includes('inventory')) {
+
+      // Verificar se o módulo apropriado está habilitado
+      if (menuType === 'delivery' && !modules.includes('inventory')) {
+        return res.status(404).json({ error: "Cardápio não disponível" });
+      }
+      if (menuType === 'services' && !modules.includes('services')) {
         return res.status(404).json({ error: "Cardápio não disponível" });
       }
 
-      // Buscar categorias ativas
-      const categories = await storage.getActiveProductCategories(tenant.id);
-
-      // Buscar produtos ativos
-      const allProducts = await storage.getActiveProducts(tenant.id);
-
-      // Buscar produtos em destaque
-      const featuredProducts = await storage.getFeaturedProducts(tenant.id);
-
-      // Buscar produtos em promoção
-      const productsOnSale = await storage.getProductsOnSale(tenant.id);
-
-      // Buscar bairros de entrega
-      const deliveryNeighborhoods = await storage.getActiveDeliveryNeighborhoods(tenant.id);
-
-      // Buscar adicionais de todos os produtos
-      const allAddons = await storage.getAllProductAddons(tenant.id);
-
-      // Mapear produtos com seus adicionais
-      const formatProduct = (product: any) => ({
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        price: parseFloat(String(product.price)),
-        salePrice: product.salePrice ? parseFloat(String(product.salePrice)) : null,
-        isOnSale: product.isOnSale,
-        isFeatured: product.isFeatured,
-        imageUrl: product.imageUrl,
-        categoryId: product.categoryId,
-        addons: allAddons
-          .filter(addon => addon.productId === product.id && addon.isActive)
-          .map(addon => ({
-            id: addon.id,
-            name: addon.name,
-            price: parseFloat(String(addon.price)),
-            isRequired: addon.isRequired,
-            maxQuantity: addon.maxQuantity,
-          })),
-      });
-
-      res.json({
+      // Resposta base com dados do tenant
+      const baseResponse = {
         tenant: {
           name: tenant.name,
           logoUrl: tenant.menuLogoUrl,
           brandColor: tenant.menuBrandColor || '#ea7c3f',
           bannerUrl: tenant.menuBannerUrl,
-          minOrderValue: tenant.minOrderValue ? parseFloat(String(tenant.minOrderValue)) : null,
+          menuType: menuType,
+          minOrderValue: menuType === 'delivery' && tenant.minOrderValue 
+            ? parseFloat(String(tenant.minOrderValue)) 
+            : null,
         },
-        categories: categories.map(cat => ({
-          id: cat.id,
-          name: cat.name,
-        })),
-        products: allProducts.map(formatProduct),
-        featuredProducts: featuredProducts.map(formatProduct),
-        productsOnSale: productsOnSale.map(formatProduct),
-        deliveryNeighborhoods: deliveryNeighborhoods.map(n => ({
-          id: n.id,
-          name: n.name,
-          deliveryFee: parseFloat(String(n.deliveryFee)),
-        })),
-      });
+      };
+
+      // Se for delivery, retornar produtos
+      if (menuType === 'delivery') {
+        // Buscar categorias ativas
+        const categories = await storage.getActiveProductCategories(tenant.id);
+
+        // Buscar produtos ativos
+        const allProducts = await storage.getActiveProducts(tenant.id);
+
+        // Buscar produtos em destaque
+        const featuredProducts = await storage.getFeaturedProducts(tenant.id);
+
+        // Buscar produtos em promoção
+        const productsOnSale = await storage.getProductsOnSale(tenant.id);
+
+        // Buscar bairros de entrega
+        const deliveryNeighborhoods = await storage.getActiveDeliveryNeighborhoods(tenant.id);
+
+        // Buscar adicionais de todos os produtos
+        const allAddons = await storage.getAllProductAddons(tenant.id);
+
+        // Mapear produtos com seus adicionais
+        const formatProduct = (product: any) => ({
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          price: parseFloat(String(product.price)),
+          salePrice: product.salePrice ? parseFloat(String(product.salePrice)) : null,
+          isOnSale: product.isOnSale,
+          isFeatured: product.isFeatured,
+          imageUrl: product.imageUrl,
+          categoryId: product.categoryId,
+          addons: allAddons
+            .filter(addon => addon.productId === product.id && addon.isActive)
+            .map(addon => ({
+              id: addon.id,
+              name: addon.name,
+              price: parseFloat(String(addon.price)),
+              isRequired: addon.isRequired,
+              maxQuantity: addon.maxQuantity,
+            })),
+        });
+
+        return res.json({
+          ...baseResponse,
+          categories: categories.map(cat => ({
+            id: cat.id,
+            name: cat.name,
+          })),
+          products: allProducts.map(formatProduct),
+          featuredProducts: featuredProducts.map(formatProduct),
+          productsOnSale: productsOnSale.map(formatProduct),
+          deliveryNeighborhoods: deliveryNeighborhoods.map(n => ({
+            id: n.id,
+            name: n.name,
+            deliveryFee: parseFloat(String(n.deliveryFee)),
+          })),
+        });
+      }
+
+      // Se for services, retornar serviços
+      if (menuType === 'services') {
+        // Buscar serviços ativos para cardápio público
+        const allServices = await storage.getActiveServicesForMenu(tenant.id);
+
+        // Buscar serviços em destaque
+        const featuredServices = allServices.filter(s => s.isFeatured);
+
+        // Buscar serviços em promoção (com promotionalValue válido)
+        const today = new Date().toISOString().split('T')[0];
+        const servicesOnSale = allServices.filter(s => 
+          s.promotionalValue && 
+          s.promotionStartDate && 
+          s.promotionEndDate &&
+          s.promotionStartDate <= today && 
+          s.promotionEndDate >= today
+        );
+
+        // Obter categorias únicas dos serviços
+        const serviceCategories = Array.from(new Set(allServices.map(s => s.category)));
+
+        // Mapear serviços para o formato público
+        const formatService = (service: any) => ({
+          id: service.id,
+          name: service.name,
+          description: service.description,
+          price: parseFloat(String(service.value)),
+          salePrice: service.promotionalValue ? parseFloat(String(service.promotionalValue)) : null,
+          isOnSale: !!(
+            service.promotionalValue && 
+            service.promotionStartDate && 
+            service.promotionEndDate &&
+            service.promotionStartDate <= today && 
+            service.promotionEndDate >= today
+          ),
+          isFeatured: service.isFeatured,
+          imageUrl: service.imageUrl,
+          category: service.category,
+          duration: service.duration,
+        });
+
+        return res.json({
+          ...baseResponse,
+          categories: serviceCategories.map(cat => ({
+            id: cat,
+            name: cat,
+          })),
+          services: allServices.map(formatService),
+          featuredServices: featuredServices.map(formatService),
+          servicesOnSale: servicesOnSale.map(formatService),
+        });
+      }
+
+      // Fallback (não deveria chegar aqui)
+      res.status(404).json({ error: "Tipo de menu inválido" });
     } catch (error: any) {
       console.error("Error fetching menu:", error);
       res.status(500).json({ error: error.message || "Erro ao buscar cardápio" });
@@ -3791,6 +3863,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         menuLogoUrl: tenant.menuLogoUrl,
         menuBrandColor: tenant.menuBrandColor || '#ea7c3f',
         menuBannerUrl: tenant.menuBannerUrl,
+        menuType: tenant.menuType || 'delivery',
         minOrderValue: tenant.minOrderValue ? parseFloat(String(tenant.minOrderValue)) : null,
       });
     } catch (error: any) {
@@ -3807,7 +3880,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(401).json({ error: "Não autenticado" });
       }
 
-      const { menuSlug, menuLogoUrl, menuBrandColor, menuBannerUrl, minOrderValue } = req.body;
+      const { menuSlug, menuLogoUrl, menuBrandColor, menuBannerUrl, menuType, minOrderValue } = req.body;
 
       // Validar slug
       if (menuSlug) {
@@ -3825,11 +3898,19 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         }
       }
 
+      // Validar menuType
+      if (menuType && !['delivery', 'services'].includes(menuType)) {
+        return res.status(400).json({ 
+          error: "Tipo de menu inválido. Use 'delivery' ou 'services'." 
+        });
+      }
+
       const updated = await storage.updateTenant(tenantId, {
         menuSlug: menuSlug || null,
         menuLogoUrl: menuLogoUrl || null,
         menuBrandColor: menuBrandColor || '#ea7c3f',
         menuBannerUrl: menuBannerUrl || null,
+        menuType: menuType || 'delivery',
         minOrderValue: minOrderValue ? String(minOrderValue) : null,
       });
 
@@ -3842,6 +3923,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         menuLogoUrl: updated.menuLogoUrl,
         menuBrandColor: updated.menuBrandColor,
         menuBannerUrl: updated.menuBannerUrl,
+        menuType: updated.menuType,
         minOrderValue: updated.minOrderValue ? parseFloat(String(updated.minOrderValue)) : null,
       });
     } catch (error: any) {

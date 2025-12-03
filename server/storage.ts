@@ -119,6 +119,7 @@ export interface IStorage {
   // Service operations (with tenant isolation)
   getService(id: string, tenantId: string): Promise<Service | undefined>;
   getAllServices(tenantId: string): Promise<Service[]>;
+  getActiveServicesForMenu(tenantId: string): Promise<Service[]>;
   searchServices(tenantId: string, searchTerm: string): Promise<Service[]>;
   createService(service: InsertService): Promise<Service>;
   updateService(id: string, tenantId: string, service: Partial<InsertService>): Promise<Service | undefined>;
@@ -585,6 +586,17 @@ export class DbStorage implements IStorage {
       .select()
       .from(services)
       .where(eq(services.tenantId, tenantId))
+      .orderBy(services.category, services.name);
+  }
+
+  async getActiveServicesForMenu(tenantId: string): Promise<Service[]> {
+    return await db
+      .select()
+      .from(services)
+      .where(and(
+        eq(services.tenantId, tenantId),
+        eq(services.isActive, true)
+      ))
       .orderBy(services.category, services.name);
   }
 
