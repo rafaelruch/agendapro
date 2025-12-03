@@ -238,6 +238,7 @@ export interface IStorage {
   getOrderWithDetails(id: string, tenantId: string): Promise<OrderWithDetails | undefined>;
   getAllOrdersWithDetails(tenantId: string): Promise<OrderWithDetails[]>;
   getOrdersByStatus(tenantId: string, status: OrderStatus): Promise<OrderWithDetails[]>;
+  getOrdersByClient(clientId: string, tenantId: string): Promise<OrderWithDetails[]>;
   getActiveOrders(tenantId: string): Promise<OrderWithDetails[]>;
   getNextOrderNumber(tenantId: string): Promise<number>;
   createOrder(
@@ -2006,6 +2007,21 @@ export class DbStorage implements IStorage {
       .from(orders)
       .where(and(eq(orders.tenantId, tenantId), eq(orders.status, status)))
       .orderBy(orders.createdAt);
+
+    const result: OrderWithDetails[] = [];
+    for (const order of ordersList) {
+      const details = await this.getOrderWithDetails(order.id, tenantId);
+      if (details) result.push(details);
+    }
+    return result;
+  }
+
+  async getOrdersByClient(clientId: string, tenantId: string): Promise<OrderWithDetails[]> {
+    const ordersList = await db
+      .select()
+      .from(orders)
+      .where(and(eq(orders.tenantId, tenantId), eq(orders.clientId, clientId)))
+      .orderBy(desc(orders.createdAt));
 
     const result: OrderWithDetails[] = [];
     for (const order of ordersList) {

@@ -38,6 +38,37 @@ interface DeliveryNeighborhood {
   deliveryFee: number;
 }
 
+interface ClientOrder {
+  id: string;
+  orderNumber: number;
+  status: string;
+  total: number;
+  paymentMethod: string;
+  notes: string | null;
+  createdAt: string;
+  deliveryStreet: string | null;
+  deliveryNumber: string | null;
+  deliveryNeighborhood: string | null;
+  items: {
+    id: string;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+  }[];
+}
+
+interface ClientAddress {
+  id: string;
+  label: string | null;
+  street: string | null;
+  number: string | null;
+  complement: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  reference: string | null;
+  isDefault: boolean | null;
+}
+
 interface MenuData {
   tenant: {
     name: string;
@@ -83,18 +114,15 @@ export default function PublicMenuPage() {
   });
   const [orderSuccess, setOrderSuccess] = useState<{ orderId: string; orderNumber: number } | null>(null);
   const [clientFound, setClientFound] = useState<boolean | null>(null);
-  const [savedAddresses, setSavedAddresses] = useState<Array<{
-    id: string;
-    label: string | null;
-    street: string | null;
-    number: string | null;
-    complement: string | null;
-    neighborhood: string | null;
-    city: string | null;
-    reference: string | null;
-    isDefault: boolean | null;
-  }>>([]);
+  const [savedAddresses, setSavedAddresses] = useState<ClientAddress[]>([]);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
+  const [clientOrders, setClientOrders] = useState<ClientOrder[]>([]);
+  const [clientHistory, setClientHistory] = useState<ClientOrder[]>([]);
+  const [clientAddresses, setClientAddresses] = useState<ClientAddress[]>([]);
+  const [identifiedPhone, setIdentifiedPhone] = useState<string | null>(null);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [isLoadingClientData, setIsLoadingClientData] = useState(false);
 
   const addToCart = (product: MenuProduct) => {
     setCart((prev) => {
@@ -235,7 +263,38 @@ export default function PublicMenuPage() {
     },
   });
 
-  // Buscar cliente por telefone
+  // Carregar pedidos e endereços do cliente
+  const loadClientData = async (phone: string) => {
+    const cleanPhone = phone.replace(/\D/g, "");
+    if (cleanPhone.length < 10) return;
+    
+    setIsLoadingClientData(true);
+    try {
+      // Buscar pedidos
+      const ordersRes = await fetch(`/api/menu/${slug}/client/${cleanPhone}/orders`);
+      const ordersData = await ordersRes.json();
+      setClientOrders(ordersData.orders || []);
+      setClientHistory(ordersData.history || []);
+      
+      // Buscar endereços
+      const clientRes = await fetch(`/api/menu/${slug}/client/${cleanPhone}`);
+      const clientData = await clientRes.json();
+      if (clientData.found) {
+        setClientAddresses(clientData.addresses || []);
+        setCustomer({ name: clientData.client.name, phone: clientData.client.phone });
+        localStorage.setItem(`menu_customer_${slug}`, JSON.stringify({ 
+          name: clientData.client.name, 
+          phone: clientData.client.phone 
+        }));
+      }
+    } catch (error) {
+      console.error("Erro ao carregar dados do cliente:", error);
+    } finally {
+      setIsLoadingClientData(false);
+    }
+  };
+
+  // Buscar cliente por telefone (checkout)
   const searchClientByPhone = async (phone: string) => {
     const cleanPhone = phone.replace(/\D/g, "");
     if (cleanPhone.length < 10) return;
@@ -252,6 +311,7 @@ export default function PublicMenuPage() {
           name: data.client.name,
         }));
         setSavedAddresses(data.addresses || []);
+        setIdentifiedPhone(cleanPhone);
         // Se tiver endereço padrão, selecionar
         const defaultAddr = data.addresses?.find((a: any) => a.isDefault);
         if (defaultAddr) {
@@ -275,6 +335,54 @@ export default function PublicMenuPage() {
       setClientFound(false);
     } finally {
       setIsSearchingClient(false);
+    }
+  };
+
+  // Identificar cliente para ver pedidos/endereços
+  const identifyClient = async () => {
+    const cleanPhone = phoneInput.replace(/\D/g, "");
+    if (cleanPhone.length < 10) return;
+    
+    setIsLoadingClientData(true);
+    try {
+      const res = await fetch(`/api/menu/${slug}/client/${cleanPhone}`);
+      const data = await res.json();
+      
+      if (data.found) {
+        setIdentifiedPhone(cleanPhone);
+        setCustomer({ name: data.client.name, phone: data.client.phone });
+        localStorage.setItem(`menu_customer_${slug}`, JSON.stringify({ 
+          name: data.client.name, 
+          phone: data.client.phone 
+        }));
+        setClientAddresses(data.addresses || []);
+        setShowPhoneModal(false);
+        // Carregar pedidos
+        await loadClientData(cleanPhone);
+      } else {
+        alert("Telefone não encontrado. Faça um pedido primeiro para criar seu cadastro.");
+      }
+    } catch (error) {
+      console.error("Erro ao identificar cliente:", error);
+    } finally {
+      setIsLoadingClientData(false);
+    }
+  };
+
+  // Verificar se precisa identificar ao trocar de seção
+  const handleSectionChange = (section: ActiveSection) => {
+    if ((section === "pedidos" || section === "historico" || section === "enderecos") && !identifiedPhone && !customer) {
+      setShowPhoneModal(true);
+      setActiveSection(section);
+    } else if ((section === "pedidos" || section === "historico" || section === "enderecos") && (identifiedPhone || customer)) {
+      setActiveSection(section);
+      // Recarregar dados se necessário
+      const phone = identifiedPhone || customer?.phone;
+      if (phone && clientOrders.length === 0 && clientHistory.length === 0) {
+        loadClientData(phone);
+      }
+    } else {
+      setActiveSection(section);
     }
   };
 
@@ -734,7 +842,7 @@ export default function PublicMenuPage() {
               return (
                 <button
                   key={menu.id}
-                  onClick={() => setActiveSection(menu.id)}
+                  onClick={() => handleSectionChange(menu.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
                     isActive
                       ? "border-2 bg-opacity-10"
@@ -766,7 +874,7 @@ export default function PublicMenuPage() {
               return (
                 <button
                   key={menu.id}
-                  onClick={() => setActiveSection(menu.id)}
+                  onClick={() => handleSectionChange(menu.id)}
                   className="flex flex-col items-center gap-1 py-1 px-3 min-w-[60px]"
                   data-testid={`nav-mobile-${menu.id}`}
                 >
@@ -1561,17 +1669,78 @@ export default function PublicMenuPage() {
           {activeSection === "pedidos" && (
             <div className="px-4 py-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Meus Pedidos</h2>
-              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                <ClipboardList className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">Você ainda não tem pedidos.</p>
-                <button
-                  onClick={() => setActiveSection("cardapio")}
-                  className="mt-4 px-6 py-2 rounded-lg text-white font-medium"
-                  style={{ backgroundColor: brandColor }}
-                >
-                  Ver Cardápio
-                </button>
-              </div>
+              {isLoadingClientData ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                </div>
+              ) : clientOrders.length === 0 ? (
+                <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                  <ClipboardList className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">Você não tem pedidos em andamento.</p>
+                  <button
+                    onClick={() => setActiveSection("cardapio")}
+                    className="mt-4 px-6 py-2 rounded-lg text-white font-medium"
+                    style={{ backgroundColor: brandColor }}
+                  >
+                    Ver Cardápio
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {clientOrders.map((order) => (
+                    <div key={order.id} className="bg-white rounded-xl border border-gray-200 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <span className="font-bold text-gray-900">Pedido #{order.orderNumber}</span>
+                          <p className="text-xs text-gray-500">
+                            {new Date(order.createdAt).toLocaleDateString('pt-BR', { 
+                              day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                            })}
+                          </p>
+                        </div>
+                        <span 
+                          className="px-3 py-1 rounded-full text-xs font-medium"
+                          style={{ 
+                            backgroundColor: order.status === 'pending' ? '#FEF3C7' : 
+                                           order.status === 'confirmed' ? '#DBEAFE' :
+                                           order.status === 'preparing' ? '#FED7AA' :
+                                           order.status === 'ready' ? '#D1FAE5' :
+                                           order.status === 'delivering' ? '#E0E7FF' : '#F3F4F6',
+                            color: order.status === 'pending' ? '#92400E' : 
+                                   order.status === 'confirmed' ? '#1E40AF' :
+                                   order.status === 'preparing' ? '#C2410C' :
+                                   order.status === 'ready' ? '#065F46' :
+                                   order.status === 'delivering' ? '#3730A3' : '#374151'
+                          }}
+                        >
+                          {order.status === 'pending' && 'Pendente'}
+                          {order.status === 'confirmed' && 'Confirmado'}
+                          {order.status === 'preparing' && 'Preparando'}
+                          {order.status === 'ready' && 'Pronto'}
+                          {order.status === 'delivering' && 'Saiu para entrega'}
+                        </span>
+                      </div>
+                      <div className="space-y-1 mb-3">
+                        {order.items.map((item) => (
+                          <div key={item.id} className="flex justify-between text-sm">
+                            <span className="text-gray-600">{item.quantity}x {item.productName}</span>
+                            <span className="text-gray-900">{formatCurrency(item.unitPrice * item.quantity)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="border-t pt-2 flex justify-between font-bold">
+                        <span>Total</span>
+                        <span style={{ color: brandColor }}>{formatCurrency(order.total)}</span>
+                      </div>
+                      {order.deliveryStreet && (
+                        <p className="text-xs text-gray-500 mt-2">
+                          Entrega: {order.deliveryStreet}{order.deliveryNumber ? `, ${order.deliveryNumber}` : ''} - {order.deliveryNeighborhood}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1579,10 +1748,54 @@ export default function PublicMenuPage() {
           {activeSection === "historico" && (
             <div className="px-4 py-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Histórico de Pedidos</h2>
-              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                <History className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">Seu histórico de pedidos aparecerá aqui.</p>
-              </div>
+              {isLoadingClientData ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                </div>
+              ) : clientHistory.length === 0 ? (
+                <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                  <History className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">Seu histórico de pedidos aparecerá aqui.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {clientHistory.map((order) => (
+                    <div key={order.id} className="bg-white rounded-xl border border-gray-200 p-4 opacity-80">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <span className="font-bold text-gray-900">Pedido #{order.orderNumber}</span>
+                          <p className="text-xs text-gray-500">
+                            {new Date(order.createdAt).toLocaleDateString('pt-BR', { 
+                              day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                            })}
+                          </p>
+                        </div>
+                        <span 
+                          className="px-3 py-1 rounded-full text-xs font-medium"
+                          style={{ 
+                            backgroundColor: order.status === 'delivered' ? '#D1FAE5' : '#FEE2E2',
+                            color: order.status === 'delivered' ? '#065F46' : '#991B1B'
+                          }}
+                        >
+                          {order.status === 'delivered' ? 'Entregue' : 'Cancelado'}
+                        </span>
+                      </div>
+                      <div className="space-y-1 mb-3">
+                        {order.items.map((item) => (
+                          <div key={item.id} className="flex justify-between text-sm">
+                            <span className="text-gray-600">{item.quantity}x {item.productName}</span>
+                            <span className="text-gray-900">{formatCurrency(item.unitPrice * item.quantity)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="border-t pt-2 flex justify-between font-bold">
+                        <span>Total</span>
+                        <span style={{ color: brandColor }}>{formatCurrency(order.total)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1590,15 +1803,109 @@ export default function PublicMenuPage() {
           {activeSection === "enderecos" && (
             <div className="px-4 py-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Meus Endereços</h2>
-              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                <MapPin className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 mb-4">Você ainda não tem endereços salvos.</p>
-                <button
-                  className="px-6 py-2 rounded-lg text-white font-medium"
-                  style={{ backgroundColor: brandColor }}
-                >
-                  Adicionar Endereço
-                </button>
+              {isLoadingClientData ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                </div>
+              ) : clientAddresses.length === 0 ? (
+                <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                  <MapPin className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 mb-4">Você ainda não tem endereços salvos.</p>
+                  <p className="text-sm text-gray-400">Seus endereços serão salvos automaticamente ao fazer pedidos.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {clientAddresses.map((addr) => (
+                    <div 
+                      key={addr.id} 
+                      className="bg-white rounded-xl border border-gray-200 p-4 flex items-start gap-3"
+                    >
+                      <div 
+                        className="p-2 rounded-full"
+                        style={{ backgroundColor: `${brandColor}15` }}
+                      >
+                        <MapPin className="h-5 w-5" style={{ color: brandColor }} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900">{addr.label || 'Endereço'}</span>
+                          {addr.isDefault && (
+                            <span 
+                              className="px-2 py-0.5 rounded-full text-xs font-medium"
+                              style={{ backgroundColor: `${brandColor}20`, color: brandColor }}
+                            >
+                              Padrão
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {addr.street}{addr.number ? `, ${addr.number}` : ''}
+                          {addr.complement ? ` - ${addr.complement}` : ''}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {addr.neighborhood}{addr.city ? ` - ${addr.city}` : ''}
+                        </p>
+                        {addr.reference && (
+                          <p className="text-xs text-gray-400 mt-1">Ref: {addr.reference}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Modal de Identificação por Telefone */}
+          {showPhoneModal && (
+            <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowPhoneModal(false)}>
+              <div 
+                className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-4 border-b">
+                  <h2 className="text-lg font-bold text-gray-900">Identifique-se</h2>
+                  <p className="text-sm text-gray-500">Digite seu telefone para ver seus pedidos e endereços</p>
+                </div>
+                <div className="p-4 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Telefone / WhatsApp
+                    </label>
+                    <input
+                      type="tel"
+                      value={phoneInput}
+                      onChange={(e) => setPhoneInput(formatPhone(e.target.value))}
+                      placeholder="(00) 00000-0000"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                      style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                      data-testid="input-phone-identify"
+                    />
+                  </div>
+                </div>
+                <div className="p-4 border-t flex gap-3">
+                  <button
+                    onClick={() => setShowPhoneModal(false)}
+                    className="flex-1 py-3 rounded-xl border border-gray-300 font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={identifyClient}
+                    disabled={phoneInput.replace(/\D/g, "").length < 10 || isLoadingClientData}
+                    className="flex-1 py-3 rounded-xl text-white font-medium transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    style={{ backgroundColor: brandColor }}
+                  >
+                    {isLoadingClientData ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Buscando...
+                      </>
+                    ) : (
+                      'Continuar'
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           )}

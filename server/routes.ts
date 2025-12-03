@@ -3558,6 +3558,69 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
+  // GET /api/menu/:slug/client/:phone/orders - Buscar pedidos do cliente por telefone (público)
+  app.get("/api/menu/:slug/client/:phone/orders", async (req, res) => {
+    try {
+      const { slug, phone } = req.params;
+      const normalizedSlug = slug.toLowerCase();
+      
+      // Buscar tenant pelo slug
+      const tenant = await storage.getTenantByMenuSlug(normalizedSlug);
+      if (!tenant || !tenant.active) {
+        return res.status(404).json({ error: "Cardápio não encontrado" });
+      }
+
+      // Limpar telefone - apenas números
+      const cleanPhone = phone.replace(/\D/g, "");
+      if (cleanPhone.length < 10) {
+        return res.status(400).json({ error: "Telefone inválido" });
+      }
+
+      // Buscar cliente pelo telefone
+      const client = await storage.getClientByPhone(cleanPhone, tenant.id);
+      if (!client) {
+        return res.json({ orders: [], history: [] });
+      }
+
+      // Buscar todos os pedidos do cliente
+      const allOrders = await storage.getOrdersByClient(client.id, tenant.id);
+      
+      // Separar pedidos ativos e histórico
+      const activeStatuses = ['pending', 'confirmed', 'preparing', 'ready', 'delivering'];
+      const historyStatuses = ['delivered', 'cancelled'];
+      
+      const activeOrders = allOrders.filter(o => activeStatuses.includes(o.status));
+      const historyOrders = allOrders.filter(o => historyStatuses.includes(o.status));
+
+      const formatOrder = (order: any) => ({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        total: parseFloat(String(order.total)),
+        paymentMethod: order.paymentMethod,
+        notes: order.notes,
+        createdAt: order.createdAt,
+        deliveryStreet: order.deliveryStreet,
+        deliveryNumber: order.deliveryNumber,
+        deliveryNeighborhood: order.deliveryNeighborhood,
+        items: order.items?.map((item: any) => ({
+          id: item.id,
+          productName: item.product?.name || 'Produto',
+          quantity: item.quantity,
+          unitPrice: parseFloat(String(item.unitPrice)),
+        })) || [],
+      });
+
+      res.json({
+        orders: activeOrders.map(formatOrder),
+        history: historyOrders.map(formatOrder),
+      });
+    } catch (error: any) {
+      console.error("Error fetching client orders:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar pedidos" });
+    }
+  });
+
   // GET /api/menu/:slug/client/:phone - Buscar cliente por telefone (público)
   app.get("/api/menu/:slug/client/:phone", async (req, res) => {
     try {
