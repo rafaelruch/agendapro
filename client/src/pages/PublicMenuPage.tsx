@@ -119,11 +119,13 @@ export default function PublicMenuPage() {
   const [checkoutForm, setCheckoutForm] = useState({
     name: "",
     phone: "",
+    zipCode: "",
     street: "",
     number: "",
     complement: "",
     neighborhood: "",
     city: "",
+    state: "",
     reference: "",
     paymentMethod: "pix" as PaymentMethod,
     notes: "",
@@ -131,6 +133,7 @@ export default function PublicMenuPage() {
     selectedAddressId: "" as string,
     changeFor: "" as string,
   });
+  const [isLoadingCep, setIsLoadingCep] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<{ orderId: string; orderNumber: number } | null>(null);
   const [clientFound, setClientFound] = useState<boolean | null>(null);
   const [savedAddresses, setSavedAddresses] = useState<ClientAddress[]>([]);
@@ -633,6 +636,8 @@ export default function PublicMenuPage() {
       complement: "",
       neighborhood: "",
       city: "",
+      state: "",
+      zipCode: "",
       reference: "",
       paymentMethod: "pix",
       notes: "",
@@ -644,6 +649,39 @@ export default function PublicMenuPage() {
     setOrderSuccess(null);
     setShowCheckout(true);
     setShowMobileCart(false);
+  };
+
+  // Formatar CEP (00000-000)
+  const formatCep = (value: string) => {
+    const numbers = value.replace(/\D/g, "").slice(0, 8);
+    if (numbers.length <= 5) return numbers;
+    return `${numbers.slice(0, 5)}-${numbers.slice(5)}`;
+  };
+
+  // Buscar endereço por CEP (ViaCEP)
+  const searchCep = async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, "");
+    if (cleanCep.length !== 8) return;
+    
+    setIsLoadingCep(true);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data = await response.json();
+      
+      if (!data.erro) {
+        setCheckoutForm((prev) => ({
+          ...prev,
+          street: data.logradouro || "",
+          neighborhood: data.bairro || "",
+          city: data.localidade || "",
+          state: data.uf || "",
+        }));
+      }
+    } catch (error) {
+      console.error("Erro ao buscar CEP:", error);
+    } finally {
+      setIsLoadingCep(false);
+    }
   };
 
   // Formatar valor monetário para input
@@ -1921,6 +1959,33 @@ export default function PublicMenuPage() {
                       {(savedAddresses.length === 0 || checkoutForm.selectedAddressId === "") && (
                         <>
                           <p className="text-sm text-gray-500 mb-2">Preencha o endereço de entrega (opcional para retirada)</p>
+                      {/* CEP - Primeiro campo */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">CEP</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={checkoutForm.zipCode}
+                            onChange={(e) => {
+                              const formatted = formatCep(e.target.value);
+                              setCheckoutForm({ ...checkoutForm, zipCode: formatted });
+                              if (formatted.replace(/\D/g, "").length === 8) {
+                                searchCep(formatted);
+                              }
+                            }}
+                            placeholder="00000-000"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                            style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                            data-testid="input-checkout-zipcode"
+                          />
+                          {isLoadingCep && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">Digite o CEP para preencher automaticamente</p>
+                      </div>
                       <div className="grid grid-cols-3 gap-3">
                         <div className="col-span-2">
                           <label className="block text-sm font-medium text-gray-700 mb-1">Rua</label>
