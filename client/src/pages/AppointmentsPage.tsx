@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, Eye, Check, X, Filter, CalendarDays, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { Search, Eye, Check, CheckCircle2, X, Filter, CalendarDays, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -644,7 +644,7 @@ export default function AppointmentsPage() {
                                 data-testid={`button-complete-${apt.id}`}
                                 className="text-blue-600 hover:text-blue-700 hover-elevate"
                               >
-                                <Check className="h-4 w-4" />
+                                <CheckCircle2 className="h-4 w-4" />
                               </Button>
                               <Button
                                 size="icon"
