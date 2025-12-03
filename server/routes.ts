@@ -3638,7 +3638,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         });
       }
 
-      const { client, items, paymentMethod, notes, deliveryAddress, saveAddress, addressLabel } = validation.data;
+      const { client, items, paymentMethod, notes, changeFor, deliveryAddress, saveAddress, addressLabel } = validation.data;
 
       // Verificar/criar cliente pelo telefone
       let existingClient = await storage.getClientByPhone(client.phone, tenant.id);
@@ -3682,7 +3682,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         paymentMethod, 
         notes, 
         deliveryAddress, 
-        clientAddressId
+        clientAddressId,
+        changeFor
       );
 
       res.status(201).json({

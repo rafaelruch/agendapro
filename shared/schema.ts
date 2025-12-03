@@ -316,6 +316,8 @@ export const orders = pgTable("orders", {
   notes: text("notes"),
   // Forma de pagamento (obrigatória na criação)
   paymentMethod: text("payment_method").notNull().default("cash"),
+  // Troco para quanto (apenas para pagamento em dinheiro)
+  changeFor: numeric("change_for", { precision: 10, scale: 2 }),
   // Snapshot do endereço no momento do pedido (imutável para histórico)
   deliveryStreet: text("delivery_street"),
   deliveryNumber: text("delivery_number"),
@@ -625,6 +627,7 @@ export const insertOrderSchema = z.object({
   })).min(1, "Pelo menos um item é obrigatório"),
   paymentMethod: z.enum(PAYMENT_METHODS, { required_error: "Forma de pagamento é obrigatória" }),
   notes: z.string().optional(),
+  changeFor: z.coerce.number().positive().optional(), // Troco para quanto (pagamento em dinheiro)
   deliveryAddress: deliveryAddressSchema.optional(),
   clientAddressId: z.string().optional(), // ID do endereço existente selecionado
   saveAddress: z.boolean().optional(), // Salvar novo endereço para próximos pedidos

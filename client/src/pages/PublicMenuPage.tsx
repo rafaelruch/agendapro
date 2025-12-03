@@ -79,6 +79,7 @@ export default function PublicMenuPage() {
     notes: "",
     saveAddress: true,
     selectedAddressId: "" as string,
+    changeFor: "" as string,
   });
   const [orderSuccess, setOrderSuccess] = useState<{ orderId: string; orderNumber: number } | null>(null);
   const [clientFound, setClientFound] = useState<boolean | null>(null);
@@ -295,6 +296,7 @@ export default function PublicMenuPage() {
       notes: "",
       saveAddress: true,
       selectedAddressId: "",
+      changeFor: "",
     });
     setCheckoutStep("telefone");
     setOrderSuccess(null);
@@ -302,8 +304,27 @@ export default function PublicMenuPage() {
     setShowMobileCart(false);
   };
 
+  // Formatar valor monetário para input
+  const formatCurrencyInput = (value: string) => {
+    const numbers = value.replace(/\D/g, "");
+    if (!numbers) return "";
+    const amount = parseInt(numbers, 10) / 100;
+    return amount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  // Parsear valor do input para número
+  const parseCurrencyInput = (value: string): number => {
+    const numbers = value.replace(/\D/g, "");
+    if (!numbers) return 0;
+    return parseInt(numbers, 10) / 100;
+  };
+
   // Enviar pedido
   const submitOrder = () => {
+    const changeForValue = checkoutForm.paymentMethod === "cash" && checkoutForm.changeFor 
+      ? parseCurrencyInput(checkoutForm.changeFor) 
+      : undefined;
+    
     createOrderMutation.mutate({
       client: {
         name: checkoutForm.name,
@@ -315,6 +336,7 @@ export default function PublicMenuPage() {
       })),
       paymentMethod: checkoutForm.paymentMethod,
       notes: checkoutForm.notes || undefined,
+      changeFor: changeForValue,
       deliveryAddress: {
         street: checkoutForm.street || undefined,
         number: checkoutForm.number || undefined,
@@ -1382,7 +1404,7 @@ export default function PublicMenuPage() {
                           return (
                             <button
                               key={method.id}
-                              onClick={() => setCheckoutForm({ ...checkoutForm, paymentMethod: method.id })}
+                              onClick={() => setCheckoutForm({ ...checkoutForm, paymentMethod: method.id, changeFor: "" })}
                               className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
                                 isSelected ? "border-2" : "border-gray-200 hover:border-gray-300"
                               }`}
@@ -1397,6 +1419,42 @@ export default function PublicMenuPage() {
                           );
                         })}
                       </div>
+
+                      {/* Campo de Troco - apenas para pagamento em dinheiro */}
+                      {checkoutForm.paymentMethod === "cash" && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Precisa de troco para quanto?
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-500 font-medium">R$</span>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={checkoutForm.changeFor}
+                              onChange={(e) => setCheckoutForm({ ...checkoutForm, changeFor: formatCurrencyInput(e.target.value) })}
+                              placeholder="0,00"
+                              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                              style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                              data-testid="input-checkout-change"
+                            />
+                          </div>
+                          {checkoutForm.changeFor && parseCurrencyInput(checkoutForm.changeFor) > 0 && parseCurrencyInput(checkoutForm.changeFor) < cartTotal && (
+                            <p className="text-red-500 text-xs mt-2">
+                              O valor do troco deve ser maior que o total do pedido ({formatCurrency(cartTotal)})
+                            </p>
+                          )}
+                          {checkoutForm.changeFor && parseCurrencyInput(checkoutForm.changeFor) >= cartTotal && (
+                            <p className="text-green-600 text-xs mt-2">
+                              Troco: {formatCurrency(parseCurrencyInput(checkoutForm.changeFor) - cartTotal)}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500 mt-2">
+                            Deixe em branco se não precisar de troco
+                          </p>
+                        </div>
+                      )}
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
                         <textarea

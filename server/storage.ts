@@ -2063,7 +2063,8 @@ export class DbStorage implements IStorage {
       zipCode?: string;
       reference?: string;
     },
-    clientAddressId?: string
+    clientAddressId?: string,
+    changeFor?: number
   ): Promise<OrderWithDetails> {
     // Calcular total e validar estoque
     let total = 0;
@@ -2099,6 +2100,7 @@ export class DbStorage implements IStorage {
         total: String(total),
         notes,
         paymentMethod,
+        changeFor: changeFor ? String(changeFor) : null,
         deliveryStreet: deliveryAddress?.street,
         deliveryNumber: deliveryAddress?.number,
         deliveryComplement: deliveryAddress?.complement,
