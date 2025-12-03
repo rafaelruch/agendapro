@@ -42,7 +42,6 @@ CREATE TABLE IF NOT EXISTS product_categories (
     id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
     tenant_id VARCHAR NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    description TEXT,
     display_order INTEGER NOT NULL DEFAULT 0,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT NOW()
