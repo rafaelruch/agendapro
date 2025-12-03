@@ -37,15 +37,24 @@ All data tables throughout the system must adhere to a standardized structure fo
     - **Integration**: Automatic revenue transactions created upon order delivery or appointment payment registration.
 - **Public Menu System**:
     - **Features**: Public catalog page accessible via unique URL (/menu/{slug}), customizable branding (logo and brand color), product categories with display order, mobile-first responsive design.
-    - **Database**: New table `product_categories` (id, tenant_id, name, display_order, is_active, created_at). New fields in `tenants` (menu_slug, menu_logo_url, menu_brand_color). New fields in `products` (image_url, category_id).
+    - **Menu Types**: Supports two mutually exclusive modes - "delivery" (products/orders) and "services" (appointments).
+    - **Database**: New table `product_categories` (id, tenant_id, name, display_order, is_active, created_at). New fields in `tenants` (menu_slug, menu_logo_url, menu_brand_color, menu_type). New fields in `products` (image_url, category_id). New fields in `services` (image_url, description, is_featured, is_active).
     - **API Endpoints**: 
         - `GET/POST/PUT/DELETE /api/product-categories` - Category CRUD (authenticated)
         - `GET/PUT /api/menu-settings` - Menu configuration (authenticated)
         - `GET /api/menu/:slug` - Public menu data (no authentication required)
+        - `GET /api/menu/:slug/availability?date=YYYY-MM-DD&serviceIds=id1,id2` - Public availability slots
+        - `GET /api/menu/:slug/client/:phone` - Public client lookup
+        - `GET /api/menu/:slug/client/:phone/orders` - Public client orders
+        - `GET /api/menu/:slug/client/:phone/appointments` - Public client appointments
+        - `POST /api/menu/:slug/orders` - Public order creation
+        - `POST /api/menu/:slug/appointments` - Public appointment creation with conflict detection
         - `POST /api/upload/product-image` - Product image upload
         - `POST /api/upload/menu-logo` - Menu logo upload
+        - `POST /api/upload/service-image` - Service image upload
+    - **Appointment Booking Flow**: 4-step modal (services confirmation → date selection → time slot selection → client data), real-time availability check, duration-based slot generation, conflict prevention, business hours enforcement.
     - **Frontend Pages**: ProductCategoriesPage.tsx, MenuSettingsPage.tsx, PublicMenuPage.tsx
-    - **Migration**: migrations/020_public_menu_system.sql
+    - **Migration**: migrations/020_public_menu_system.sql, migrations/025_services_public_menu.sql
 
 ### Production Deployment & Migrations
 The application is deployed on Easypanel, not Replit. Production database migrations are managed via the Master Admin SQL Migration panel. Any new tables or schema modifications require generating a corresponding SQL script to be executed in production. This includes updates to `shared/schema.ts`, SQL script generation, and documentation for the Master Admin panel.
