@@ -79,6 +79,20 @@ export const MODULE_DEFINITIONS: ModuleDefinition[] = [
     isCore: false,
     defaultEnabled: false,
   },
+  {
+    id: "public-menu",
+    label: "Cardápio Público",
+    description: "Menu público para clientes fazerem pedidos ou agendamentos",
+    isCore: false,
+    defaultEnabled: false,
+  },
+  {
+    id: "appointments",
+    label: "Agendamentos Públicos",
+    description: "Permite agendamentos pelo cardápio público",
+    isCore: false,
+    defaultEnabled: false,
+  },
 ];
 
 // Helper para obter módulos habilitados por padrão
