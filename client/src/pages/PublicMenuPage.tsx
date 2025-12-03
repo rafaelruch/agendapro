@@ -65,6 +65,8 @@ interface ClientAddress {
   complement: string | null;
   neighborhood: string | null;
   city: string | null;
+  state: string | null;
+  zipCode: string | null;
   reference: string | null;
   isDefault: boolean | null;
 }
@@ -560,6 +562,8 @@ export default function PublicMenuPage() {
             complement: defaultAddr.complement || "",
             neighborhood: defaultAddr.neighborhood || "",
             city: defaultAddr.city || "",
+            state: defaultAddr.state || "",
+            zipCode: defaultAddr.zipCode ? formatCep(defaultAddr.zipCode) : "",
             reference: defaultAddr.reference || "",
           }));
         }
@@ -726,6 +730,8 @@ export default function PublicMenuPage() {
         complement: checkoutForm.complement || undefined,
         neighborhood: checkoutForm.neighborhood || undefined,
         city: checkoutForm.city || undefined,
+        state: checkoutForm.state || undefined,
+        zipCode: checkoutForm.zipCode?.replace(/\D/g, "") || undefined,
         reference: checkoutForm.reference || undefined,
       },
       saveAddress: checkoutForm.saveAddress,
@@ -1907,6 +1913,8 @@ export default function PublicMenuPage() {
                                   complement: addr.complement || "",
                                   neighborhood: addr.neighborhood || "",
                                   city: addr.city || "",
+                                  state: addr.state || "",
+                                  zipCode: addr.zipCode ? formatCep(addr.zipCode) : "",
                                   reference: addr.reference || "",
                                   saveAddress: false,
                                 });
@@ -1938,6 +1946,8 @@ export default function PublicMenuPage() {
                                 complement: "",
                                 neighborhood: "",
                                 city: "",
+                                state: "",
+                                zipCode: "",
                                 reference: "",
                                 saveAddress: true,
                               });
