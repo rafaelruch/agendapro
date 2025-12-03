@@ -783,7 +783,7 @@ export default function PublicMenuPage() {
   ];
 
   const filteredProducts = useMemo(() => {
-    if (!menuData) return [];
+    if (!menuData || !menuData.products) return [];
     
     let products = menuData.products;
     
@@ -804,21 +804,21 @@ export default function PublicMenuPage() {
   }, [menuData, searchQuery, activeCategory]);
 
   const groupedProducts = useMemo(() => {
-    if (!menuData) return new Map<string, MenuProduct[]>();
+    if (!menuData || !menuData.products || !menuData.categories) return new Map<string, MenuProduct[]>();
     
     const groups = new Map<string, MenuProduct[]>();
     
     if (activeCategory) {
-      groups.set(activeCategory, filteredProducts);
+      groups.set(activeCategory, filteredProducts || []);
     } else {
       menuData.categories.forEach((cat) => {
-        const categoryProducts = filteredProducts.filter((p) => p.categoryId === cat.id);
+        const categoryProducts = (filteredProducts || []).filter((p) => p.categoryId === cat.id);
         if (categoryProducts.length > 0) {
           groups.set(cat.id, categoryProducts);
         }
       });
       
-      const uncategorized = filteredProducts.filter((p) => !p.categoryId);
+      const uncategorized = (filteredProducts || []).filter((p) => !p.categoryId);
       if (uncategorized.length > 0) {
         groups.set("uncategorized", uncategorized);
       }
