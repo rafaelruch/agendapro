@@ -1,6 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Search, SlidersHorizontal, Package, ShoppingBag, User, X, ChevronDown, LogOut, UtensilsCrossed, ClipboardList, History, MapPin, Menu as MenuIcon, Plus, Minus, Trash2, ShoppingCart, CreditCard, Banknote, Smartphone, Check, Loader2, Calendar, Clock, Scissors, AlertTriangle } from "lucide-react";
+import { Search, SlidersHorizontal, Package, ShoppingBag, User, X, ChevronDown, LogOut, UtensilsCrossed, ClipboardList, History, MapPin, Menu as MenuIcon, Plus, Minus, Trash2, ShoppingCart, CreditCard, Banknote, Smartphone, Check, Loader2, Calendar, Clock, Scissors, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { DayPicker } from "react-day-picker";
+import { ptBR } from "date-fns/locale";
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, isBefore, isAfter, startOfDay, addDays } from "date-fns";
+import "react-day-picker/dist/style.css";
 
 type ActiveSection = "cardapio" | "pedidos" | "historico" | "enderecos";
 type PaymentMethod = "cash" | "pix" | "debit" | "credit";
@@ -2343,26 +2347,76 @@ export default function PublicMenuPage() {
                       <p className="text-gray-600 text-sm">
                         Selecione a data para seu agendamento:
                       </p>
-                      <div>
-                        <input
-                          type="date"
-                          value={selectedDate}
-                          onChange={(e) => setSelectedDate(e.target.value)}
-                          min={new Date().toISOString().split('T')[0]}
-                          max={new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                          className="w-full p-4 text-lg border rounded-xl focus:ring-2 focus:border-transparent"
-                          style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
-                          data-testid="input-booking-date"
+                      <div className="flex justify-center">
+                        <DayPicker
+                          mode="single"
+                          selected={selectedDate ? new Date(selectedDate + 'T12:00:00') : undefined}
+                          onSelect={(date) => {
+                            if (date) {
+                              setSelectedDate(format(date, 'yyyy-MM-dd'));
+                            }
+                          }}
+                          locale={ptBR}
+                          weekStartsOn={0}
+                          disabled={(date) => {
+                            const today = startOfDay(new Date());
+                            const maxDate = addDays(today, 90);
+                            return isBefore(date, today) || isAfter(date, maxDate);
+                          }}
+                          className="rdp-custom"
+                          styles={{
+                            caption: { color: brandColor },
+                            day: { borderRadius: '0.75rem' },
+                          }}
+                          modifiersStyles={{
+                            selected: { 
+                              backgroundColor: brandColor,
+                              color: 'white',
+                              fontWeight: 'bold'
+                            },
+                            today: {
+                              fontWeight: 'bold',
+                              border: `2px solid ${brandColor}`,
+                              borderRadius: '0.75rem'
+                            }
+                          }}
+                          classNames={{
+                            months: "flex flex-col",
+                            month: "space-y-4",
+                            caption: "flex justify-center pt-1 relative items-center mb-4",
+                            caption_label: "text-lg font-semibold capitalize",
+                            nav: "space-x-1 flex items-center",
+                            nav_button: "h-8 w-8 bg-gray-100 hover:bg-gray-200 p-0 opacity-70 hover:opacity-100 inline-flex items-center justify-center rounded-lg transition-colors",
+                            nav_button_previous: "absolute left-1",
+                            nav_button_next: "absolute right-1",
+                            table: "w-full border-collapse",
+                            head_row: "flex justify-between",
+                            head_cell: "text-gray-500 rounded-md w-10 font-medium text-sm uppercase",
+                            row: "flex w-full mt-2 justify-between",
+                            cell: "h-10 w-10 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+                            day: "h-10 w-10 p-0 font-normal hover:bg-gray-100 rounded-xl inline-flex items-center justify-center transition-colors cursor-pointer",
+                            day_selected: "!bg-brand-600 text-white hover:!bg-brand-700",
+                            day_today: "font-bold",
+                            day_outside: "text-gray-300 opacity-50",
+                            day_disabled: "text-gray-300 opacity-30 cursor-not-allowed hover:bg-transparent",
+                            day_hidden: "invisible",
+                          }}
+                          data-testid="datepicker-booking"
                         />
                       </div>
                       {selectedDate && (
-                        <p className="text-sm text-gray-600 text-center">
-                          Data selecionada: <span className="font-medium">
-                            {new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { 
-                              weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
-                            })}
-                          </span>
-                        </p>
+                        <div 
+                          className="text-center py-3 px-4 rounded-xl"
+                          style={{ backgroundColor: `${brandColor}15` }}
+                        >
+                          <p className="text-sm text-gray-600">
+                            Data selecionada: <span className="font-semibold" style={{ color: brandColor }}>
+                              {new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { 
+                                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
+                              })}
+                            </span>
+                          </p>
+                        </div>
                       )}
                     </div>
                   )}
