@@ -73,6 +73,7 @@ import bcrypt from "bcrypt";
 export interface IStorage {
   // Tenant operations
   getTenant(id: string): Promise<Tenant | undefined>;
+  getTenantByMenuSlug(slug: string): Promise<Tenant | undefined>;
   getAllTenants(): Promise<Tenant[]>;
   createTenant(tenant: InsertTenant): Promise<Tenant>;
   updateTenant(id: string, tenant: Partial<InsertTenant>): Promise<Tenant | undefined>;
@@ -294,6 +295,11 @@ export class DbStorage implements IStorage {
   // Tenant operations
   async getTenant(id: string): Promise<Tenant | undefined> {
     const result = await db.select().from(tenants).where(eq(tenants.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getTenantByMenuSlug(slug: string): Promise<Tenant | undefined> {
+    const result = await db.select().from(tenants).where(eq(tenants.menuSlug, slug)).limit(1);
     return result[0];
   }
 

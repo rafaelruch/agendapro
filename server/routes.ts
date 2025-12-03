@@ -11,6 +11,8 @@ import {
   insertUserSchema,
   insertBusinessHoursSchema,
   insertProfessionalSchema,
+  insertProductCategorySchema,
+  updateProductCategorySchema,
   insertProductSchema,
   updateProductSchema,
   insertOrderSchema,
@@ -32,6 +34,8 @@ import {
   getServiceEffectiveValue,
   MODULE_DEFINITIONS
 } from "@shared/schema";
+import path from "path";
+import fs from "fs";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import multer from "multer";
@@ -2609,6 +2613,198 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // ===========================================
+  // CONFIGURAÇÃO DE UPLOAD DE IMAGENS
+  // ===========================================
+  
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  
+  const imageStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, uploadsDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = path.extname(file.originalname);
+      cb(null, uniqueSuffix + ext);
+    }
+  });
+  
+  const imageUpload = multer({
+    storage: imageStorage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Tipo de arquivo não permitido. Use JPEG, PNG, GIF ou WebP.'));
+      }
+    }
+  });
+
+  // Servir arquivos de upload
+  app.use('/uploads', require('express').static(uploadsDir));
+
+  // POST /api/upload/image - Upload de imagem
+  app.post("/api/upload/image", authenticateRequest, uploadLimiter, imageUpload.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Nenhuma imagem enviada" });
+      }
+      
+      const imageUrl = `/uploads/${req.file.filename}`;
+      res.json({ url: imageUrl });
+    } catch (error: any) {
+      console.error("Error uploading image:", error);
+      res.status(500).json({ error: error.message || "Erro ao fazer upload da imagem" });
+    }
+  });
+
+  // ===========================================
+  // ROTAS DE CATEGORIAS DE PRODUTOS (COM ISOLAMENTO TENANT)
+  // ===========================================
+
+  // GET /api/inventory/categories - Listar categorias
+  app.get("/api/inventory/categories", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const activeOnly = req.query.active === 'true';
+      const categories = activeOnly 
+        ? await storage.getActiveProductCategories(tenantId)
+        : await storage.getAllProductCategories(tenantId);
+
+      res.json(categories);
+    } catch (error: any) {
+      console.error("Error fetching categories:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar categorias" });
+    }
+  });
+
+  // GET /api/inventory/categories/:id - Obter categoria específica
+  app.get("/api/inventory/categories/:id", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const category = await storage.getProductCategory(req.params.id, tenantId);
+      if (!category) {
+        return res.status(404).json({ error: "Categoria não encontrada" });
+      }
+
+      res.json(category);
+    } catch (error: any) {
+      console.error("Error fetching category:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar categoria" });
+    }
+  });
+
+  // POST /api/inventory/categories - Criar categoria
+  app.post("/api/inventory/categories", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const validation = insertProductCategorySchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Dados inválidos", 
+          details: validation.error.errors 
+        });
+      }
+
+      const category = await storage.createProductCategory({
+        ...validation.data,
+        tenantId,
+      });
+
+      res.status(201).json(category);
+    } catch (error: any) {
+      console.error("Error creating category:", error);
+      res.status(500).json({ error: error.message || "Erro ao criar categoria" });
+    }
+  });
+
+  // PUT /api/inventory/categories/:id - Atualizar categoria
+  app.put("/api/inventory/categories/:id", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const validation = updateProductCategorySchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Dados inválidos", 
+          details: validation.error.errors 
+        });
+      }
+
+      const category = await storage.updateProductCategory(req.params.id, tenantId, validation.data);
+      if (!category) {
+        return res.status(404).json({ error: "Categoria não encontrada" });
+      }
+
+      res.json(category);
+    } catch (error: any) {
+      console.error("Error updating category:", error);
+      res.status(500).json({ error: error.message || "Erro ao atualizar categoria" });
+    }
+  });
+
+  // POST /api/inventory/categories/reorder - Reordenar categorias
+  app.post("/api/inventory/categories/reorder", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const { orderedIds } = req.body;
+      if (!Array.isArray(orderedIds)) {
+        return res.status(400).json({ error: "orderedIds deve ser um array" });
+      }
+
+      await storage.reorderProductCategories(tenantId, orderedIds);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error reordering categories:", error);
+      res.status(500).json({ error: error.message || "Erro ao reordenar categorias" });
+    }
+  });
+
+  // DELETE /api/inventory/categories/:id - Excluir categoria
+  app.delete("/api/inventory/categories/:id", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const deleted = await storage.deleteProductCategory(req.params.id, tenantId);
+      if (!deleted) {
+        return res.status(404).json({ error: "Categoria não encontrada" });
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting category:", error);
+      res.status(500).json({ error: error.message || "Erro ao excluir categoria" });
+    }
+  });
+
+  // ===========================================
   // ROTAS DE PRODUTOS / ESTOQUE (COM ISOLAMENTO TENANT)
   // ===========================================
 
@@ -3268,6 +3464,136 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       }
       
       res.status(500).json({ error: error.message || "Erro ao registrar pagamento" });
+    }
+  });
+
+  // ===========================================
+  // ROTAS PÚBLICAS DO CARDÁPIO (SEM AUTENTICAÇÃO)
+  // ===========================================
+
+  // GET /api/menu/:slug - Obter dados do cardápio público
+  app.get("/api/menu/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      
+      // Buscar tenant pelo slug
+      const tenant = await storage.getTenantByMenuSlug(slug);
+      if (!tenant || !tenant.active) {
+        return res.status(404).json({ error: "Cardápio não encontrado" });
+      }
+
+      // Verificar se o módulo de inventário está habilitado
+      const modules = await storage.getTenantAllowedModules(tenant.id);
+      if (!modules.includes('inventory')) {
+        return res.status(404).json({ error: "Cardápio não disponível" });
+      }
+
+      // Buscar categorias ativas
+      const categories = await storage.getActiveProductCategories(tenant.id);
+
+      // Buscar produtos ativos
+      const allProducts = await storage.getActiveProducts(tenant.id);
+
+      // Organizar produtos por categoria
+      const productsWithCategory = allProducts.map(product => ({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: parseFloat(String(product.price)),
+        imageUrl: product.imageUrl,
+        categoryId: product.categoryId,
+      }));
+
+      res.json({
+        tenant: {
+          name: tenant.name,
+          logoUrl: tenant.menuLogoUrl,
+          brandColor: tenant.menuBrandColor || '#ea7c3f',
+        },
+        categories: categories.map(cat => ({
+          id: cat.id,
+          name: cat.name,
+        })),
+        products: productsWithCategory,
+      });
+    } catch (error: any) {
+      console.error("Error fetching menu:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar cardápio" });
+    }
+  });
+
+  // ===========================================
+  // ROTAS DE CONFIGURAÇÃO DO CARDÁPIO (COM AUTENTICAÇÃO)
+  // ===========================================
+
+  // GET /api/menu-settings - Obter configurações do cardápio
+  app.get("/api/menu-settings", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant não encontrado" });
+      }
+
+      res.json({
+        menuSlug: tenant.menuSlug,
+        menuLogoUrl: tenant.menuLogoUrl,
+        menuBrandColor: tenant.menuBrandColor || '#ea7c3f',
+      });
+    } catch (error: any) {
+      console.error("Error fetching menu settings:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar configurações" });
+    }
+  });
+
+  // PUT /api/menu-settings - Atualizar configurações do cardápio
+  app.put("/api/menu-settings", authenticateRequest, requireModule("inventory"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const { menuSlug, menuLogoUrl, menuBrandColor } = req.body;
+
+      // Validar slug
+      if (menuSlug) {
+        const slugRegex = /^[a-z0-9-]+$/;
+        if (!slugRegex.test(menuSlug)) {
+          return res.status(400).json({ 
+            error: "Slug inválido. Use apenas letras minúsculas, números e hífens." 
+          });
+        }
+
+        // Verificar se slug já existe (de outro tenant)
+        const existingTenant = await storage.getTenantByMenuSlug(menuSlug);
+        if (existingTenant && existingTenant.id !== tenantId) {
+          return res.status(400).json({ error: "Este endereço já está em uso" });
+        }
+      }
+
+      const updated = await storage.updateTenant(tenantId, {
+        menuSlug: menuSlug || null,
+        menuLogoUrl: menuLogoUrl || null,
+        menuBrandColor: menuBrandColor || '#ea7c3f',
+      });
+
+      if (!updated) {
+        return res.status(404).json({ error: "Tenant não encontrado" });
+      }
+
+      res.json({
+        menuSlug: updated.menuSlug,
+        menuLogoUrl: updated.menuLogoUrl,
+        menuBrandColor: updated.menuBrandColor,
+      });
+    } catch (error: any) {
+      console.error("Error updating menu settings:", error);
+      res.status(500).json({ error: error.message || "Erro ao atualizar configurações" });
     }
   });
 
