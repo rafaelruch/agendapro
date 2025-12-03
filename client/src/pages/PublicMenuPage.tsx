@@ -65,7 +65,7 @@ export default function PublicMenuPage() {
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [activeTab, setActiveTab] = useState<"populares" | "promocoes">("populares");
   const [showCheckout, setShowCheckout] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState<"dados" | "endereco" | "pagamento" | "confirmacao">("dados");
+  const [checkoutStep, setCheckoutStep] = useState<"telefone" | "dados" | "endereco" | "pagamento" | "confirmacao">("telefone");
   const [checkoutForm, setCheckoutForm] = useState({
     name: "",
     phone: "",
@@ -78,8 +78,22 @@ export default function PublicMenuPage() {
     paymentMethod: "pix" as PaymentMethod,
     notes: "",
     saveAddress: true,
+    selectedAddressId: "" as string,
   });
   const [orderSuccess, setOrderSuccess] = useState<{ orderId: string; orderNumber: number } | null>(null);
+  const [clientFound, setClientFound] = useState<boolean | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<Array<{
+    id: string;
+    label: string | null;
+    street: string | null;
+    number: string | null;
+    complement: string | null;
+    neighborhood: string | null;
+    city: string | null;
+    reference: string | null;
+    isDefault: boolean | null;
+  }>>([]);
+  const [isSearchingClient, setIsSearchingClient] = useState(false);
 
   const addToCart = (product: MenuProduct) => {
     setCart((prev) => {
@@ -220,17 +234,69 @@ export default function PublicMenuPage() {
     },
   });
 
+  // Buscar cliente por telefone
+  const searchClientByPhone = async (phone: string) => {
+    const cleanPhone = phone.replace(/\D/g, "");
+    if (cleanPhone.length < 10) return;
+    
+    setIsSearchingClient(true);
+    try {
+      const res = await fetch(`/api/menu/${slug}/client/${cleanPhone}`);
+      const data = await res.json();
+      
+      if (data.found) {
+        setClientFound(true);
+        setCheckoutForm((prev) => ({
+          ...prev,
+          name: data.client.name,
+        }));
+        setSavedAddresses(data.addresses || []);
+        // Se tiver endereço padrão, selecionar
+        const defaultAddr = data.addresses?.find((a: any) => a.isDefault);
+        if (defaultAddr) {
+          setCheckoutForm((prev) => ({
+            ...prev,
+            selectedAddressId: defaultAddr.id,
+            street: defaultAddr.street || "",
+            number: defaultAddr.number || "",
+            complement: defaultAddr.complement || "",
+            neighborhood: defaultAddr.neighborhood || "",
+            city: defaultAddr.city || "",
+            reference: defaultAddr.reference || "",
+          }));
+        }
+      } else {
+        setClientFound(false);
+        setSavedAddresses([]);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar cliente:", error);
+      setClientFound(false);
+    } finally {
+      setIsSearchingClient(false);
+    }
+  };
+
   // Abrir checkout
   const openCheckout = () => {
-    // Preencher dados do cliente se já estiver logado
-    if (customer) {
-      setCheckoutForm((prev) => ({
-        ...prev,
-        name: customer.name,
-        phone: customer.phone,
-      }));
-    }
-    setCheckoutStep("dados");
+    // Resetar estado
+    setClientFound(null);
+    setSavedAddresses([]);
+    setCheckoutForm({
+      name: "",
+      phone: "",
+      street: "",
+      number: "",
+      complement: "",
+      neighborhood: "",
+      city: "",
+      reference: "",
+      paymentMethod: "pix",
+      notes: "",
+      saveAddress: true,
+      selectedAddressId: "",
+    });
+    setCheckoutStep("telefone");
     setOrderSuccess(null);
     setShowCheckout(true);
     setShowMobileCart(false);
@@ -263,8 +329,11 @@ export default function PublicMenuPage() {
 
   // Validar passo atual
   const canProceed = () => {
+    if (checkoutStep === "telefone") {
+      return checkoutForm.phone.replace(/\D/g, "").length >= 10 && clientFound !== null;
+    }
     if (checkoutStep === "dados") {
-      return checkoutForm.name.trim().length >= 2 && checkoutForm.phone.replace(/\D/g, "").length >= 10;
+      return checkoutForm.name.trim().length >= 2;
     }
     if (checkoutStep === "endereco") {
       return true; // Endereço é opcional
@@ -277,35 +346,22 @@ export default function PublicMenuPage() {
 
   // Próximo passo
   const nextStep = () => {
-    if (checkoutStep === "dados") setCheckoutStep("endereco");
+    if (checkoutStep === "telefone") setCheckoutStep("dados");
+    else if (checkoutStep === "dados") setCheckoutStep("endereco");
     else if (checkoutStep === "endereco") setCheckoutStep("pagamento");
     else if (checkoutStep === "pagamento") submitOrder();
   };
 
   // Voltar passo
   const prevStep = () => {
-    if (checkoutStep === "endereco") setCheckoutStep("dados");
+    if (checkoutStep === "dados") setCheckoutStep("telefone");
+    else if (checkoutStep === "endereco") setCheckoutStep("dados");
     else if (checkoutStep === "pagamento") setCheckoutStep("endereco");
   };
 
   // Fechar checkout
   const closeCheckout = () => {
     setShowCheckout(false);
-    if (orderSuccess) {
-      setCheckoutForm({
-        name: customer?.name || "",
-        phone: customer?.phone || "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        reference: "",
-        paymentMethod: "pix",
-        notes: "",
-        saveAddress: true,
-      });
-    }
   };
 
   const paymentMethods = [
@@ -1053,9 +1109,10 @@ export default function PublicMenuPage() {
                     </h2>
                     {checkoutStep !== "confirmacao" && (
                       <p className="text-sm text-gray-500">
-                        {checkoutStep === "dados" && "Passo 1 de 3 - Seus dados"}
-                        {checkoutStep === "endereco" && "Passo 2 de 3 - Endereço de entrega"}
-                        {checkoutStep === "pagamento" && "Passo 3 de 3 - Pagamento"}
+                        {checkoutStep === "telefone" && "Passo 1 de 4 - Seu telefone"}
+                        {checkoutStep === "dados" && "Passo 2 de 4 - Seus dados"}
+                        {checkoutStep === "endereco" && "Passo 3 de 4 - Endereço de entrega"}
+                        {checkoutStep === "pagamento" && "Passo 4 de 4 - Pagamento"}
                       </p>
                     )}
                   </div>
@@ -1069,9 +1126,72 @@ export default function PublicMenuPage() {
 
                 {/* Conteúdo do Checkout */}
                 <div className="flex-1 overflow-auto p-4">
-                  {/* Passo 1: Dados do Cliente */}
+                  {/* Passo 1: Telefone */}
+                  {checkoutStep === "telefone" && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Telefone / WhatsApp *
+                        </label>
+                        <input
+                          type="tel"
+                          value={checkoutForm.phone}
+                          onChange={(e) => {
+                            const formatted = formatPhone(e.target.value);
+                            setCheckoutForm({ ...checkoutForm, phone: formatted });
+                            // Buscar cliente quando telefone estiver completo
+                            if (formatted.replace(/\D/g, "").length >= 10) {
+                              searchClientByPhone(formatted);
+                            } else {
+                              setClientFound(null);
+                            }
+                          }}
+                          placeholder="(00) 00000-0000"
+                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                          style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                          data-testid="input-checkout-phone"
+                        />
+                      </div>
+                      
+                      {isSearchingClient && (
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="text-sm">Buscando cadastro...</span>
+                        </div>
+                      )}
+                      
+                      {clientFound === true && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-green-700">
+                            <Check className="h-4 w-4" />
+                            <span className="text-sm font-medium">Cliente encontrado!</span>
+                          </div>
+                          <p className="text-sm text-green-600 mt-1">
+                            Olá, <strong>{checkoutForm.name}</strong>! Seus dados foram carregados.
+                          </p>
+                        </div>
+                      )}
+                      
+                      {clientFound === false && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <p className="text-sm text-blue-700">
+                            Novo por aqui? Vamos criar seu cadastro no próximo passo.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Passo 2: Dados do Cliente */}
                   {checkoutStep === "dados" && (
                     <div className="space-y-4">
+                      {clientFound && (
+                        <div className="bg-gray-50 rounded-lg p-3 mb-2">
+                          <p className="text-sm text-gray-600">
+                            Telefone: <strong>{checkoutForm.phone}</strong>
+                          </p>
+                        </div>
+                      )}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Nome completo *
@@ -1086,27 +1206,80 @@ export default function PublicMenuPage() {
                           data-testid="input-checkout-name"
                         />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Telefone / WhatsApp *
-                        </label>
-                        <input
-                          type="tel"
-                          value={checkoutForm.phone}
-                          onChange={(e) => setCheckoutForm({ ...checkoutForm, phone: formatPhone(e.target.value) })}
-                          placeholder="(00) 00000-0000"
-                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
-                          style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
-                          data-testid="input-checkout-phone"
-                        />
-                      </div>
                     </div>
                   )}
 
-                  {/* Passo 2: Endereço */}
+                  {/* Passo 3: Endereço */}
                   {checkoutStep === "endereco" && (
                     <div className="space-y-4">
-                      <p className="text-sm text-gray-500 mb-2">Preencha o endereço de entrega (opcional para retirada)</p>
+                      {/* Endereços Salvos */}
+                      {savedAddresses.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-gray-700">Endereços salvos</p>
+                          {savedAddresses.map((addr) => (
+                            <button
+                              key={addr.id}
+                              onClick={() => {
+                                setCheckoutForm({
+                                  ...checkoutForm,
+                                  selectedAddressId: addr.id,
+                                  street: addr.street || "",
+                                  number: addr.number || "",
+                                  complement: addr.complement || "",
+                                  neighborhood: addr.neighborhood || "",
+                                  city: addr.city || "",
+                                  reference: addr.reference || "",
+                                  saveAddress: false,
+                                });
+                              }}
+                              className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                                checkoutForm.selectedAddressId === addr.id
+                                  ? "border-2"
+                                  : "border-gray-200 hover:border-gray-300"
+                              }`}
+                              style={checkoutForm.selectedAddressId === addr.id ? { borderColor: brandColor, backgroundColor: `${brandColor}10` } : {}}
+                            >
+                              <p className="font-medium text-gray-900">{addr.label || "Endereço"}</p>
+                              <p className="text-sm text-gray-600">
+                                {addr.street}{addr.number ? `, ${addr.number}` : ""}
+                                {addr.complement ? ` - ${addr.complement}` : ""}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {addr.neighborhood}{addr.city ? ` - ${addr.city}` : ""}
+                              </p>
+                            </button>
+                          ))}
+                          <button
+                            onClick={() => {
+                              setCheckoutForm({
+                                ...checkoutForm,
+                                selectedAddressId: "",
+                                street: "",
+                                number: "",
+                                complement: "",
+                                neighborhood: "",
+                                city: "",
+                                reference: "",
+                                saveAddress: true,
+                              });
+                            }}
+                            className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                              checkoutForm.selectedAddressId === ""
+                                ? "border-2"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                            style={checkoutForm.selectedAddressId === "" ? { borderColor: brandColor, backgroundColor: `${brandColor}10` } : {}}
+                          >
+                            <p className="font-medium text-gray-900">+ Novo endereço</p>
+                            <p className="text-sm text-gray-500">Adicionar um novo endereço</p>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Formulário de novo endereço */}
+                      {(savedAddresses.length === 0 || checkoutForm.selectedAddressId === "") && (
+                        <>
+                          <p className="text-sm text-gray-500 mb-2">Preencha o endereço de entrega (opcional para retirada)</p>
                       <div className="grid grid-cols-3 gap-3">
                         <div className="col-span-2">
                           <label className="block text-sm font-medium text-gray-700 mb-1">Rua</label>
@@ -1184,19 +1357,21 @@ export default function PublicMenuPage() {
                         />
                       </div>
                       <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={checkoutForm.saveAddress}
-                          onChange={(e) => setCheckoutForm({ ...checkoutForm, saveAddress: e.target.checked })}
-                          className="w-4 h-4 rounded border-gray-300"
-                          style={{ accentColor: brandColor }}
-                        />
-                        <span className="text-sm text-gray-700">Salvar endereço para próximos pedidos</span>
-                      </label>
+                          <input
+                            type="checkbox"
+                            checked={checkoutForm.saveAddress}
+                            onChange={(e) => setCheckoutForm({ ...checkoutForm, saveAddress: e.target.checked })}
+                            className="w-4 h-4 rounded border-gray-300"
+                            style={{ accentColor: brandColor }}
+                          />
+                          <span className="text-sm text-gray-700">Salvar endereço para próximos pedidos</span>
+                        </label>
+                        </>
+                      )}
                     </div>
                   )}
 
-                  {/* Passo 3: Pagamento */}
+                  {/* Passo 4: Pagamento */}
                   {checkoutStep === "pagamento" && (
                     <div className="space-y-4">
                       <p className="text-sm text-gray-500 mb-2">Escolha a forma de pagamento</p>
@@ -1283,7 +1458,7 @@ export default function PublicMenuPage() {
                 <div className="p-4 border-t space-y-3">
                   {checkoutStep !== "confirmacao" ? (
                     <div className="flex gap-3">
-                      {checkoutStep !== "dados" && (
+                      {checkoutStep !== "telefone" && (
                         <button
                           onClick={prevStep}
                           className="flex-1 py-3 rounded-xl border border-gray-300 font-medium text-gray-700 hover:bg-gray-50 transition-colors"

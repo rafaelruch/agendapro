@@ -3558,6 +3558,59 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
+  // GET /api/menu/:slug/client/:phone - Buscar cliente por telefone (público)
+  app.get("/api/menu/:slug/client/:phone", async (req, res) => {
+    try {
+      const { slug, phone } = req.params;
+      const normalizedSlug = slug.toLowerCase();
+      
+      // Buscar tenant pelo slug
+      const tenant = await storage.getTenantByMenuSlug(normalizedSlug);
+      if (!tenant || !tenant.active) {
+        return res.status(404).json({ error: "Cardápio não encontrado" });
+      }
+
+      // Limpar telefone - apenas números
+      const cleanPhone = phone.replace(/\D/g, "");
+      if (cleanPhone.length < 10) {
+        return res.status(400).json({ error: "Telefone inválido" });
+      }
+
+      // Buscar cliente pelo telefone
+      const client = await storage.getClientByPhone(cleanPhone, tenant.id);
+      if (!client) {
+        return res.json({ found: false });
+      }
+
+      // Buscar endereços do cliente
+      const addresses = await storage.getClientAddresses(client.id, tenant.id);
+
+      res.json({
+        found: true,
+        client: {
+          id: client.id,
+          name: client.name,
+          phone: client.phone,
+        },
+        addresses: addresses.map(addr => ({
+          id: addr.id,
+          label: addr.label,
+          street: addr.street,
+          number: addr.number,
+          complement: addr.complement,
+          neighborhood: addr.neighborhood,
+          city: addr.city,
+          zipCode: addr.zipCode,
+          reference: addr.reference,
+          isDefault: addr.isDefault,
+        })),
+      });
+    } catch (error: any) {
+      console.error("Error fetching client by phone:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar cliente" });
+    }
+  });
+
   // POST /api/menu/:slug/orders - Criar pedido público (sem autenticação)
   app.post("/api/menu/:slug/orders", async (req, res) => {
     try {
