@@ -103,6 +103,8 @@ export const tenants = pgTable("tenants", {
   menuSlug: text("menu_slug").unique(),
   menuLogoUrl: text("menu_logo_url"),
   menuBrandColor: text("menu_brand_color").default("#ea7c3f"),
+  menuBannerUrl: text("menu_banner_url"),
+  minOrderValue: numeric("min_order_value", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -260,6 +262,16 @@ export const productCategories = pgTable("product_categories", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Tabela de bairros de entrega (taxa por bairro)
+export const deliveryNeighborhoods = pgTable("delivery_neighborhoods", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  deliveryFee: numeric("delivery_fee", { precision: 10, scale: 2 }).notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Tabela de produtos (estoque)
 export const products = pgTable("products", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -271,6 +283,23 @@ export const products = pgTable("products", {
   price: numeric("price", { precision: 10, scale: 2 }).notNull(),
   manageStock: boolean("manage_stock").notNull().default(false),
   quantity: integer("quantity"),
+  isActive: boolean("is_active").notNull().default(true),
+  // Campos para destaque e oferta
+  isFeatured: boolean("is_featured").notNull().default(false),
+  isOnSale: boolean("is_on_sale").notNull().default(false),
+  salePrice: numeric("sale_price", { precision: 10, scale: 2 }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Tabela de adicionais de produtos
+export const productAddons = pgTable("product_addons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  productId: varchar("product_id").notNull().references(() => products.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  price: numeric("price", { precision: 10, scale: 2 }).notNull(),
+  isRequired: boolean("is_required").notNull().default(false),
+  maxQuantity: integer("max_quantity").notNull().default(1),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -536,6 +565,17 @@ export const insertProductCategorySchema = createInsertSchema(productCategories)
 
 export const updateProductCategorySchema = insertProductCategorySchema.partial();
 
+// Schema para bairros de entrega
+export const insertDeliveryNeighborhoodSchema = createInsertSchema(deliveryNeighborhoods).omit({
+  id: true,
+  tenantId: true,
+  createdAt: true,
+}).extend({
+  deliveryFee: z.coerce.number().min(0, "Taxa de entrega deve ser positiva ou zero"),
+});
+
+export const updateDeliveryNeighborhoodSchema = insertDeliveryNeighborhoodSchema.partial();
+
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
   tenantId: true,
@@ -545,9 +585,24 @@ export const insertProductSchema = createInsertSchema(products).omit({
   quantity: z.coerce.number().int().min(0).optional().nullable(),
   categoryId: z.string().optional().nullable(),
   imageUrl: z.string().optional().nullable(),
+  isFeatured: z.boolean().optional().default(false),
+  isOnSale: z.boolean().optional().default(false),
+  salePrice: z.coerce.number().positive("Preço promocional deve ser positivo").optional().nullable(),
 });
 
 export const updateProductSchema = insertProductSchema.partial();
+
+// Schema para adicionais de produtos
+export const insertProductAddonSchema = createInsertSchema(productAddons).omit({
+  id: true,
+  tenantId: true,
+  createdAt: true,
+}).extend({
+  price: z.coerce.number().min(0, "Preço deve ser positivo ou zero"),
+  maxQuantity: z.coerce.number().int().min(1, "Quantidade máxima deve ser pelo menos 1").default(1),
+});
+
+export const updateProductAddonSchema = insertProductAddonSchema.partial();
 
 export const deliveryAddressSchema = z.object({
   street: z.string().optional(),
@@ -687,9 +742,17 @@ export type InsertProductCategory = z.infer<typeof insertProductCategorySchema>;
 export type ProductCategory = typeof productCategories.$inferSelect;
 export type UpdateProductCategory = z.infer<typeof updateProductCategorySchema>;
 
+export type InsertDeliveryNeighborhood = z.infer<typeof insertDeliveryNeighborhoodSchema>;
+export type DeliveryNeighborhood = typeof deliveryNeighborhoods.$inferSelect;
+export type UpdateDeliveryNeighborhood = z.infer<typeof updateDeliveryNeighborhoodSchema>;
+
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
 export type UpdateProduct = z.infer<typeof updateProductSchema>;
+
+export type InsertProductAddon = z.infer<typeof insertProductAddonSchema>;
+export type ProductAddon = typeof productAddons.$inferSelect;
+export type UpdateProductAddon = z.infer<typeof updateProductAddonSchema>;
 
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type Order = typeof orders.$inferSelect;
