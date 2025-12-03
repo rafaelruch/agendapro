@@ -93,6 +93,15 @@ export function getCoreModuleIds(): string[] {
   return MODULE_DEFINITIONS.filter(m => m.isCore).map(m => m.id);
 }
 
+// Tipos de menu público
+export const MENU_TYPES = ['delivery', 'services'] as const;
+export type MenuType = typeof MENU_TYPES[number];
+
+export const MENU_TYPE_LABELS: Record<MenuType, string> = {
+  delivery: 'Delivery (Produtos)',
+  services: 'Serviços (Agendamento)',
+};
+
 export const tenants = pgTable("tenants", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
@@ -104,6 +113,7 @@ export const tenants = pgTable("tenants", {
   menuLogoUrl: text("menu_logo_url"),
   menuBrandColor: text("menu_brand_color").default("#ea7c3f"),
   menuBannerUrl: text("menu_banner_url"),
+  menuType: text("menu_type").default("delivery"), // 'delivery' ou 'services'
   minOrderValue: numeric("min_order_value", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -151,12 +161,16 @@ export const services = pgTable("services", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   name: text("name").notNull(),
+  description: text("description"), // Descrição detalhada do serviço
+  imageUrl: text("image_url"), // Imagem do serviço para cardápio público
   category: text("category").notNull(),
   value: numeric("value", { precision: 10, scale: 2 }).notNull(),
   duration: integer("duration").notNull().default(60),
   promotionalValue: numeric("promotional_value", { precision: 10, scale: 2 }),
   promotionStartDate: text("promotion_start_date"),
   promotionEndDate: text("promotion_end_date"),
+  isFeatured: boolean("is_featured").notNull().default(false), // Destaque no cardápio
+  isActive: boolean("is_active").notNull().default(true), // Ativo no cardápio público
 });
 
 export const appointments = pgTable("appointments", {
@@ -439,6 +453,10 @@ const baseServiceSchema = createInsertSchema(services).omit({
   promotionalValue: z.coerce.number().positive().optional().nullable(),
   promotionStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato inválido. Use YYYY-MM-DD").optional().nullable(),
   promotionEndDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato inválido. Use YYYY-MM-DD").optional().nullable(),
+  description: z.string().optional().nullable(),
+  imageUrl: z.string().optional().nullable(),
+  isFeatured: z.boolean().optional().default(false),
+  isActive: z.boolean().optional().default(true),
 });
 
 // Schema para inserção com validação de promoção
