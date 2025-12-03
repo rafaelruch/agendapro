@@ -1,4 +1,4 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { authLimiter, uploadLimiter } from "./index";
@@ -2646,7 +2646,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // Servir arquivos de upload
-  app.use('/uploads', require('express').static(uploadsDir));
+  app.use('/uploads', express.static(uploadsDir));
 
   // POST /api/upload/image - Upload de imagem
   app.post("/api/upload/image", authenticateRequest, uploadLimiter, imageUpload.single('image'), async (req, res) => {
