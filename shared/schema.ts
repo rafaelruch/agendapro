@@ -99,6 +99,10 @@ export const tenants = pgTable("tenants", {
   email: text("email").notNull(),
   phone: text("phone"),
   active: boolean("active").notNull().default(true),
+  // Configurações do cardápio público
+  menuSlug: text("menu_slug").unique(),
+  menuLogoUrl: text("menu_logo_url"),
+  menuBrandColor: text("menu_brand_color").default("#ea7c3f"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -246,12 +250,24 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   cancelled: 'Cancelado',
 };
 
+// Tabela de categorias de produtos
+export const productCategories = pgTable("product_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  displayOrder: integer("display_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Tabela de produtos (estoque)
 export const products = pgTable("products", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  categoryId: varchar("category_id").references(() => productCategories.id, { onDelete: 'set null' }),
   name: text("name").notNull(),
   description: text("description"),
+  imageUrl: text("image_url"),
   price: numeric("price", { precision: 10, scale: 2 }).notNull(),
   manageStock: boolean("manage_stock").notNull().default(false),
   quantity: integer("quantity"),
@@ -510,6 +526,16 @@ export const updateTenantModulesSchema = z.object({
 
 // ==================== DELIVERY SCHEMAS ====================
 
+export const insertProductCategorySchema = createInsertSchema(productCategories).omit({
+  id: true,
+  tenantId: true,
+  createdAt: true,
+}).extend({
+  displayOrder: z.coerce.number().int().min(0).optional(),
+});
+
+export const updateProductCategorySchema = insertProductCategorySchema.partial();
+
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
   tenantId: true,
@@ -517,6 +543,8 @@ export const insertProductSchema = createInsertSchema(products).omit({
 }).extend({
   price: z.coerce.number().positive("Preço deve ser positivo"),
   quantity: z.coerce.number().int().min(0).optional().nullable(),
+  categoryId: z.string().optional().nullable(),
+  imageUrl: z.string().optional().nullable(),
 });
 
 export const updateProductSchema = insertProductSchema.partial();
@@ -654,6 +682,10 @@ export type TenantModulePermission = typeof tenantModulePermissions.$inferSelect
 export type UpdateTenantModules = z.infer<typeof updateTenantModulesSchema>;
 
 // ==================== DELIVERY TYPES ====================
+
+export type InsertProductCategory = z.infer<typeof insertProductCategorySchema>;
+export type ProductCategory = typeof productCategories.$inferSelect;
+export type UpdateProductCategory = z.infer<typeof updateProductCategorySchema>;
 
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
