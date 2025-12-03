@@ -712,7 +712,7 @@ export default function PublicMenuPage() {
     createOrderMutation.mutate({
       client: {
         name: checkoutForm.name,
-        phone: checkoutForm.phone,
+        phone: checkoutForm.phone.replace(/\D/g, ""),
       },
       items: cart.map((item) => ({
         productId: item.product.id,
