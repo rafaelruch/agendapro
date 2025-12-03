@@ -3841,6 +3841,424 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
+  // GET /api/menu/:slug/availability - Buscar horários disponíveis para agendamento (público)
+  app.get("/api/menu/:slug/availability", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const normalizedSlug = slug.toLowerCase();
+      
+      // Buscar tenant pelo slug
+      const tenant = await storage.getTenantByMenuSlug(normalizedSlug);
+      if (!tenant || !tenant.active) {
+        return res.status(404).json({ error: "Estabelecimento não encontrado" });
+      }
+
+      // Verificar se é tipo de serviços
+      if (tenant.menuType !== 'services') {
+        return res.status(400).json({ error: "Este estabelecimento não trabalha com agendamentos" });
+      }
+
+      // Verificar módulos necessários
+      const modules = await storage.getTenantAllowedModules(tenant.id);
+      if (!modules.includes('services') || !modules.includes('business-hours')) {
+        return res.status(400).json({ error: "Agendamentos não disponíveis" });
+      }
+
+      let { date, serviceIds, duration } = req.query;
+
+      // Data obrigatória
+      if (!date) {
+        return res.status(400).json({ error: "Data é obrigatória" });
+      }
+
+      // Validar formato de data
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(date as string)) {
+        return res.status(400).json({ error: "Formato de data inválido. Use YYYY-MM-DD" });
+      }
+
+      // Calcular duração total
+      let totalDuration = 60; // Padrão 1 hora
+      if (serviceIds) {
+        const ids = (serviceIds as string).split(',');
+        let calculatedDuration = 0;
+        for (const id of ids) {
+          const service = await storage.getService(id, tenant.id);
+          if (service) {
+            calculatedDuration += service.duration;
+          }
+        }
+        if (calculatedDuration > 0) {
+          totalDuration = calculatedDuration;
+        }
+      } else if (duration) {
+        totalDuration = parseInt(duration as string, 10) || 60;
+      }
+
+      // Buscar horários de funcionamento
+      const businessHours = await storage.getBusinessHours(tenant.id);
+      
+      // Obter dia da semana
+      const dateObj = new Date(date as string + 'T12:00:00');
+      const dayOfWeek = dateObj.getDay();
+
+      // Encontrar horários de funcionamento para este dia
+      const dayBusinessHours = businessHours.filter(
+        bh => bh.dayOfWeek === dayOfWeek && bh.active
+      );
+
+      if (dayBusinessHours.length === 0) {
+        return res.json({
+          date: date,
+          closed: true,
+          message: "Fechado neste dia",
+          availableSlots: [],
+        });
+      }
+
+      // Buscar agendamentos existentes no dia
+      const appointments = await storage.getAppointmentsByDateRange(
+        tenant.id,
+        date as string,
+        date as string
+      );
+
+      // Calcular slots ocupados
+      const timeToMinutes = (time: string): number => {
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+      };
+
+      const minutesToTime = (minutes: number): string => {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+      };
+
+      // Calcular duração de cada agendamento existente
+      const occupiedSlots: { start: number; end: number }[] = [];
+      for (const apt of appointments) {
+        const aptDuration = await storage.getAppointmentTotalDuration(apt.id);
+        const startMinutes = timeToMinutes(apt.time);
+        const endMinutes = startMinutes + (aptDuration || 60);
+        occupiedSlots.push({ start: startMinutes, end: endMinutes });
+      }
+
+      // Gerar slots disponíveis (intervalos de 30 minutos)
+      const slotInterval = 30;
+      const availableSlots: string[] = [];
+
+      for (const bh of dayBusinessHours) {
+        const startMinutes = timeToMinutes(bh.startTime);
+        const endMinutes = timeToMinutes(bh.endTime);
+
+        for (let slot = startMinutes; slot + totalDuration <= endMinutes; slot += slotInterval) {
+          const slotEnd = slot + totalDuration;
+          
+          // Verificar se há conflito com agendamentos existentes
+          const hasConflict = occupiedSlots.some(occupied => 
+            (slot >= occupied.start && slot < occupied.end) ||
+            (slotEnd > occupied.start && slotEnd <= occupied.end) ||
+            (slot <= occupied.start && slotEnd >= occupied.end)
+          );
+
+          if (!hasConflict) {
+            availableSlots.push(minutesToTime(slot));
+          }
+        }
+      }
+
+      // Remover duplicatas e ordenar
+      const uniqueSlots = [...new Set(availableSlots)].sort();
+
+      res.json({
+        date: date,
+        closed: false,
+        businessHours: dayBusinessHours.map(bh => ({
+          startTime: bh.startTime,
+          endTime: bh.endTime,
+        })),
+        requiredDuration: totalDuration,
+        availableSlots: uniqueSlots,
+      });
+    } catch (error: any) {
+      console.error("Error fetching availability:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar disponibilidade" });
+    }
+  });
+
+  // GET /api/menu/:slug/client/:phone/appointments - Buscar agendamentos do cliente (público)
+  app.get("/api/menu/:slug/client/:phone/appointments", async (req, res) => {
+    try {
+      const { slug, phone } = req.params;
+      const normalizedSlug = slug.toLowerCase();
+      
+      // Buscar tenant pelo slug
+      const tenant = await storage.getTenantByMenuSlug(normalizedSlug);
+      if (!tenant || !tenant.active) {
+        return res.status(404).json({ error: "Estabelecimento não encontrado" });
+      }
+
+      // Limpar telefone - apenas números
+      const cleanPhone = phone.replace(/\D/g, "");
+      if (cleanPhone.length < 10) {
+        return res.status(400).json({ error: "Telefone inválido" });
+      }
+
+      // Buscar cliente pelo telefone
+      const client = await storage.getClientByPhone(cleanPhone, tenant.id);
+      if (!client) {
+        return res.json({ appointments: [], history: [] });
+      }
+
+      // Buscar agendamentos do cliente
+      const today = new Date().toISOString().split('T')[0];
+      const futureEnd = new Date();
+      futureEnd.setMonth(futureEnd.getMonth() + 3);
+      const futureEndStr = futureEnd.toISOString().split('T')[0];
+
+      const appointments = await storage.getAppointmentsByDateRange(
+        tenant.id,
+        '2020-01-01', // Buscar desde o início
+        futureEndStr,
+        client.id
+      );
+
+      // Separar ativos e histórico
+      const activeStatuses = ['pending', 'confirmed'];
+      const historyStatuses = ['completed', 'cancelled', 'no_show'];
+      
+      const activeAppointments = appointments.filter(apt => 
+        activeStatuses.includes(apt.status) && apt.date >= today
+      );
+      const historyAppointments = appointments.filter(apt => 
+        historyStatuses.includes(apt.status) || apt.date < today
+      );
+
+      const formatAppointment = async (apt: any) => {
+        const services = await storage.getAppointmentServices(apt.id);
+        return {
+          id: apt.id,
+          date: apt.date,
+          time: apt.time,
+          status: apt.status,
+          duration: apt.duration,
+          notes: apt.notes,
+          services: services.map(s => ({
+            id: s.id,
+            name: s.name,
+            duration: s.duration,
+            value: parseFloat(String(s.value)),
+          })),
+        };
+      };
+
+      const formattedActive = await Promise.all(activeAppointments.map(formatAppointment));
+      const formattedHistory = await Promise.all(historyAppointments.map(formatAppointment));
+
+      res.json({
+        appointments: formattedActive.sort((a, b) => 
+          a.date.localeCompare(b.date) || a.time.localeCompare(b.time)
+        ),
+        history: formattedHistory.sort((a, b) => 
+          b.date.localeCompare(a.date) || b.time.localeCompare(a.time)
+        ).slice(0, 10), // Últimos 10
+      });
+    } catch (error: any) {
+      console.error("Error fetching client appointments:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar agendamentos" });
+    }
+  });
+
+  // POST /api/menu/:slug/appointments - Criar agendamento público (sem autenticação)
+  app.post("/api/menu/:slug/appointments", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const normalizedSlug = slug.toLowerCase();
+      
+      // Buscar tenant pelo slug
+      const tenant = await storage.getTenantByMenuSlug(normalizedSlug);
+      if (!tenant || !tenant.active) {
+        return res.status(404).json({ error: "Estabelecimento não encontrado" });
+      }
+
+      // Verificar se é tipo de serviços
+      if (tenant.menuType !== 'services') {
+        return res.status(400).json({ error: "Este estabelecimento não trabalha com agendamentos" });
+      }
+
+      // Verificar módulos necessários
+      const modules = await storage.getTenantAllowedModules(tenant.id);
+      if (!modules.includes('services') || !modules.includes('appointments')) {
+        return res.status(400).json({ error: "Agendamentos não habilitados" });
+      }
+
+      const { client, serviceIds, date, time, notes } = req.body;
+
+      // Validar dados obrigatórios
+      if (!client?.name || !client?.phone) {
+        return res.status(400).json({ error: "Nome e telefone são obrigatórios" });
+      }
+      if (!serviceIds || !Array.isArray(serviceIds) || serviceIds.length === 0) {
+        return res.status(400).json({ error: "Selecione pelo menos um serviço" });
+      }
+      if (!date || !time) {
+        return res.status(400).json({ error: "Data e horário são obrigatórios" });
+      }
+
+      // Validar formato de data
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(date)) {
+        return res.status(400).json({ error: "Formato de data inválido. Use YYYY-MM-DD" });
+      }
+
+      // Validar formato de hora
+      const timeRegex = /^\d{2}:\d{2}$/;
+      if (!timeRegex.test(time)) {
+        return res.status(400).json({ error: "Formato de hora inválido. Use HH:MM" });
+      }
+
+      // Verificar se os serviços existem e calcular duração total
+      let totalDuration = 0;
+      for (const serviceId of serviceIds) {
+        const service = await storage.getService(serviceId, tenant.id);
+        if (!service) {
+          return res.status(404).json({ error: `Serviço não encontrado: ${serviceId}` });
+        }
+        totalDuration += service.duration;
+      }
+
+      // Verificar disponibilidade do horário
+      const timeToMinutes = (timeStr: string): number => {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 60 + minutes;
+      };
+
+      const slotStart = timeToMinutes(time);
+      const slotEnd = slotStart + totalDuration;
+
+      // Verificar horário de funcionamento
+      const businessHours = await storage.getBusinessHours(tenant.id);
+      const dateObj = new Date(date + 'T12:00:00');
+      const dayOfWeek = dateObj.getDay();
+      
+      const dayBusinessHours = businessHours.filter(
+        bh => bh.dayOfWeek === dayOfWeek && bh.active
+      );
+
+      if (dayBusinessHours.length === 0) {
+        return res.status(400).json({ 
+          error: "Fechado neste dia",
+          message: "O estabelecimento não funciona neste dia." 
+        });
+      }
+
+      // Verificar se o horário está dentro do expediente
+      const isWithinBusinessHours = dayBusinessHours.some(bh => {
+        const bhStart = timeToMinutes(bh.startTime);
+        const bhEnd = timeToMinutes(bh.endTime);
+        return slotStart >= bhStart && slotEnd <= bhEnd;
+      });
+
+      if (!isWithinBusinessHours) {
+        return res.status(400).json({ 
+          error: "Horário fora do expediente",
+          message: "O horário escolhido está fora do horário de funcionamento." 
+        });
+      }
+
+      // Buscar agendamentos existentes no dia
+      const existingAppointments = await storage.getAppointmentsByDateRange(
+        tenant.id,
+        date,
+        date
+      );
+
+      // Verificar conflitos
+      for (const apt of existingAppointments) {
+        const aptDuration = await storage.getAppointmentTotalDuration(apt.id);
+        const aptStart = timeToMinutes(apt.time);
+        const aptEnd = aptStart + (aptDuration || 60);
+
+        const hasConflict = (slotStart >= aptStart && slotStart < aptEnd) ||
+                           (slotEnd > aptStart && slotEnd <= aptEnd) ||
+                           (slotStart <= aptStart && slotEnd >= aptEnd);
+
+        if (hasConflict) {
+          return res.status(409).json({ 
+            error: "Horário indisponível",
+            message: "Já existe um agendamento neste horário. Por favor, escolha outro horário." 
+          });
+        }
+      }
+
+      // Limpar telefone
+      const cleanPhone = client.phone.replace(/\D/g, "");
+      if (cleanPhone.length < 10) {
+        return res.status(400).json({ error: "Telefone inválido" });
+      }
+
+      // Verificar/criar cliente pelo telefone
+      let existingClient = await storage.getClientByPhone(cleanPhone, tenant.id);
+      if (!existingClient) {
+        existingClient = await storage.createClient({
+          tenantId: tenant.id,
+          name: client.name,
+          phone: cleanPhone,
+        });
+      } else {
+        // Atualizar nome se diferente
+        if (existingClient.name !== client.name) {
+          await storage.updateClient(existingClient.id, tenant.id, { name: client.name });
+        }
+      }
+
+      // Criar agendamento
+      const appointment = await storage.createAppointment({
+        tenantId: tenant.id,
+        clientId: existingClient.id,
+        date: date,
+        time: time,
+        duration: totalDuration,
+        status: 'pending',
+        notes: notes || null,
+        professionalId: null,
+      });
+
+      // Associar serviços ao agendamento
+      for (const serviceId of serviceIds) {
+        await storage.addServiceToAppointment(appointment.id, serviceId);
+      }
+
+      // Buscar serviços adicionados
+      const appointmentServices = await storage.getAppointmentServices(appointment.id);
+      const totalValue = appointmentServices.reduce((sum, s) => sum + parseFloat(String(s.value)), 0);
+
+      res.status(201).json({
+        success: true,
+        appointmentId: appointment.id,
+        message: "Agendamento realizado com sucesso!",
+        appointment: {
+          id: appointment.id,
+          date: appointment.date,
+          time: appointment.time,
+          duration: appointment.duration,
+          status: appointment.status,
+          services: appointmentServices.map(s => ({
+            id: s.id,
+            name: s.name,
+            duration: s.duration,
+            value: parseFloat(String(s.value)),
+          })),
+          totalValue: totalValue,
+        },
+      });
+    } catch (error: any) {
+      console.error("Error creating public appointment:", error);
+      res.status(500).json({ error: error.message || "Erro ao criar agendamento" });
+    }
+  });
+
   // ===========================================
   // ROTAS DE CONFIGURAÇÃO DO CARDÁPIO (COM AUTENTICAÇÃO)
   // ===========================================
