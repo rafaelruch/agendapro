@@ -25,6 +25,8 @@ import {
   type InsertProfessionalSchedule,
   type ProfessionalWithDetails,
   type TenantModulePermission,
+  type ProductCategory,
+  type InsertProductCategory,
   type Product,
   type InsertProduct,
   type Order,
@@ -52,6 +54,7 @@ import {
   professionalServices,
   professionalSchedules,
   tenantModulePermissions,
+  productCategories,
   products,
   orders,
   orderItems,
@@ -184,6 +187,15 @@ export interface IStorage {
   setTenantModules(tenantId: string, enabledModuleIds: string[]): Promise<void>;
 
   // ==================== DELIVERY SYSTEM ====================
+  
+  // Product Category operations (with tenant isolation)
+  getProductCategory(id: string, tenantId: string): Promise<ProductCategory | undefined>;
+  getAllProductCategories(tenantId: string): Promise<ProductCategory[]>;
+  getActiveProductCategories(tenantId: string): Promise<ProductCategory[]>;
+  createProductCategory(category: InsertProductCategory & { tenantId: string }): Promise<ProductCategory>;
+  updateProductCategory(id: string, tenantId: string, category: Partial<InsertProductCategory>): Promise<ProductCategory | undefined>;
+  deleteProductCategory(id: string, tenantId: string): Promise<boolean>;
+  reorderProductCategories(tenantId: string, orderedIds: string[]): Promise<boolean>;
   
   // Product operations (with tenant isolation)
   getProduct(id: string, tenantId: string): Promise<Product | undefined>;
@@ -1606,6 +1618,71 @@ export class DbStorage implements IStorage {
   }
 
   // ==================== DELIVERY SYSTEM ====================
+
+  // Product Category operations
+  async getProductCategory(id: string, tenantId: string): Promise<ProductCategory | undefined> {
+    const result = await db
+      .select()
+      .from(productCategories)
+      .where(and(eq(productCategories.id, id), eq(productCategories.tenantId, tenantId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getAllProductCategories(tenantId: string): Promise<ProductCategory[]> {
+    return await db
+      .select()
+      .from(productCategories)
+      .where(eq(productCategories.tenantId, tenantId))
+      .orderBy(productCategories.displayOrder);
+  }
+
+  async getActiveProductCategories(tenantId: string): Promise<ProductCategory[]> {
+    return await db
+      .select()
+      .from(productCategories)
+      .where(and(eq(productCategories.tenantId, tenantId), eq(productCategories.isActive, true)))
+      .orderBy(productCategories.displayOrder);
+  }
+
+  async createProductCategory(category: InsertProductCategory & { tenantId: string }): Promise<ProductCategory> {
+    // Get max displayOrder for this tenant
+    const existing = await this.getAllProductCategories(category.tenantId);
+    const maxOrder = existing.length > 0 ? Math.max(...existing.map(c => c.displayOrder)) : -1;
+    
+    const result = await db.insert(productCategories).values({
+      ...category,
+      displayOrder: category.displayOrder ?? maxOrder + 1,
+    }).returning();
+    return result[0];
+  }
+
+  async updateProductCategory(id: string, tenantId: string, category: Partial<InsertProductCategory>): Promise<ProductCategory | undefined> {
+    const result = await db
+      .update(productCategories)
+      .set(category)
+      .where(and(eq(productCategories.id, id), eq(productCategories.tenantId, tenantId)))
+      .returning();
+    return result[0];
+  }
+
+  async deleteProductCategory(id: string, tenantId: string): Promise<boolean> {
+    const result = await db
+      .delete(productCategories)
+      .where(and(eq(productCategories.id, id), eq(productCategories.tenantId, tenantId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async reorderProductCategories(tenantId: string, orderedIds: string[]): Promise<boolean> {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await db
+        .update(productCategories)
+        .set({ displayOrder: i })
+        .where(and(eq(productCategories.id, orderedIds[i]), eq(productCategories.tenantId, tenantId)));
+    }
+    return true;
+  }
 
   // Product operations
   async getProduct(id: string, tenantId: string): Promise<Product | undefined> {
