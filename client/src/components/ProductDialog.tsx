@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { useQuery } from "@tanstack/react-query";
-import { Upload, X, Image as ImageIcon } from "lucide-react";
-import type { Product, ProductCategory } from "@shared/schema";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Upload, X, Image as ImageIcon, Plus, Trash2, Star, Tag } from "lucide-react";
+import type { Product, ProductCategory, ProductAddon } from "@shared/schema";
 
 interface ProductDialogProps {
   open: boolean;
@@ -30,6 +31,9 @@ export function ProductDialog({
     name: "",
     description: "",
     price: "",
+    salePrice: "",
+    isFeatured: false,
+    isOnSale: false,
     manageStock: false,
     quantity: "",
     isActive: true,
@@ -37,9 +41,41 @@ export function ProductDialog({
     imageUrl: "",
   });
 
+  const [newAddon, setNewAddon] = useState({
+    name: "",
+    price: "",
+    isRequired: false,
+    maxQuantity: "1",
+  });
+
   const { data: categories = [] } = useQuery<ProductCategory[]>({
     queryKey: ["/api/inventory/categories"],
     enabled: open,
+  });
+
+  const { data: addons = [], refetch: refetchAddons } = useQuery<ProductAddon[]>({
+    queryKey: ["/api/product-addons", product?.id],
+    queryFn: () => product?.id ? fetch(`/api/product-addons?productId=${product.id}`, { credentials: "include" }).then(r => r.json()) : Promise.resolve([]),
+    enabled: open && !!product?.id,
+  });
+
+  const createAddonMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("POST", "/api/product-addons", data);
+    },
+    onSuccess: () => {
+      refetchAddons();
+      setNewAddon({ name: "", price: "", isRequired: false, maxQuantity: "1" });
+    },
+  });
+
+  const deleteAddonMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/product-addons/${id}`);
+    },
+    onSuccess: () => {
+      refetchAddons();
+    },
   });
 
   useEffect(() => {
@@ -48,6 +84,9 @@ export function ProductDialog({
         name: product.name,
         description: product.description || "",
         price: String(product.price),
+        salePrice: product.salePrice ? String(product.salePrice) : "",
+        isFeatured: product.isFeatured ?? false,
+        isOnSale: product.isOnSale ?? false,
         manageStock: product.manageStock,
         quantity: product.quantity !== null ? String(product.quantity) : "",
         isActive: product.isActive,
@@ -59,6 +98,9 @@ export function ProductDialog({
         name: "",
         description: "",
         price: "",
+        salePrice: "",
+        isFeatured: false,
+        isOnSale: false,
         manageStock: false,
         quantity: "",
         isActive: true,
@@ -103,6 +145,18 @@ export function ProductDialog({
     }
   };
 
+  const handleAddAddon = () => {
+    if (!newAddon.name || !newAddon.price || !product?.id) return;
+    
+    createAddonMutation.mutate({
+      productId: product.id,
+      name: newAddon.name,
+      price: parseFloat(newAddon.price),
+      isRequired: newAddon.isRequired,
+      maxQuantity: parseInt(newAddon.maxQuantity) || 1,
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -110,6 +164,9 @@ export function ProductDialog({
       name: formData.name,
       description: formData.description || null,
       price: parseFloat(formData.price),
+      salePrice: formData.isOnSale && formData.salePrice ? parseFloat(formData.salePrice) : null,
+      isFeatured: formData.isFeatured,
+      isOnSale: formData.isOnSale,
       manageStock: formData.manageStock,
       quantity: formData.manageStock && formData.quantity ? parseInt(formData.quantity) : null,
       isActive: formData.isActive,
@@ -247,6 +304,63 @@ export function ProductDialog({
               required
             />
           </div>
+
+          <div className="flex items-center justify-between rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-4">
+            <div className="flex items-center gap-3">
+              <Star className="w-5 h-5 text-amber-500" />
+              <div className="space-y-0.5">
+                <Label htmlFor="isFeatured">Produto em Destaque</Label>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Aparece na seção de destaques do cardápio
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="isFeatured"
+              checked={formData.isFeatured}
+              onCheckedChange={(checked) => setFormData({ ...formData, isFeatured: checked })}
+              data-testid="switch-is-featured"
+            />
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20 p-4">
+            <div className="flex items-center gap-3">
+              <Tag className="w-5 h-5 text-red-500" />
+              <div className="space-y-0.5">
+                <Label htmlFor="isOnSale">Produto em Promoção</Label>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Aparece na seção de promoções do cardápio
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="isOnSale"
+              checked={formData.isOnSale}
+              onCheckedChange={(checked) => setFormData({ ...formData, isOnSale: checked })}
+              data-testid="switch-is-on-sale"
+            />
+          </div>
+
+          {formData.isOnSale && (
+            <div className="grid gap-2">
+              <Label htmlFor="salePrice">Preço Promocional (R$)</Label>
+              <Input
+                id="salePrice"
+                type="number"
+                step={0.01}
+                min="0"
+                value={formData.salePrice}
+                onChange={(e) => setFormData({ ...formData, salePrice: e.target.value })}
+                placeholder="0.00"
+                data-testid="input-product-sale-price"
+              />
+              {formData.price && formData.salePrice && parseFloat(formData.salePrice) < parseFloat(formData.price) && (
+                <p className="text-sm text-green-600 dark:text-green-400">
+                  Desconto de {Math.round((1 - parseFloat(formData.salePrice) / parseFloat(formData.price)) * 100)}%
+                </p>
+              )}
+            </div>
+          )}
           
           <div className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <div className="space-y-0.5">
@@ -293,6 +407,110 @@ export function ProductDialog({
               data-testid="switch-product-active"
             />
           </div>
+
+          {product?.id && (
+            <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-gray-800 dark:text-white">Adicionais do Produto</h4>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Opções extras que o cliente pode adicionar
+                  </p>
+                </div>
+              </div>
+
+              {addons.length > 0 && (
+                <div className="space-y-2">
+                  {addons.map((addon) => (
+                    <div 
+                      key={addon.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-800 dark:text-white">{addon.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          R$ {Number(addon.price).toFixed(2)}
+                          {addon.isRequired && <span className="ml-2 text-red-500">(Obrigatório)</span>}
+                          {addon.maxQuantity > 1 && <span className="ml-2">• Máx: {addon.maxQuantity}</span>}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteAddonMutation.mutate(addon.id)}
+                        disabled={deleteAddonMutation.isPending}
+                        data-testid={`button-delete-addon-${addon.id}`}
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="addonName">Nome do Adicional</Label>
+                    <Input
+                      id="addonName"
+                      value={newAddon.name}
+                      onChange={(e) => setNewAddon({ ...newAddon, name: e.target.value })}
+                      placeholder="Ex: Bacon extra"
+                      data-testid="input-addon-name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="addonPrice">Preço (R$)</Label>
+                    <Input
+                      id="addonPrice"
+                      type="number"
+                      step={0.01}
+                      min="0"
+                      value={newAddon.price}
+                      onChange={(e) => setNewAddon({ ...newAddon, price: e.target.value })}
+                      placeholder="0.00"
+                      data-testid="input-addon-price"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="addonRequired"
+                      checked={newAddon.isRequired}
+                      onCheckedChange={(checked) => setNewAddon({ ...newAddon, isRequired: checked })}
+                      data-testid="switch-addon-required"
+                    />
+                    <Label htmlFor="addonRequired">Obrigatório</Label>
+                  </div>
+                  <div>
+                    <Label htmlFor="addonMaxQty">Qtd. Máxima</Label>
+                    <Input
+                      id="addonMaxQty"
+                      type="number"
+                      min="1"
+                      value={newAddon.maxQuantity}
+                      onChange={(e) => setNewAddon({ ...newAddon, maxQuantity: e.target.value })}
+                      data-testid="input-addon-max-qty"
+                    />
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddAddon}
+                  disabled={!newAddon.name || !newAddon.price || createAddonMutation.isPending}
+                  data-testid="button-add-addon"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  {createAddonMutation.isPending ? "Adicionando..." : "Adicionar"}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
         
         <div className="flex justify-end gap-3 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
