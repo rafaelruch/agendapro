@@ -4219,16 +4219,11 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         clientId: existingClient.id,
         date: date,
         time: time,
-        duration: totalDuration,
         status: 'pending',
         notes: notes || null,
         professionalId: null,
+        serviceIds: serviceIds,
       });
-
-      // Associar serviços ao agendamento
-      for (const serviceId of serviceIds) {
-        await storage.addServiceToAppointment(appointment.id, serviceId);
-      }
 
       // Buscar serviços adicionados
       const appointmentServices = await storage.getAppointmentServices(appointment.id);
