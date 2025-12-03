@@ -250,7 +250,7 @@ export default function PublicMenuPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header Principal - Estilo iFood */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 py-2">
+        <div className="px-6 py-2">
           <div className="flex items-center justify-between gap-3">
             {/* Logo à Esquerda */}
             <div className="flex-shrink-0">
@@ -416,9 +416,9 @@ export default function PublicMenuPage() {
       )}
 
       {/* Layout Principal com Sidebar */}
-      <div className="max-w-6xl mx-auto flex">
+      <div className="flex">
         {/* Sidebar Desktop */}
-        <aside className="hidden md:block w-56 flex-shrink-0 p-4">
+        <aside className="hidden md:block w-60 flex-shrink-0 p-6">
           <nav className="space-y-2">
             {sidebarMenus.map((menu) => {
               const Icon = menu.icon;
@@ -516,7 +516,7 @@ export default function PublicMenuPage() {
           {activeSection === "cardapio" && (
             <div className="flex">
               {/* Área de Produtos */}
-              <div className="flex-1 min-w-0 p-4">
+              <div className="flex-1 min-w-0 p-6">
                 {/* Título Categorias */}
                 <h2 className="text-lg font-bold text-gray-800 mb-4">Explorar Categorias</h2>
                 
@@ -672,7 +672,7 @@ export default function PublicMenuPage() {
               </div>
 
               {/* Carrinho Desktop */}
-              <aside className="hidden lg:block w-80 flex-shrink-0 p-4">
+              <aside className="hidden lg:block w-96 flex-shrink-0 p-6">
                 <div className="bg-white rounded-2xl border border-gray-200 h-full flex flex-col">
                   {/* Header do Carrinho */}
                   <div className="p-4 border-b">
