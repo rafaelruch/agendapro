@@ -63,6 +63,7 @@ export default function PublicMenuPage() {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showMobileCart, setShowMobileCart] = useState(false);
+  const [activeTab, setActiveTab] = useState<"populares" | "promocoes">("populares");
 
   const addToCart = (product: MenuProduct) => {
     setCart((prev) => {
@@ -552,82 +553,123 @@ export default function PublicMenuPage() {
                   ))}
                 </div>
 
+                {/* Abas Populares / Promoções */}
+                <div className="flex items-center gap-6 mb-4">
+                  <button
+                    onClick={() => setActiveTab("populares")}
+                    className={`text-base font-semibold pb-2 border-b-2 transition-colors ${
+                      activeTab === "populares"
+                        ? "border-current"
+                        : "border-transparent text-gray-400 hover:text-gray-600"
+                    }`}
+                    style={activeTab === "populares" ? { color: brandColor } : {}}
+                    data-testid="tab-populares"
+                  >
+                    Populares
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("promocoes")}
+                    className={`text-base font-semibold pb-2 border-b-2 transition-colors ${
+                      activeTab === "promocoes"
+                        ? "border-current"
+                        : "border-transparent text-gray-400 hover:text-gray-600"
+                    }`}
+                    style={activeTab === "promocoes" ? { color: brandColor } : {}}
+                    data-testid="tab-promocoes"
+                  >
+                    Promoções
+                  </button>
+                </div>
+
                 {/* Grid de Produtos */}
-                {filteredProducts.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">
-                      {searchQuery
-                        ? "Nenhum produto encontrado para sua busca."
-                        : "Nenhum produto disponível no momento."}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredProducts.map((product) => (
-                      <div
-                        key={product.id}
-                        className="bg-white rounded-2xl border-2 border-gray-100 overflow-hidden hover:border-gray-200 hover:shadow-lg transition-all"
-                        data-testid={`card-product-${product.id}`}
-                      >
-                        {/* Imagem do Produto */}
-                        <div className="relative bg-gray-50 p-4 flex items-center justify-center h-40">
-                          {product.isOnSale && (
-                            <div 
-                              className="absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-bold text-white"
-                              style={{ backgroundColor: brandColor }}
-                            >
-                              OFERTA
+                {(() => {
+                  const displayProducts = activeTab === "promocoes" 
+                    ? filteredProducts.filter(p => p.isOnSale)
+                    : filteredProducts;
+                  
+                  return displayProducts.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">
+                        {activeTab === "promocoes"
+                          ? "Nenhum produto em promoção no momento."
+                          : searchQuery
+                            ? "Nenhum produto encontrado para sua busca."
+                            : "Nenhum produto disponível no momento."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {displayProducts.map((product) => (
+                        <div
+                          key={product.id}
+                          className="p-1 rounded-2xl transition-all hover:shadow-lg"
+                          style={{ backgroundColor: brandColor }}
+                          data-testid={`card-product-${product.id}`}
+                        >
+                          <div className="bg-white rounded-xl overflow-hidden">
+                            {/* Imagem do Produto */}
+                            <div className="relative bg-gray-100 p-4 flex items-center justify-center h-40">
+                              {product.isOnSale && (
+                                <div 
+                                  className="absolute top-2 left-2 p-1.5 rounded-lg"
+                                  style={{ backgroundColor: brandColor }}
+                                >
+                                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              )}
+                              {product.imageUrl ? (
+                                <img
+                                  src={product.imageUrl}
+                                  alt={product.name}
+                                  className="max-h-full max-w-full object-contain"
+                                  loading="lazy"
+                                  data-testid={`img-product-${product.id}`}
+                                />
+                              ) : (
+                                <Package className="h-16 w-16 text-gray-300" />
+                              )}
                             </div>
-                          )}
-                          {product.imageUrl ? (
-                            <img
-                              src={product.imageUrl}
-                              alt={product.name}
-                              className="max-h-full max-w-full object-contain"
-                              loading="lazy"
-                              data-testid={`img-product-${product.id}`}
-                            />
-                          ) : (
-                            <Package className="h-16 w-16 text-gray-300" />
-                          )}
-                        </div>
 
-                        {/* Info do Produto */}
-                        <div className="p-4">
-                          <h3 className="font-semibold text-gray-900 mb-1 line-clamp-1">
-                            {product.name}
-                          </h3>
-                          
-                          {/* Preços */}
-                          <div className="flex items-center gap-2 mb-3">
-                            <span 
-                              className="font-bold text-lg"
-                              style={{ color: brandColor }}
-                            >
-                              {formatCurrency(getProductPrice(product))}
-                            </span>
-                            {product.isOnSale && product.salePrice && (
-                              <span className="text-sm text-gray-400 line-through">
-                                {formatCurrency(product.price)}
-                              </span>
-                            )}
+                            {/* Info do Produto */}
+                            <div className="p-4">
+                              <h3 className="font-semibold text-gray-900 mb-2">
+                                {product.name}
+                              </h3>
+                              
+                              {/* Preços */}
+                              <div className="flex items-center gap-2 mb-4">
+                                <span 
+                                  className="font-bold text-xl"
+                                  style={{ color: brandColor }}
+                                >
+                                  {formatCurrency(getProductPrice(product))}
+                                </span>
+                                {product.isOnSale && product.salePrice && (
+                                  <span className="text-sm text-gray-400 line-through">
+                                    {formatCurrency(product.price)}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Botão Adicionar */}
+                              <button
+                                onClick={() => addToCart(product)}
+                                className="w-full py-2.5 rounded-xl text-white font-medium transition-opacity hover:opacity-90"
+                                style={{ backgroundColor: brandColor }}
+                                data-testid={`button-add-${product.id}`}
+                              >
+                                Adicionar
+                              </button>
+                            </div>
                           </div>
-
-                          {/* Botão Adicionar */}
-                          <button
-                            onClick={() => addToCart(product)}
-                            className="w-full py-2.5 rounded-xl text-white font-medium transition-opacity hover:opacity-90"
-                            style={{ backgroundColor: brandColor }}
-                            data-testid={`button-add-${product.id}`}
-                          >
-                            Adicionar
-                          </button>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Carrinho Desktop */}
