@@ -75,6 +75,7 @@ export function OrderDialog({
   const [deliveryReference, setDeliveryReference] = useState("");
   const [saveNewAddress, setSaveNewAddress] = useState(true);
   const [newAddressLabel, setNewAddressLabel] = useState("Casa");
+  const [isSearchingCep, setIsSearchingCep] = useState(false);
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/inventory/products"],
@@ -172,6 +173,7 @@ export function OrderDialog({
       setDeliveryReference("");
       setSaveNewAddress(true);
       setNewAddressLabel("Casa");
+      setIsSearchingCep(false);
     }
   }, [open]);
 
@@ -201,9 +203,37 @@ export function OrderDialog({
     setClientPhone(formatted);
   };
 
+  const searchAddressByCep = useCallback(async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, "");
+    if (cleanCep.length !== 8) return;
+
+    setIsSearchingCep(true);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      if (response.ok) {
+        const data = await response.json();
+        if (!data.erro) {
+          setDeliveryStreet(data.logradouro || "");
+          setDeliveryNeighborhood(data.bairro || "");
+          setDeliveryCity(data.localidade || "");
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao buscar CEP:", error);
+    } finally {
+      setIsSearchingCep(false);
+    }
+  }, []);
+
   const handleZipCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatZipCode(e.target.value);
     setDeliveryZipCode(formatted);
+    
+    // Buscar endereço quando o CEP estiver completo
+    const cleanCep = formatted.replace(/\D/g, "");
+    if (cleanCep.length === 8) {
+      searchAddressByCep(cleanCep);
+    }
   };
 
   const addProduct = (productId: string) => {
@@ -605,6 +635,30 @@ export function OrderDialog({
               </div>
             ) : (
               <div className="grid gap-4">
+                {/* CEP primeiro - preenche automaticamente */}
+                <div className="grid gap-2">
+                  <Label htmlFor="deliveryZipCode">CEP</Label>
+                  <div className="relative">
+                    <Input
+                      id="deliveryZipCode"
+                      value={deliveryZipCode}
+                      onChange={handleZipCodeChange}
+                      placeholder="00000-000"
+                      data-testid="input-delivery-zipcode"
+                      maxLength={9}
+                      className={isSearchingCep ? "pr-10" : ""}
+                    />
+                    {isSearchingCep && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Digite o CEP para preencher o endereço automaticamente
+                  </p>
+                </div>
+
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
                     <Label htmlFor="deliveryStreet">Rua</Label>
@@ -639,7 +693,7 @@ export function OrderDialog({
                     </div>
                   </div>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
                     <Label htmlFor="deliveryNeighborhood">Bairro</Label>
                     <Input
@@ -658,17 +712,6 @@ export function OrderDialog({
                       onChange={(e) => setDeliveryCity(e.target.value)}
                       placeholder="Cidade"
                       data-testid="input-delivery-city"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="deliveryZipCode">CEP</Label>
-                    <Input
-                      id="deliveryZipCode"
-                      value={deliveryZipCode}
-                      onChange={handleZipCodeChange}
-                      placeholder="00000-000"
-                      data-testid="input-delivery-zipcode"
-                      maxLength={9}
                     />
                   </div>
                 </div>
