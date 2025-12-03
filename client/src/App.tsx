@@ -12,6 +12,7 @@ import { HeaderDropdownNotification } from "@/components/HeaderDropdownNotificat
 import { HeaderDropdownProfile } from "@/components/HeaderDropdownProfile";
 import DashboardCRM from "@/pages/DashboardCRM";
 import CalendarPage from "@/pages/CalendarPage";
+import AppointmentsPage from "@/pages/AppointmentsPage";
 import ClientsPage from "@/pages/ClientsPage";
 import ServicesPage from "@/pages/ServicesPage";
 import ProfessionalsPage from "@/pages/ProfessionalsPage";
@@ -51,6 +52,7 @@ function Router() {
     <Switch>
       <Route path="/" component={DashboardCRM} />
       <Route path="/calendar" component={CalendarPage} />
+      <Route path="/appointments" component={AppointmentsPage} />
       <Route path="/clients" component={ClientsPage} />
       <Route path="/services" component={ServicesPage} />
       <Route path="/professionals" component={ProfessionalsPage} />

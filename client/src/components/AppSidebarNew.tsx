@@ -1,4 +1,4 @@
-import { Calendar, LayoutDashboard, Users, Settings, Briefcase, UserCog, ChevronDown, UserCheck, Package, ShoppingCart, ChefHat, Wallet } from "lucide-react";
+import { Calendar, LayoutDashboard, Users, Settings, Briefcase, UserCog, ChevronDown, UserCheck, Package, ShoppingCart, ChefHat, Wallet, ClipboardList } from "lucide-react";
 import { useLocation } from "wouter";
 import { useSidebar } from "@/context/SidebarContext";
 
@@ -29,6 +29,13 @@ export function AppSidebarNew({ userRole, allowedModules = [] }: AppSidebarProps
       icon: <Calendar className="h-5 w-5" />,
       path: "/calendar",
       testId: "link-calendário",
+      moduleId: "calendar"
+    },
+    {
+      name: "Agendamentos",
+      icon: <ClipboardList className="h-5 w-5" />,
+      path: "/appointments",
+      testId: "link-agendamentos",
       moduleId: "calendar"
     },
     {
