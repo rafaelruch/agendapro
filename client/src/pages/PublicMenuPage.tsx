@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, SlidersHorizontal, Package, ShoppingBag, User, X, ChevronDown, LogOut } from "lucide-react";
+import { Search, SlidersHorizontal, Package, ShoppingBag, User, X, ChevronDown, LogOut, UtensilsCrossed, ClipboardList, History, MapPin, Menu as MenuIcon } from "lucide-react";
+
+type ActiveSection = "cardapio" | "pedidos" | "historico" | "enderecos";
 
 interface CustomerData {
   name: string;
@@ -52,6 +54,15 @@ export default function PublicMenuPage() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [customer, setCustomer] = useState<CustomerData | null>(null);
   const [registerForm, setRegisterForm] = useState({ name: "", phone: "" });
+  const [activeSection, setActiveSection] = useState<ActiveSection>("cardapio");
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+
+  const sidebarMenus = [
+    { id: "cardapio" as ActiveSection, label: "Cardápio", icon: UtensilsCrossed },
+    { id: "pedidos" as ActiveSection, label: "Pedidos", icon: ClipboardList },
+    { id: "historico" as ActiveSection, label: "Histórico", icon: History },
+    { id: "enderecos" as ActiveSection, label: "Endereços", icon: MapPin },
+  ];
 
   const slug = window.location.pathname.replace('/menu/', '');
 
@@ -355,108 +366,258 @@ export default function PublicMenuPage() {
         </div>
       )}
 
-      {/* Pills de Categorias */}
-      {menuData.categories.length > 0 && (
-        <div className="sticky top-[112px] z-40 bg-white shadow-sm border-b">
-          <div className="overflow-x-auto scrollbar-hide">
-            <div className="max-w-6xl mx-auto px-4 py-3 flex gap-2">
-              <button
-                onClick={() => setActiveCategory(null)}
-                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                  activeCategory === null
-                    ? "text-white shadow-md"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-                style={activeCategory === null ? { backgroundColor: brandColor } : {}}
-                data-testid="button-category-all"
-              >
-                Todos
-              </button>
-              {menuData.categories.map((category) => (
+      {/* Layout Principal com Sidebar */}
+      <div className="max-w-6xl mx-auto flex">
+        {/* Sidebar Desktop */}
+        <aside className="hidden md:block w-56 flex-shrink-0 p-4 sticky top-[112px] h-[calc(100vh-112px)]">
+          <nav className="space-y-2">
+            {sidebarMenus.map((menu) => {
+              const Icon = menu.icon;
+              const isActive = activeSection === menu.id;
+              return (
                 <button
-                  key={category.id}
-                  onClick={() => setActiveCategory(category.id)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                    activeCategory === category.id
-                      ? "text-white shadow-md"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  key={menu.id}
+                  onClick={() => setActiveSection(menu.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
+                    isActive
+                      ? "border-2 bg-opacity-10"
+                      : "border-gray-200 hover:border-gray-300 bg-white"
                   }`}
-                  style={activeCategory === category.id ? { backgroundColor: brandColor } : {}}
-                  data-testid={`button-category-${category.id}`}
+                  style={isActive ? { 
+                    borderColor: brandColor, 
+                    backgroundColor: `${brandColor}15`,
+                    color: brandColor 
+                  } : {}}
+                  data-testid={`sidebar-${menu.id}`}
                 >
-                  {category.name}
+                  <Icon className={`h-5 w-5 ${isActive ? "" : "text-gray-500"}`} />
+                  <span className={`font-medium ${isActive ? "" : "text-gray-700"}`}>
+                    {menu.label}
+                  </span>
                 </button>
-              ))}
+              );
+            })}
+          </nav>
+        </aside>
+
+        {/* Botão Menu Mobile */}
+        <button
+          onClick={() => setShowMobileSidebar(true)}
+          className="md:hidden fixed bottom-20 left-4 z-40 p-3 rounded-full shadow-lg text-white"
+          style={{ backgroundColor: brandColor }}
+          data-testid="button-mobile-menu"
+        >
+          <MenuIcon className="h-6 w-6" />
+        </button>
+
+        {/* Sidebar Mobile Overlay */}
+        {showMobileSidebar && (
+          <div className="md:hidden fixed inset-0 z-[55] bg-black/50" onClick={() => setShowMobileSidebar(false)}>
+            <div 
+              className="absolute left-0 top-0 bottom-0 w-64 bg-white p-4 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-900">Menu</h3>
+                <button 
+                  onClick={() => setShowMobileSidebar(false)}
+                  className="p-1 hover:bg-gray-100 rounded-full"
+                >
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+              <nav className="space-y-2">
+                {sidebarMenus.map((menu) => {
+                  const Icon = menu.icon;
+                  const isActive = activeSection === menu.id;
+                  return (
+                    <button
+                      key={menu.id}
+                      onClick={() => {
+                        setActiveSection(menu.id);
+                        setShowMobileSidebar(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
+                        isActive
+                          ? "border-2 bg-opacity-10"
+                          : "border-gray-200 hover:border-gray-300 bg-white"
+                      }`}
+                      style={isActive ? { 
+                        borderColor: brandColor, 
+                        backgroundColor: `${brandColor}15`,
+                        color: brandColor 
+                      } : {}}
+                      data-testid={`sidebar-mobile-${menu.id}`}
+                    >
+                      <Icon className={`h-5 w-5 ${isActive ? "" : "text-gray-500"}`} />
+                      <span className={`font-medium ${isActive ? "" : "text-gray-700"}`}>
+                        {menu.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </nav>
             </div>
           </div>
-        </div>
-      )}
-
-      <main className="max-w-6xl mx-auto px-4 py-6 pb-24">
-        {filteredProducts.length === 0 ? (
-          <div className="text-center py-12">
-            <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">
-              {searchQuery
-                ? "Nenhum produto encontrado para sua busca."
-                : "Nenhum produto disponível no momento."}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {Array.from(groupedProducts.entries()).map(([categoryId, products]) => (
-              <section key={categoryId}>
-                <h2
-                  className="text-lg font-bold mb-4 pb-2 border-b-2"
-                  style={{ borderColor: brandColor, color: brandColor }}
-                  data-testid={`text-category-${categoryId}`}
-                >
-                  {getCategoryName(categoryId)}
-                </h2>
-                <div className="space-y-4">
-                  {products.map((product) => (
-                    <div
-                      key={product.id}
-                      className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
-                      data-testid={`card-product-${product.id}`}
-                    >
-                      <div className="flex">
-                        <div className="flex-1 p-4">
-                          <h3 className="font-semibold text-gray-900 mb-1">
-                            {product.name}
-                          </h3>
-                          {product.description && (
-                            <p className="text-sm text-gray-500 line-clamp-2 mb-2">
-                              {product.description}
-                            </p>
-                          )}
-                          <p
-                            className="font-bold text-lg"
-                            style={{ color: brandColor }}
-                          >
-                            {formatCurrency(product.price)}
-                          </p>
-                        </div>
-                        {product.imageUrl && (
-                          <div className="w-28 h-28 sm:w-32 sm:h-32 flex-shrink-0">
-                            <img
-                              src={product.imageUrl}
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                              data-testid={`img-product-${product.id}`}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
         )}
-      </main>
+
+        {/* Conteúdo Principal */}
+        <div className="flex-1 min-w-0">
+          {/* Seção: Cardápio */}
+          {activeSection === "cardapio" && (
+            <>
+              {/* Pills de Categorias */}
+              {menuData.categories.length > 0 && (
+                <div className="sticky top-[112px] z-40 bg-white shadow-sm border-b">
+                  <div className="overflow-x-auto scrollbar-hide">
+                    <div className="px-4 py-3 flex gap-2">
+                      <button
+                        onClick={() => setActiveCategory(null)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                          activeCategory === null
+                            ? "text-white shadow-md"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                        style={activeCategory === null ? { backgroundColor: brandColor } : {}}
+                        data-testid="button-category-all"
+                      >
+                        Todos
+                      </button>
+                      {menuData.categories.map((category) => (
+                        <button
+                          key={category.id}
+                          onClick={() => setActiveCategory(category.id)}
+                          className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                            activeCategory === category.id
+                              ? "text-white shadow-md"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                          style={activeCategory === category.id ? { backgroundColor: brandColor } : {}}
+                          data-testid={`button-category-${category.id}`}
+                        >
+                          {category.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <main className="px-4 py-6 pb-24">
+                {filteredProducts.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">
+                      {searchQuery
+                        ? "Nenhum produto encontrado para sua busca."
+                        : "Nenhum produto disponível no momento."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-8">
+                    {Array.from(groupedProducts.entries()).map(([categoryId, products]) => (
+                      <section key={categoryId}>
+                        <h2
+                          className="text-lg font-bold mb-4 pb-2 border-b-2"
+                          style={{ borderColor: brandColor, color: brandColor }}
+                          data-testid={`text-category-${categoryId}`}
+                        >
+                          {getCategoryName(categoryId)}
+                        </h2>
+                        <div className="space-y-4">
+                          {products.map((product) => (
+                            <div
+                              key={product.id}
+                              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
+                              data-testid={`card-product-${product.id}`}
+                            >
+                              <div className="flex">
+                                <div className="flex-1 p-4">
+                                  <h3 className="font-semibold text-gray-900 mb-1">
+                                    {product.name}
+                                  </h3>
+                                  {product.description && (
+                                    <p className="text-sm text-gray-500 line-clamp-2 mb-2">
+                                      {product.description}
+                                    </p>
+                                  )}
+                                  <p
+                                    className="font-bold text-lg"
+                                    style={{ color: brandColor }}
+                                  >
+                                    {formatCurrency(product.price)}
+                                  </p>
+                                </div>
+                                {product.imageUrl && (
+                                  <div className="w-28 h-28 sm:w-32 sm:h-32 flex-shrink-0">
+                                    <img
+                                      src={product.imageUrl}
+                                      alt={product.name}
+                                      className="w-full h-full object-cover"
+                                      loading="lazy"
+                                      data-testid={`img-product-${product.id}`}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    ))}
+                  </div>
+                )}
+              </main>
+            </>
+          )}
+
+          {/* Seção: Pedidos */}
+          {activeSection === "pedidos" && (
+            <div className="px-4 py-6 pb-24">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Meus Pedidos</h2>
+              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                <ClipboardList className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">Você ainda não tem pedidos.</p>
+                <button
+                  onClick={() => setActiveSection("cardapio")}
+                  className="mt-4 px-6 py-2 rounded-lg text-white font-medium"
+                  style={{ backgroundColor: brandColor }}
+                >
+                  Ver Cardápio
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Seção: Histórico */}
+          {activeSection === "historico" && (
+            <div className="px-4 py-6 pb-24">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Histórico de Pedidos</h2>
+              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                <History className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">Seu histórico de pedidos aparecerá aqui.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Seção: Endereços */}
+          {activeSection === "enderecos" && (
+            <div className="px-4 py-6 pb-24">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Meus Endereços</h2>
+              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                <MapPin className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 mb-4">Você ainda não tem endereços salvos.</p>
+                <button
+                  className="px-6 py-2 rounded-lg text-white font-medium"
+                  style={{ backgroundColor: brandColor }}
+                >
+                  Adicionar Endereço
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       <footer className="fixed bottom-0 left-0 right-0 bg-white border-t py-3 text-center text-xs text-gray-400">
         Cardápio Digital - {menuData.tenant.name}
