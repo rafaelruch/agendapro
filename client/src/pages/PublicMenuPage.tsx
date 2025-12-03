@@ -603,13 +603,12 @@ export default function PublicMenuPage() {
                       {displayProducts.map((product) => (
                         <div
                           key={product.id}
-                          className="p-1 rounded-2xl transition-all hover:shadow-lg"
-                          style={{ backgroundColor: brandColor }}
+                          className="p-1.5 rounded-2xl bg-white border border-gray-200 transition-all hover:shadow-lg"
                           data-testid={`card-product-${product.id}`}
                         >
                           <div className="bg-white rounded-xl overflow-hidden">
                             {/* Imagem do Produto */}
-                            <div className="relative bg-gray-100 p-4 flex items-center justify-center h-40">
+                            <div className="relative bg-gray-200 p-4 flex items-center justify-center h-40 rounded-xl">
                               {product.isOnSale && (
                                 <div 
                                   className="absolute top-2 left-2 p-1.5 rounded-lg"
