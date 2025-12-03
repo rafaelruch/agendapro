@@ -1,6 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, SlidersHorizontal, Package, ShoppingBag } from "lucide-react";
+import { Search, SlidersHorizontal, Package, ShoppingBag, User, X, ChevronDown, LogOut } from "lucide-react";
+
+interface CustomerData {
+  name: string;
+  phone: string;
+}
 
 interface MenuProduct {
   id: string;
@@ -43,8 +48,47 @@ interface MenuData {
 export default function PublicMenuPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [customer, setCustomer] = useState<CustomerData | null>(null);
+  const [registerForm, setRegisterForm] = useState({ name: "", phone: "" });
 
   const slug = window.location.pathname.replace('/menu/', '');
+
+  // Carregar cliente salvo do localStorage
+  useEffect(() => {
+    const savedCustomer = localStorage.getItem(`menu_customer_${slug}`);
+    if (savedCustomer) {
+      try {
+        setCustomer(JSON.parse(savedCustomer));
+      } catch (e) {
+        localStorage.removeItem(`menu_customer_${slug}`);
+      }
+    }
+  }, [slug]);
+
+  const handleRegister = () => {
+    if (registerForm.name.trim() && registerForm.phone.trim()) {
+      const newCustomer = { name: registerForm.name.trim(), phone: registerForm.phone.trim() };
+      setCustomer(newCustomer);
+      localStorage.setItem(`menu_customer_${slug}`, JSON.stringify(newCustomer));
+      setShowRegisterModal(false);
+      setRegisterForm({ name: "", phone: "" });
+    }
+  };
+
+  const handleLogout = () => {
+    setCustomer(null);
+    localStorage.removeItem(`menu_customer_${slug}`);
+    setShowProfileMenu(false);
+  };
+
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, "").slice(0, 11);
+    if (numbers.length <= 2) return numbers;
+    if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
+  };
 
   const { data: menuData, isLoading, error } = useQuery<MenuData>({
     queryKey: ["/api/menu", slug],
@@ -146,36 +190,29 @@ export default function PublicMenuPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header Principal - Estilo iFood */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            {/* Logo e Nome à Esquerda */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="max-w-6xl mx-auto px-4 py-2">
+          <div className="flex items-center justify-between gap-3">
+            {/* Logo à Esquerda */}
+            <div className="flex-shrink-0">
               {menuData.tenant.logoUrl ? (
                 <img
                   src={menuData.tenant.logoUrl}
                   alt={menuData.tenant.name}
-                  className="h-10 w-10 object-contain rounded-lg"
+                  className="h-12 w-12 object-contain rounded-xl"
                   data-testid="img-tenant-logo"
                 />
               ) : (
                 <div 
-                  className="h-10 w-10 rounded-lg flex items-center justify-center"
+                  className="h-12 w-12 rounded-xl flex items-center justify-center"
                   style={{ backgroundColor: brandColor }}
                 >
-                  <ShoppingBag className="h-6 w-6 text-white" />
+                  <ShoppingBag className="h-7 w-7 text-white" />
                 </div>
               )}
-              <span 
-                className="font-bold text-lg hidden sm:block"
-                style={{ color: brandColor }}
-                data-testid="text-tenant-name"
-              >
-                {menuData.tenant.name}
-              </span>
             </div>
 
             {/* Campo de Busca Centralizado */}
-            <div className="flex-1 max-w-md mx-4">
+            <div className="flex-1 max-w-lg">
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -202,11 +239,121 @@ export default function PublicMenuPage() {
               </div>
             </div>
 
-            {/* Espaço à direita para balancear (pode adicionar mais ações depois) */}
-            <div className="hidden md:block w-10" />
+            {/* Perfil / Cadastro à Direita */}
+            <div className="flex-shrink-0 relative">
+              {customer ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowProfileMenu(!showProfileMenu)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                    data-testid="button-profile"
+                  >
+                    <div 
+                      className="h-8 w-8 rounded-full flex items-center justify-center text-white text-sm font-medium"
+                      style={{ backgroundColor: brandColor }}
+                    >
+                      {customer.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="hidden sm:block text-sm font-medium text-gray-700 max-w-[100px] truncate">
+                      {customer.name}
+                    </span>
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                  </button>
+
+                  {/* Menu Dropdown do Perfil */}
+                  {showProfileMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <p className="text-sm font-medium text-gray-900 truncate">{customer.name}</p>
+                        <p className="text-xs text-gray-500">{customer.phone}</p>
+                      </div>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        data-testid="button-logout"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Sair
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowRegisterModal(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700"
+                  data-testid="button-register"
+                >
+                  <User className="h-4 w-4" />
+                  <span className="hidden sm:inline">Cadastrar</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </header>
+
+      {/* Modal de Cadastro */}
+      {showRegisterModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold text-gray-900">Cadastrar</h2>
+              <button
+                onClick={() => setShowRegisterModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                data-testid="button-close-register"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nome
+                </label>
+                <input
+                  type="text"
+                  value={registerForm.name}
+                  onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
+                  placeholder="Seu nome"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                  style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                  data-testid="input-register-name"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Telefone
+                </label>
+                <input
+                  type="tel"
+                  value={registerForm.phone}
+                  onChange={(e) => setRegisterForm({ ...registerForm, phone: formatPhone(e.target.value) })}
+                  placeholder="(00) 00000-0000"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                  style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                  data-testid="input-register-phone"
+                />
+              </div>
+            </div>
+
+            <div className="p-4 border-t">
+              <button
+                onClick={handleRegister}
+                disabled={!registerForm.name.trim() || !registerForm.phone.trim()}
+                className="w-full py-3 rounded-lg text-white font-medium transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: brandColor }}
+                data-testid="button-submit-register"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pills de Categorias */}
       {menuData.categories.length > 0 && (
