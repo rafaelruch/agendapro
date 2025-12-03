@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, ChevronRight, Package, ShoppingBag } from "lucide-react";
+import { Search, SlidersHorizontal, Package, ShoppingBag } from "lucide-react";
 
 interface MenuProduct {
   id: string;
@@ -9,6 +9,9 @@ interface MenuProduct {
   price: number;
   imageUrl: string | null;
   categoryId: string | null;
+  isFeatured?: boolean;
+  isOnSale?: boolean;
+  salePrice?: number | null;
 }
 
 interface MenuCategory {
@@ -16,14 +19,25 @@ interface MenuCategory {
   name: string;
 }
 
+interface DeliveryNeighborhood {
+  id: string;
+  name: string;
+  deliveryFee: number;
+}
+
 interface MenuData {
   tenant: {
     name: string;
     logoUrl: string | null;
     brandColor: string;
+    bannerUrl: string | null;
+    minOrderValue: number | null;
   };
   categories: MenuCategory[];
   products: MenuProduct[];
+  featuredProducts: MenuProduct[];
+  productsOnSale: MenuProduct[];
+  deliveryFees: DeliveryNeighborhood[];
 }
 
 export default function PublicMenuPage() {
@@ -130,48 +144,75 @@ export default function PublicMenuPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header
-        className="sticky top-0 z-50 shadow-md"
-        style={{ backgroundColor: brandColor }}
-      >
-        <div className="max-w-3xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-center gap-3">
-            {menuData.tenant.logoUrl && (
-              <img
-                src={menuData.tenant.logoUrl}
-                alt={menuData.tenant.name}
-                className="h-12 w-12 object-contain bg-white rounded-lg p-1"
-                data-testid="img-tenant-logo"
-              />
-            )}
-            {!menuData.tenant.logoUrl && (
-              <span className="text-white font-bold text-xl" data-testid="text-tenant-name">
+      {/* Header Principal - Estilo iFood */}
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
+        <div className="max-w-6xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            {/* Logo e Nome à Esquerda */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {menuData.tenant.logoUrl ? (
+                <img
+                  src={menuData.tenant.logoUrl}
+                  alt={menuData.tenant.name}
+                  className="h-10 w-10 object-contain rounded-lg"
+                  data-testid="img-tenant-logo"
+                />
+              ) : (
+                <div 
+                  className="h-10 w-10 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: brandColor }}
+                >
+                  <ShoppingBag className="h-6 w-6 text-white" />
+                </div>
+              )}
+              <span 
+                className="font-bold text-lg hidden sm:block"
+                style={{ color: brandColor }}
+                data-testid="text-tenant-name"
+              >
                 {menuData.tenant.name}
               </span>
-            )}
+            </div>
+
+            {/* Campo de Busca Centralizado */}
+            <div className="flex-1 max-w-md mx-4">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar produto..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:border-transparent text-sm bg-white"
+                    style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                    data-testid="input-search"
+                  />
+                </div>
+                
+                {/* Botão Filtrar */}
+                <button
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-medium transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: brandColor }}
+                  data-testid="button-filter"
+                >
+                  <span className="hidden sm:inline">Filtrar</span>
+                  <SlidersHorizontal className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Espaço à direita para balancear (pode adicionar mais ações depois) */}
+            <div className="hidden md:block w-10" />
           </div>
         </div>
       </header>
 
-      <div className="sticky top-[76px] z-40 bg-white shadow-sm border-b">
-        <div className="max-w-3xl mx-auto px-4 py-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar no cardápio..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:border-transparent bg-gray-50 text-sm"
-              style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
-              data-testid="input-search"
-            />
-          </div>
-        </div>
-
-        {menuData.categories.length > 0 && (
+      {/* Pills de Categorias */}
+      {menuData.categories.length > 0 && (
+        <div className="sticky top-[65px] z-40 bg-white shadow-sm border-b">
           <div className="overflow-x-auto scrollbar-hide">
-            <div className="max-w-3xl mx-auto px-4 pb-3 flex gap-2">
+            <div className="max-w-6xl mx-auto px-4 py-3 flex gap-2">
               <button
                 onClick={() => setActiveCategory(null)}
                 className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
@@ -201,10 +242,10 @@ export default function PublicMenuPage() {
               ))}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      <main className="max-w-3xl mx-auto px-4 py-6 pb-24">
+      <main className="max-w-6xl mx-auto px-4 py-6 pb-24">
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
