@@ -3476,8 +3476,11 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     try {
       const { slug } = req.params;
       
+      // Normalizar slug para minúsculas (case-insensitive)
+      const normalizedSlug = slug.toLowerCase();
+      
       // Buscar tenant pelo slug
-      const tenant = await storage.getTenantByMenuSlug(slug);
+      const tenant = await storage.getTenantByMenuSlug(normalizedSlug);
       if (!tenant || !tenant.active) {
         return res.status(404).json({ error: "Cardápio não encontrado" });
       }

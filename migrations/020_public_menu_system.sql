@@ -44,8 +44,18 @@ CREATE TABLE IF NOT EXISTS product_categories (
     name TEXT NOT NULL,
     description TEXT,
     display_order INTEGER NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Adicionar coluna is_active se não existir (para bancos existentes)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'product_categories' AND column_name = 'is_active') THEN
+        ALTER TABLE product_categories ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE;
+    END IF;
+END $$;
 
 -- Índice para busca por tenant
 CREATE INDEX IF NOT EXISTS idx_product_categories_tenant 
