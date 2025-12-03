@@ -1,0 +1,82 @@
+10:48:31 PM [express] GET /api/clients 200 in 11ms :: [{"id":"0d42510d-db47-404f-9b68-651c9a97f6b0","…
+Error fetching appointments: error: column "payment_method" does not exist
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.getAllAppointments (file:///app/dist/index.js:855:32)
+    at async file:///app/dist/index.js:3252:29 {
+  length: 115,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '106',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+10:48:31 PM [express] GET /api/appointments 500 in 23ms :: {"error":"Erro ao buscar agendamentos"}
+10:48:32 PM [express] GET /api/services 304 in 10ms :: [{"id":"c20a3e26-0d71-4ed9-8e22-289999ec51bf",…
+10:48:33 PM [express] GET /api/finance/summary 200 in 6ms :: {"totalIncome":0,"totalExpense":0,"balan…
+10:48:33 PM [express] GET /api/finance/transactions 200 in 17ms :: []
+Error fetching finance categories: error: column "is_default" does not exist
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.getAllFinanceCategories (file:///app/dist/index.js:1635:16)
+    at async DbStorage.seedDefaultCategories (file:///app/dist/index.js:1653:36)
+    at async file:///app/dist/index.js:4206:7 {
+  length: 110,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '43',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+10:48:33 PM [express] GET /api/finance/categories 500 in 17ms :: {"error":"column \"is_default\" does…
+Error fetching appointments: error: column "payment_method" does not exist
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.getAllAppointments (file:///app/dist/index.js:855:32)
+    at async file:///app/dist/index.js:3252:29 {
+  length: 115,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '106',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+10:48:40 PM [express] GET /api/appointments 500 in 3ms :: {"error":"Erro ao buscar agendamentos"}
+Error fetching appointments: error: column "payment_method" does not exist
+    at /app/node_modules/pg-pool/index.js:45:11
