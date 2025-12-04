@@ -4274,7 +4274,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   // ===========================================
 
   // GET /api/menu-settings - Obter configurações do cardápio
-  app.get("/api/menu-settings", authenticateRequest, requireModule("inventory"), async (req, res) => {
+  app.get("/api/menu-settings", authenticateRequest, requireModule("public-menu"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -4301,7 +4301,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // PUT /api/menu-settings - Atualizar configurações do cardápio
-  app.put("/api/menu-settings", authenticateRequest, requireModule("inventory"), async (req, res) => {
+  app.put("/api/menu-settings", authenticateRequest, requireModule("public-menu"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
