@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { Plus, Search, Edit2, Trash2, GripVertical, Tag } from "lucide-react";
+import { 
+  Plus, Search, Edit2, Trash2, GripVertical, Tag,
+  Package, Coffee, Pizza, Cake, Beer, Wine, IceCream, Sandwich,
+  Apple, Beef, Fish, Salad, Soup, Cookie, Croissant, Drumstick,
+  UtensilsCrossed, ShoppingBag, Gift, Heart, Star, Sparkles,
+  Flame, Leaf, Droplets, Milk, Egg, Wheat, Cherry, Grape,
+  type LucideIcon
+} from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,12 +19,51 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ProductCategory } from "@shared/schema";
 
+const AVAILABLE_ICONS: { name: string; icon: LucideIcon; label: string }[] = [
+  { name: "Package", icon: Package, label: "Pacote" },
+  { name: "Coffee", icon: Coffee, label: "Café" },
+  { name: "Pizza", icon: Pizza, label: "Pizza" },
+  { name: "Cake", icon: Cake, label: "Bolo" },
+  { name: "Beer", icon: Beer, label: "Cerveja" },
+  { name: "Wine", icon: Wine, label: "Vinho" },
+  { name: "IceCream", icon: IceCream, label: "Sorvete" },
+  { name: "Sandwich", icon: Sandwich, label: "Sanduíche" },
+  { name: "Apple", icon: Apple, label: "Fruta" },
+  { name: "Beef", icon: Beef, label: "Carne" },
+  { name: "Fish", icon: Fish, label: "Peixe" },
+  { name: "Salad", icon: Salad, label: "Salada" },
+  { name: "Soup", icon: Soup, label: "Sopa" },
+  { name: "Cookie", icon: Cookie, label: "Biscoito" },
+  { name: "Croissant", icon: Croissant, label: "Padaria" },
+  { name: "Drumstick", icon: Drumstick, label: "Frango" },
+  { name: "UtensilsCrossed", icon: UtensilsCrossed, label: "Refeição" },
+  { name: "ShoppingBag", icon: ShoppingBag, label: "Compras" },
+  { name: "Gift", icon: Gift, label: "Presente" },
+  { name: "Heart", icon: Heart, label: "Favoritos" },
+  { name: "Star", icon: Star, label: "Destaque" },
+  { name: "Sparkles", icon: Sparkles, label: "Especial" },
+  { name: "Flame", icon: Flame, label: "Picante" },
+  { name: "Leaf", icon: Leaf, label: "Vegano" },
+  { name: "Droplets", icon: Droplets, label: "Bebidas" },
+  { name: "Milk", icon: Milk, label: "Laticínios" },
+  { name: "Egg", icon: Egg, label: "Ovos" },
+  { name: "Wheat", icon: Wheat, label: "Grãos" },
+  { name: "Cherry", icon: Cherry, label: "Frutas" },
+  { name: "Grape", icon: Grape, label: "Uva" },
+];
+
+const getIconComponent = (iconName: string | null): LucideIcon => {
+  const found = AVAILABLE_ICONS.find(i => i.name === iconName);
+  return found?.icon || Package;
+};
+
 export default function ProductCategoriesPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ProductCategory | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState({
     name: "",
+    icon: "Package",
     isActive: true,
   });
   const { toast } = useToast();
@@ -113,13 +159,14 @@ export default function ProductCategoriesPage() {
   const sortedCategories = [...filteredCategories].sort((a, b) => a.displayOrder - b.displayOrder);
 
   const resetForm = () => {
-    setFormData({ name: "", isActive: true });
+    setFormData({ name: "", icon: "Package", isActive: true });
   };
 
   const handleEdit = (category: ProductCategory) => {
     setEditingCategory(category);
     setFormData({
       name: category.name,
+      icon: category.icon || "Package",
       isActive: category.isActive,
     });
     setShowDialog(true);
@@ -270,9 +317,15 @@ export default function ProductCategoriesPage() {
                       </div>
                     </TableCell>
                     <TableCell className="px-5 py-4 sm:px-6 text-start">
-                      <p className="text-gray-800 text-theme-sm dark:text-white/90 font-medium">
-                        {category.name}
-                      </p>
+                      <div className="flex items-center gap-3">
+                        {(() => {
+                          const IconComponent = getIconComponent(category.icon);
+                          return <IconComponent className="h-5 w-5 text-primary" />;
+                        })()}
+                        <p className="text-gray-800 text-theme-sm dark:text-white/90 font-medium">
+                          {category.name}
+                        </p>
+                      </div>
                     </TableCell>
                     <TableCell className="px-4 py-3 text-center">
                       <Badge
@@ -323,7 +376,7 @@ export default function ProductCategoriesPage() {
             </p>
           </div>
 
-          <div className="grid gap-4 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
+          <div className="grid gap-4 px-6 pb-6 sm:px-9.5 sm:pb-9.5 max-h-[60vh] overflow-y-auto">
             <div className="grid gap-2">
               <Label htmlFor="name">Nome da Categoria</Label>
               <Input
@@ -334,6 +387,33 @@ export default function ProductCategoriesPage() {
                 data-testid="input-category-name"
                 required
               />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Ícone da Categoria</Label>
+              <div className="grid grid-cols-6 gap-2 p-3 border rounded-lg border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto">
+                {AVAILABLE_ICONS.map((iconItem) => {
+                  const IconComponent = iconItem.icon;
+                  const isSelected = formData.icon === iconItem.name;
+                  return (
+                    <button
+                      key={iconItem.name}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, icon: iconItem.name })}
+                      className={`p-2 rounded-lg flex flex-col items-center justify-center gap-1 transition-all ${
+                        isSelected
+                          ? "bg-primary text-white"
+                          : "bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+                      }`}
+                      title={iconItem.label}
+                      data-testid={`button-icon-${iconItem.name}`}
+                    >
+                      <IconComponent className="h-5 w-5" />
+                      <span className="text-[10px] truncate w-full text-center">{iconItem.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4">
