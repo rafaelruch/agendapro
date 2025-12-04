@@ -105,6 +105,21 @@ interface ClientOrder {
   }[];
 }
 
+interface ClientAppointment {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  totalPrice: number;
+  professionalName: string | null;
+  services: {
+    serviceName: string;
+    servicePrice: number;
+    duration: number;
+  }[];
+}
+
 interface ClientAddress {
   id: string;
   label: string | null;
@@ -193,6 +208,8 @@ export default function PublicMenuPage() {
   const [clientOrders, setClientOrders] = useState<ClientOrder[]>([]);
   const [clientHistory, setClientHistory] = useState<ClientOrder[]>([]);
   const [clientAddresses, setClientAddresses] = useState<ClientAddress[]>([]);
+  const [clientAppointments, setClientAppointments] = useState<ClientAppointment[]>([]);
+  const [clientAppointmentHistory, setClientAppointmentHistory] = useState<ClientAppointment[]>([]);
   const [identifiedPhone, setIdentifiedPhone] = useState<string | null>(null);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [phoneInput, setPhoneInput] = useState("");
@@ -625,18 +642,32 @@ export default function PublicMenuPage() {
     }
   };
 
-  // Carregar pedidos e endereços do cliente
+  // Carregar pedidos/agendamentos e endereços do cliente
   const loadClientData = async (phone: string) => {
     const cleanPhone = phone.replace(/\D/g, "");
     if (cleanPhone.length < 10) return;
     
     setIsLoadingClientData(true);
     try {
-      // Buscar pedidos
+      // Buscar pedidos (para menu delivery)
       const ordersRes = await fetch(`/api/menu/${slug}/client/${cleanPhone}/orders`);
       const ordersData = await ordersRes.json();
       setClientOrders(ordersData.orders || []);
       setClientHistory(ordersData.history || []);
+      
+      // Buscar agendamentos (para menu services)
+      const appointmentsRes = await fetch(`/api/menu/${slug}/client/${cleanPhone}/appointments`);
+      const appointmentsData = await appointmentsRes.json();
+      // Agendamentos pendentes (scheduled, confirmed)
+      const pendingAppointments = (appointmentsData.appointments || []).filter(
+        (apt: ClientAppointment) => apt.status === 'scheduled' || apt.status === 'confirmed'
+      );
+      // Histórico (completed, cancelled)
+      const historyAppointments = (appointmentsData.appointments || []).filter(
+        (apt: ClientAppointment) => apt.status === 'completed' || apt.status === 'cancelled'
+      );
+      setClientAppointments(pendingAppointments);
+      setClientAppointmentHistory(historyAppointments);
       
       // Buscar endereços
       const clientRes = await fetch(`/api/menu/${slug}/client/${cleanPhone}`);
@@ -2870,81 +2901,151 @@ export default function PublicMenuPage() {
             </div>
           )}
 
-          {/* Seção: Pedidos */}
+          {/* Seção: Pedidos/Agendamentos */}
           {activeSection === "pedidos" && (
             <div className="px-4 py-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Meus Pedidos</h2>
-              {isLoadingClientData ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-                </div>
-              ) : clientOrders.length === 0 ? (
-                <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                  <ClipboardList className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">Você não tem pedidos em andamento.</p>
-                  <button
-                    onClick={() => setActiveSection("cardapio")}
-                    className="mt-4 px-6 py-2 rounded-lg text-white font-medium"
-                    style={{ backgroundColor: brandColor }}
-                  >
-                    Ver Cardápio
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {clientOrders.map((order) => (
-                    <div key={order.id} className="bg-white rounded-xl border border-gray-200 p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <span className="font-bold text-gray-900">Pedido #{order.orderNumber}</span>
-                          <p className="text-xs text-gray-500">
-                            {new Date(order.createdAt).toLocaleDateString('pt-BR', { 
-                              day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' 
-                            })}
-                          </p>
-                        </div>
-                        <span 
-                          className="px-3 py-1 rounded-full text-xs font-medium"
-                          style={{ 
-                            backgroundColor: order.status === 'pending' ? '#FEF3C7' : 
-                                           order.status === 'confirmed' ? '#DBEAFE' :
-                                           order.status === 'preparing' ? '#FED7AA' :
-                                           order.status === 'ready' ? '#D1FAE5' :
-                                           order.status === 'delivering' ? '#E0E7FF' : '#F3F4F6',
-                            color: order.status === 'pending' ? '#92400E' : 
-                                   order.status === 'confirmed' ? '#1E40AF' :
-                                   order.status === 'preparing' ? '#C2410C' :
-                                   order.status === 'ready' ? '#065F46' :
-                                   order.status === 'delivering' ? '#3730A3' : '#374151'
-                          }}
-                        >
-                          {order.status === 'pending' && 'Pendente'}
-                          {order.status === 'confirmed' && 'Confirmado'}
-                          {order.status === 'preparing' && 'Preparando'}
-                          {order.status === 'ready' && 'Pronto'}
-                          {order.status === 'delivering' && 'Saiu para entrega'}
-                        </span>
-                      </div>
-                      <div className="space-y-1 mb-3">
-                        {order.items.map((item) => (
-                          <div key={item.id} className="flex justify-between text-sm">
-                            <span className="text-gray-600">{item.quantity}x {item.productName}</span>
-                            <span className="text-gray-900">{formatCurrency(item.unitPrice * item.quantity)}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="border-t pt-2 flex justify-between font-bold">
-                        <span>Total</span>
-                        <span style={{ color: brandColor }}>{formatCurrency(order.total)}</span>
-                      </div>
-                      {order.deliveryStreet && (
-                        <p className="text-xs text-gray-500 mt-2">
-                          Entrega: {order.deliveryStreet}{order.deliveryNumber ? `, ${order.deliveryNumber}` : ''} - {order.deliveryNeighborhood}
-                        </p>
-                      )}
+              {isServicesMenu ? (
+                <>
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">Meus Agendamentos</h2>
+                  {isLoadingClientData ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                     </div>
-                  ))}
-                </div>
+                  ) : clientAppointments.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                      <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">Você não tem agendamentos pendentes.</p>
+                      <button
+                        onClick={() => setActiveSection("cardapio")}
+                        className="mt-4 px-6 py-2 rounded-lg text-white font-medium"
+                        style={{ backgroundColor: brandColor }}
+                      >
+                        Ver Serviços
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {clientAppointments.map((apt) => (
+                        <div key={apt.id} className="bg-white rounded-xl border border-gray-200 p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <span className="font-bold text-gray-900">
+                                {new Date(apt.date + 'T12:00:00').toLocaleDateString('pt-BR', { 
+                                  weekday: 'long', day: '2-digit', month: 'long' 
+                                })}
+                              </span>
+                              <p className="text-sm text-gray-600">
+                                {apt.startTime} - {apt.endTime}
+                              </p>
+                            </div>
+                            <span 
+                              className="px-3 py-1 rounded-full text-xs font-medium"
+                              style={{ 
+                                backgroundColor: apt.status === 'scheduled' ? '#FEF3C7' : '#DBEAFE',
+                                color: apt.status === 'scheduled' ? '#92400E' : '#1E40AF'
+                              }}
+                            >
+                              {apt.status === 'scheduled' ? 'Agendado' : 'Confirmado'}
+                            </span>
+                          </div>
+                          <div className="space-y-1 mb-3">
+                            {apt.services.map((service, idx) => (
+                              <div key={idx} className="flex justify-between text-sm">
+                                <span className="text-gray-600">{service.serviceName}</span>
+                                <span className="text-gray-900">{formatCurrency(service.servicePrice)}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="border-t pt-2 flex justify-between font-bold">
+                            <span>Total</span>
+                            <span style={{ color: brandColor }}>{formatCurrency(apt.totalPrice)}</span>
+                          </div>
+                          {apt.professionalName && (
+                            <p className="text-xs text-gray-500 mt-2">
+                              Profissional: {apt.professionalName}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">Meus Pedidos</h2>
+                  {isLoadingClientData ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                    </div>
+                  ) : clientOrders.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                      <ClipboardList className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">Você não tem pedidos em andamento.</p>
+                      <button
+                        onClick={() => setActiveSection("cardapio")}
+                        className="mt-4 px-6 py-2 rounded-lg text-white font-medium"
+                        style={{ backgroundColor: brandColor }}
+                      >
+                        Ver Cardápio
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {clientOrders.map((order) => (
+                        <div key={order.id} className="bg-white rounded-xl border border-gray-200 p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <span className="font-bold text-gray-900">Pedido #{order.orderNumber}</span>
+                              <p className="text-xs text-gray-500">
+                                {new Date(order.createdAt).toLocaleDateString('pt-BR', { 
+                                  day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                                })}
+                              </p>
+                            </div>
+                            <span 
+                              className="px-3 py-1 rounded-full text-xs font-medium"
+                              style={{ 
+                                backgroundColor: order.status === 'pending' ? '#FEF3C7' : 
+                                               order.status === 'confirmed' ? '#DBEAFE' :
+                                               order.status === 'preparing' ? '#FED7AA' :
+                                               order.status === 'ready' ? '#D1FAE5' :
+                                               order.status === 'delivering' ? '#E0E7FF' : '#F3F4F6',
+                                color: order.status === 'pending' ? '#92400E' : 
+                                       order.status === 'confirmed' ? '#1E40AF' :
+                                       order.status === 'preparing' ? '#C2410C' :
+                                       order.status === 'ready' ? '#065F46' :
+                                       order.status === 'delivering' ? '#3730A3' : '#374151'
+                              }}
+                            >
+                              {order.status === 'pending' && 'Pendente'}
+                              {order.status === 'confirmed' && 'Confirmado'}
+                              {order.status === 'preparing' && 'Preparando'}
+                              {order.status === 'ready' && 'Pronto'}
+                              {order.status === 'delivering' && 'Saiu para entrega'}
+                            </span>
+                          </div>
+                          <div className="space-y-1 mb-3">
+                            {order.items.map((item) => (
+                              <div key={item.id} className="flex justify-between text-sm">
+                                <span className="text-gray-600">{item.quantity}x {item.productName}</span>
+                                <span className="text-gray-900">{formatCurrency(item.unitPrice * item.quantity)}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="border-t pt-2 flex justify-between font-bold">
+                            <span>Total</span>
+                            <span style={{ color: brandColor }}>{formatCurrency(order.total)}</span>
+                          </div>
+                          {order.deliveryStreet && (
+                            <p className="text-xs text-gray-500 mt-2">
+                              Entrega: {order.deliveryStreet}{order.deliveryNumber ? `, ${order.deliveryNumber}` : ''} - {order.deliveryNeighborhood}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -2952,54 +3053,117 @@ export default function PublicMenuPage() {
           {/* Seção: Histórico */}
           {activeSection === "historico" && (
             <div className="px-4 py-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Histórico de Pedidos</h2>
-              {isLoadingClientData ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-                </div>
-              ) : clientHistory.length === 0 ? (
-                <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                  <History className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">Seu histórico de pedidos aparecerá aqui.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {clientHistory.map((order) => (
-                    <div key={order.id} className="bg-white rounded-xl border border-gray-200 p-4 opacity-80">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <span className="font-bold text-gray-900">Pedido #{order.orderNumber}</span>
-                          <p className="text-xs text-gray-500">
-                            {new Date(order.createdAt).toLocaleDateString('pt-BR', { 
-                              day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' 
-                            })}
-                          </p>
-                        </div>
-                        <span 
-                          className="px-3 py-1 rounded-full text-xs font-medium"
-                          style={{ 
-                            backgroundColor: order.status === 'delivered' ? '#D1FAE5' : '#FEE2E2',
-                            color: order.status === 'delivered' ? '#065F46' : '#991B1B'
-                          }}
-                        >
-                          {order.status === 'delivered' ? 'Entregue' : 'Cancelado'}
-                        </span>
-                      </div>
-                      <div className="space-y-1 mb-3">
-                        {order.items.map((item) => (
-                          <div key={item.id} className="flex justify-between text-sm">
-                            <span className="text-gray-600">{item.quantity}x {item.productName}</span>
-                            <span className="text-gray-900">{formatCurrency(item.unitPrice * item.quantity)}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="border-t pt-2 flex justify-between font-bold">
-                        <span>Total</span>
-                        <span style={{ color: brandColor }}>{formatCurrency(order.total)}</span>
-                      </div>
+              {isServicesMenu ? (
+                <>
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">Histórico de Agendamentos</h2>
+                  {isLoadingClientData ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                     </div>
-                  ))}
-                </div>
+                  ) : clientAppointmentHistory.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                      <History className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">Seu histórico de agendamentos aparecerá aqui.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {clientAppointmentHistory.map((apt) => (
+                        <div key={apt.id} className="bg-white rounded-xl border border-gray-200 p-4 opacity-80">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <span className="font-bold text-gray-900">
+                                {new Date(apt.date + 'T12:00:00').toLocaleDateString('pt-BR', { 
+                                  weekday: 'long', day: '2-digit', month: 'long' 
+                                })}
+                              </span>
+                              <p className="text-sm text-gray-600">
+                                {apt.startTime} - {apt.endTime}
+                              </p>
+                            </div>
+                            <span 
+                              className="px-3 py-1 rounded-full text-xs font-medium"
+                              style={{ 
+                                backgroundColor: apt.status === 'completed' ? '#D1FAE5' : '#FEE2E2',
+                                color: apt.status === 'completed' ? '#065F46' : '#991B1B'
+                              }}
+                            >
+                              {apt.status === 'completed' ? 'Concluído' : 'Cancelado'}
+                            </span>
+                          </div>
+                          <div className="space-y-1 mb-3">
+                            {apt.services.map((service, idx) => (
+                              <div key={idx} className="flex justify-between text-sm">
+                                <span className="text-gray-600">{service.serviceName}</span>
+                                <span className="text-gray-900">{formatCurrency(service.servicePrice)}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="border-t pt-2 flex justify-between font-bold">
+                            <span>Total</span>
+                            <span style={{ color: brandColor }}>{formatCurrency(apt.totalPrice)}</span>
+                          </div>
+                          {apt.professionalName && (
+                            <p className="text-xs text-gray-500 mt-2">
+                              Profissional: {apt.professionalName}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">Histórico de Pedidos</h2>
+                  {isLoadingClientData ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                    </div>
+                  ) : clientHistory.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                      <History className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">Seu histórico de pedidos aparecerá aqui.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {clientHistory.map((order) => (
+                        <div key={order.id} className="bg-white rounded-xl border border-gray-200 p-4 opacity-80">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <span className="font-bold text-gray-900">Pedido #{order.orderNumber}</span>
+                              <p className="text-xs text-gray-500">
+                                {new Date(order.createdAt).toLocaleDateString('pt-BR', { 
+                                  day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                                })}
+                              </p>
+                            </div>
+                            <span 
+                              className="px-3 py-1 rounded-full text-xs font-medium"
+                              style={{ 
+                                backgroundColor: order.status === 'delivered' ? '#D1FAE5' : '#FEE2E2',
+                                color: order.status === 'delivered' ? '#065F46' : '#991B1B'
+                              }}
+                            >
+                              {order.status === 'delivered' ? 'Entregue' : 'Cancelado'}
+                            </span>
+                          </div>
+                          <div className="space-y-1 mb-3">
+                            {order.items.map((item) => (
+                              <div key={item.id} className="flex justify-between text-sm">
+                                <span className="text-gray-600">{item.quantity}x {item.productName}</span>
+                                <span className="text-gray-900">{formatCurrency(item.unitPrice * item.quantity)}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="border-t pt-2 flex justify-between font-bold">
+                            <span>Total</span>
+                            <span style={{ color: brandColor }}>{formatCurrency(order.total)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
