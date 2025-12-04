@@ -3296,7 +3296,7 @@ export default function PublicMenuPage() {
         </div>
       </div>
 
-      <footer className="bg-white border-t py-4 text-center text-xs text-gray-400">
+      <footer className={`bg-white border-t py-4 text-center text-xs text-gray-400 ${(activeSection === "pedidos" || activeSection === "historico") ? "hidden md:block" : ""}`}>
         Cardápio Digital - {menuData.tenant.name}
       </footer>
 
