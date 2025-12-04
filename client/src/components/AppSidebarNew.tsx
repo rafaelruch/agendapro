@@ -78,7 +78,7 @@ export function AppSidebarNew({ userRole, allowedModules = [] }: AppSidebarProps
       icon: <Store className="h-5 w-5" />,
       path: "/menu-settings",
       testId: "link-cardapio",
-      moduleId: "inventory"
+      moduleId: "public-menu"
     },
     {
       name: "Pedidos",
