@@ -265,10 +265,19 @@ CREATE TABLE IF NOT EXISTS product_categories (
     id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id VARCHAR NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
+    icon TEXT DEFAULT 'Package',
     display_order INTEGER NOT NULL DEFAULT 0,
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Adicionar coluna icon em product_categories se nao existir
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'product_categories' AND column_name = 'icon') THEN
+        ALTER TABLE product_categories ADD COLUMN icon TEXT DEFAULT 'Package';
+    END IF;
+END $$;
 
 -- ========== TABELA: delivery_neighborhoods ==========
 CREATE TABLE IF NOT EXISTS delivery_neighborhoods (
