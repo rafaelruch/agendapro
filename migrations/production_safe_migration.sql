@@ -8,6 +8,16 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "unaccent";
 
+-- ========== FUNCAO IMMUTABLE PARA UNACCENT ==========
+-- Wrapper IMMUTABLE para permitir uso em índices
+CREATE OR REPLACE FUNCTION f_unaccent(text)
+  RETURNS text
+  LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
+  SET search_path = public, pg_temp
+AS $func$
+  SELECT unaccent('unaccent', $1)
+$func$;
+
 -- ========== TABELA: tenants ==========
 CREATE TABLE IF NOT EXISTS tenants (
     id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -479,13 +489,13 @@ CREATE INDEX IF NOT EXISTS idx_tenants_menu_slug_lower ON tenants (lower(menu_sl
 UPDATE tenants SET menu_slug = lower(menu_slug) WHERE menu_slug IS NOT NULL AND menu_slug != lower(menu_slug);
 
 -- ========== INDICES PARA BUSCA ACCENT-INSENSITIVE ==========
--- Índices funcionais para busca sem considerar acentos
-CREATE INDEX IF NOT EXISTS idx_clients_name_unaccent ON clients (lower(unaccent(name)));
-CREATE INDEX IF NOT EXISTS idx_clients_phone_unaccent ON clients (lower(unaccent(phone)));
-CREATE INDEX IF NOT EXISTS idx_services_name_unaccent ON services (lower(unaccent(name)));
-CREATE INDEX IF NOT EXISTS idx_services_category_unaccent ON services (lower(unaccent(category)));
-CREATE INDEX IF NOT EXISTS idx_products_name_unaccent ON products (lower(unaccent(name)));
-CREATE INDEX IF NOT EXISTS idx_products_description_unaccent ON products (lower(unaccent(COALESCE(description, ''))));
+-- Índices funcionais usando f_unaccent (wrapper IMMUTABLE)
+CREATE INDEX IF NOT EXISTS idx_clients_name_unaccent ON clients (lower(f_unaccent(name)));
+CREATE INDEX IF NOT EXISTS idx_clients_phone_unaccent ON clients (lower(f_unaccent(phone)));
+CREATE INDEX IF NOT EXISTS idx_services_name_unaccent ON services (lower(f_unaccent(name)));
+CREATE INDEX IF NOT EXISTS idx_services_category_unaccent ON services (lower(f_unaccent(category)));
+CREATE INDEX IF NOT EXISTS idx_products_name_unaccent ON products (lower(f_unaccent(name)));
+CREATE INDEX IF NOT EXISTS idx_products_description_unaccent ON products (lower(f_unaccent(COALESCE(description, ''))));
 
 -- ========== FIM DA MIGRACAO ==========
 -- Script executado com sucesso!
