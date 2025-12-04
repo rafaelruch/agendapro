@@ -108,14 +108,15 @@ interface ClientOrder {
 interface ClientAppointment {
   id: string;
   date: string;
-  startTime: string;
-  endTime: string;
+  time: string;
   status: string;
-  totalPrice: number;
-  professionalName: string | null;
+  duration: number;
+  notes: string | null;
+  professionalName?: string | null;
   services: {
-    serviceName: string;
-    servicePrice: number;
+    id: string;
+    name: string;
+    value: number;
     duration: number;
   }[];
 }
@@ -658,16 +659,10 @@ export default function PublicMenuPage() {
       // Buscar agendamentos (para menu services)
       const appointmentsRes = await fetch(`/api/menu/${slug}/client/${cleanPhone}/appointments`);
       const appointmentsData = await appointmentsRes.json();
-      // Agendamentos pendentes (scheduled, confirmed)
-      const pendingAppointments = (appointmentsData.appointments || []).filter(
-        (apt: ClientAppointment) => apt.status === 'scheduled' || apt.status === 'confirmed'
-      );
-      // Histórico (completed, cancelled)
-      const historyAppointments = (appointmentsData.appointments || []).filter(
-        (apt: ClientAppointment) => apt.status === 'completed' || apt.status === 'cancelled'
-      );
-      setClientAppointments(pendingAppointments);
-      setClientAppointmentHistory(historyAppointments);
+      // Agendamentos pendentes (da API já vem filtrado)
+      setClientAppointments(appointmentsData.appointments || []);
+      // Histórico (da API já vem filtrado)
+      setClientAppointmentHistory(appointmentsData.history || []);
       
       // Buscar endereços
       const clientRes = await fetch(`/api/menu/${slug}/client/${cleanPhone}`);
@@ -2925,48 +2920,58 @@ export default function PublicMenuPage() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {clientAppointments.map((apt) => (
-                        <div key={apt.id} className="bg-white rounded-xl border border-gray-200 p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <div>
-                              <span className="font-bold text-gray-900">
-                                {new Date(apt.date + 'T12:00:00').toLocaleDateString('pt-BR', { 
-                                  weekday: 'long', day: '2-digit', month: 'long' 
-                                })}
-                              </span>
-                              <p className="text-sm text-gray-600">
-                                {apt.startTime} - {apt.endTime}
-                              </p>
-                            </div>
-                            <span 
-                              className="px-3 py-1 rounded-full text-xs font-medium"
-                              style={{ 
-                                backgroundColor: apt.status === 'scheduled' ? '#FEF3C7' : '#DBEAFE',
-                                color: apt.status === 'scheduled' ? '#92400E' : '#1E40AF'
-                              }}
-                            >
-                              {apt.status === 'scheduled' ? 'Agendado' : 'Confirmado'}
-                            </span>
-                          </div>
-                          <div className="space-y-1 mb-3">
-                            {apt.services.map((service, idx) => (
-                              <div key={idx} className="flex justify-between text-sm">
-                                <span className="text-gray-600">{service.serviceName}</span>
-                                <span className="text-gray-900">{formatCurrency(service.servicePrice)}</span>
+                      {clientAppointments.map((apt) => {
+                        const totalPrice = apt.services.reduce((sum, s) => sum + s.value, 0);
+                        const endTime = (() => {
+                          const [hours, minutes] = apt.time.split(':').map(Number);
+                          const endMinutes = hours * 60 + minutes + apt.duration;
+                          const endHours = Math.floor(endMinutes / 60);
+                          const endMins = endMinutes % 60;
+                          return `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
+                        })();
+                        return (
+                          <div key={apt.id} className="bg-white rounded-xl border border-gray-200 p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div>
+                                <span className="font-bold text-gray-900">
+                                  {new Date(apt.date + 'T12:00:00').toLocaleDateString('pt-BR', { 
+                                    weekday: 'long', day: '2-digit', month: 'long' 
+                                  })}
+                                </span>
+                                <p className="text-sm text-gray-600">
+                                  {apt.time} - {endTime}
+                                </p>
                               </div>
-                            ))}
+                              <span 
+                                className="px-3 py-1 rounded-full text-xs font-medium"
+                                style={{ 
+                                  backgroundColor: apt.status === 'pending' ? '#FEF3C7' : '#DBEAFE',
+                                  color: apt.status === 'pending' ? '#92400E' : '#1E40AF'
+                                }}
+                              >
+                                {apt.status === 'pending' ? 'Pendente' : 'Confirmado'}
+                              </span>
+                            </div>
+                            <div className="space-y-1 mb-3">
+                              {apt.services.map((service, idx) => (
+                                <div key={idx} className="flex justify-between text-sm">
+                                  <span className="text-gray-600">{service.name}</span>
+                                  <span className="text-gray-900">{formatCurrency(service.value)}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="border-t pt-2 flex justify-between font-bold">
+                              <span>Total</span>
+                              <span style={{ color: brandColor }}>{formatCurrency(totalPrice)}</span>
+                            </div>
+                            {apt.professionalName && (
+                              <p className="text-xs text-gray-500 mt-2">
+                                Profissional: {apt.professionalName}
+                              </p>
+                            )}
                           </div>
-                          <div className="border-t pt-2 flex justify-between font-bold">
-                            <span>Total</span>
-                            <span style={{ color: brandColor }}>{formatCurrency(apt.totalPrice)}</span>
-                          </div>
-                          {apt.professionalName && (
-                            <p className="text-xs text-gray-500 mt-2">
-                              Profissional: {apt.professionalName}
-                            </p>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </>
@@ -3067,48 +3072,58 @@ export default function PublicMenuPage() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {clientAppointmentHistory.map((apt) => (
-                        <div key={apt.id} className="bg-white rounded-xl border border-gray-200 p-4 opacity-80">
-                          <div className="flex items-center justify-between mb-3">
-                            <div>
-                              <span className="font-bold text-gray-900">
-                                {new Date(apt.date + 'T12:00:00').toLocaleDateString('pt-BR', { 
-                                  weekday: 'long', day: '2-digit', month: 'long' 
-                                })}
-                              </span>
-                              <p className="text-sm text-gray-600">
-                                {apt.startTime} - {apt.endTime}
-                              </p>
-                            </div>
-                            <span 
-                              className="px-3 py-1 rounded-full text-xs font-medium"
-                              style={{ 
-                                backgroundColor: apt.status === 'completed' ? '#D1FAE5' : '#FEE2E2',
-                                color: apt.status === 'completed' ? '#065F46' : '#991B1B'
-                              }}
-                            >
-                              {apt.status === 'completed' ? 'Concluído' : 'Cancelado'}
-                            </span>
-                          </div>
-                          <div className="space-y-1 mb-3">
-                            {apt.services.map((service, idx) => (
-                              <div key={idx} className="flex justify-between text-sm">
-                                <span className="text-gray-600">{service.serviceName}</span>
-                                <span className="text-gray-900">{formatCurrency(service.servicePrice)}</span>
+                      {clientAppointmentHistory.map((apt) => {
+                        const totalPrice = apt.services.reduce((sum, s) => sum + s.value, 0);
+                        const endTime = (() => {
+                          const [hours, minutes] = apt.time.split(':').map(Number);
+                          const endMinutes = hours * 60 + minutes + apt.duration;
+                          const endHours = Math.floor(endMinutes / 60);
+                          const endMins = endMinutes % 60;
+                          return `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
+                        })();
+                        return (
+                          <div key={apt.id} className="bg-white rounded-xl border border-gray-200 p-4 opacity-80">
+                            <div className="flex items-center justify-between mb-3">
+                              <div>
+                                <span className="font-bold text-gray-900">
+                                  {new Date(apt.date + 'T12:00:00').toLocaleDateString('pt-BR', { 
+                                    weekday: 'long', day: '2-digit', month: 'long' 
+                                  })}
+                                </span>
+                                <p className="text-sm text-gray-600">
+                                  {apt.time} - {endTime}
+                                </p>
                               </div>
-                            ))}
+                              <span 
+                                className="px-3 py-1 rounded-full text-xs font-medium"
+                                style={{ 
+                                  backgroundColor: apt.status === 'completed' ? '#D1FAE5' : '#FEE2E2',
+                                  color: apt.status === 'completed' ? '#065F46' : '#991B1B'
+                                }}
+                              >
+                                {apt.status === 'completed' ? 'Concluído' : 'Cancelado'}
+                              </span>
+                            </div>
+                            <div className="space-y-1 mb-3">
+                              {apt.services.map((service, idx) => (
+                                <div key={idx} className="flex justify-between text-sm">
+                                  <span className="text-gray-600">{service.name}</span>
+                                  <span className="text-gray-900">{formatCurrency(service.value)}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="border-t pt-2 flex justify-between font-bold">
+                              <span>Total</span>
+                              <span style={{ color: brandColor }}>{formatCurrency(totalPrice)}</span>
+                            </div>
+                            {apt.professionalName && (
+                              <p className="text-xs text-gray-500 mt-2">
+                                Profissional: {apt.professionalName}
+                              </p>
+                            )}
                           </div>
-                          <div className="border-t pt-2 flex justify-between font-bold">
-                            <span>Total</span>
-                            <span style={{ color: brandColor }}>{formatCurrency(apt.totalPrice)}</span>
-                          </div>
-                          {apt.professionalName && (
-                            <p className="text-xs text-gray-500 mt-2">
-                              Profissional: {apt.professionalName}
-                            </p>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </>
