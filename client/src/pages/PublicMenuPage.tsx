@@ -444,7 +444,7 @@ export default function PublicMenuPage() {
   });
 
   // Estados do fluxo de agendamento
-  const [bookingStep, setBookingStep] = useState<"servicos" | "data" | "horario" | "dados" | "confirmacao">("servicos");
+  const [bookingStep, setBookingStep] = useState<"telefone" | "servicos" | "data" | "horario" | "confirmacao">("telefone");
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [appointmentSuccess, setAppointmentSuccess] = useState<{
@@ -459,6 +459,40 @@ export default function PublicMenuPage() {
     phone: "",
     notes: "",
   });
+  const [bookingClientFound, setBookingClientFound] = useState<boolean | null>(null);
+  const [isSearchingBookingClient, setIsSearchingBookingClient] = useState(false);
+
+  // Buscar cliente por telefone para agendamento
+  const searchBookingClientByPhone = async (phone: string) => {
+    const cleanPhone = phone.replace(/\D/g, "");
+    if (cleanPhone.length < 10) return;
+    
+    setIsSearchingBookingClient(true);
+    try {
+      const res = await fetch(`/api/menu/${slug}/client/${cleanPhone}`);
+      const data = await res.json();
+      
+      if (data.found) {
+        setBookingClientFound(true);
+        setBookingForm((prev) => ({
+          ...prev,
+          name: data.client.name,
+          phone: cleanPhone,
+        }));
+      } else {
+        setBookingClientFound(false);
+        setBookingForm((prev) => ({
+          ...prev,
+          phone: cleanPhone,
+        }));
+      }
+    } catch (error) {
+      console.error("Erro ao buscar cliente:", error);
+      setBookingClientFound(false);
+    } finally {
+      setIsSearchingBookingClient(false);
+    }
+  };
 
   // Buscar disponibilidade para uma data
   const fetchAvailability = async (date: string) => {
@@ -537,6 +571,10 @@ export default function PublicMenuPage() {
 
   // Validar passo do booking
   const canProceedBooking = () => {
+    if (bookingStep === "telefone") {
+      // Telefone completo e cliente verificado
+      return bookingForm.phone.replace(/\D/g, "").length >= 10 && bookingClientFound !== null && bookingForm.name.trim().length >= 2;
+    }
     if (bookingStep === "servicos") {
       return selectedServices.length > 0;
     }
@@ -546,50 +584,41 @@ export default function PublicMenuPage() {
     if (bookingStep === "horario") {
       return !!selectedTime;
     }
-    if (bookingStep === "dados") {
-      return bookingForm.name.trim().length >= 2 && bookingForm.phone.replace(/\D/g, "").length >= 10;
-    }
     return false;
   };
 
   // Próximo passo do booking
   const nextBookingStep = () => {
-    if (bookingStep === "servicos") {
+    if (bookingStep === "telefone") {
+      setBookingStep("servicos");
+    } else if (bookingStep === "servicos") {
       setBookingStep("data");
     } else if (bookingStep === "data") {
       fetchAvailability(selectedDate);
       setBookingStep("horario");
     } else if (bookingStep === "horario") {
-      // Preencher dados do cliente se já identificado
-      if (customer) {
-        setBookingForm(prev => ({
-          ...prev,
-          name: customer.name,
-          phone: customer.phone,
-        }));
-      }
-      setBookingStep("dados");
-    } else if (bookingStep === "dados") {
+      // Submeter agendamento
       submitAppointment();
     }
   };
 
   // Voltar passo do booking
   const prevBookingStep = () => {
-    if (bookingStep === "data") setBookingStep("servicos");
+    if (bookingStep === "servicos") setBookingStep("telefone");
+    else if (bookingStep === "data") setBookingStep("servicos");
     else if (bookingStep === "horario") setBookingStep("data");
-    else if (bookingStep === "dados") setBookingStep("horario");
   };
 
   // Fechar modal de agendamento
   const closeAppointmentModal = () => {
     setShowAppointmentModal(false);
-    setBookingStep("servicos");
+    setBookingStep("telefone");
     setSelectedDate("");
     setSelectedTime("");
     setAvailableSlots([]);
     setAppointmentSuccess(null);
     setBookingForm({ name: "", phone: "", notes: "" });
+    setBookingClientFound(null);
     // Se confirmou, limpar serviços selecionados
     if (appointmentSuccess) {
       setSelectedServices([]);
@@ -2427,10 +2456,10 @@ export default function PublicMenuPage() {
                     </h2>
                     {bookingStep !== "confirmacao" && (
                       <p className="text-sm text-gray-500">
-                        {bookingStep === "servicos" && "Passo 1 de 4 - Serviços selecionados"}
-                        {bookingStep === "data" && "Passo 2 de 4 - Escolha a data"}
-                        {bookingStep === "horario" && "Passo 3 de 4 - Escolha o horário"}
-                        {bookingStep === "dados" && "Passo 4 de 4 - Seus dados"}
+                        {bookingStep === "telefone" && "Passo 1 de 4 - Seu telefone"}
+                        {bookingStep === "servicos" && "Passo 2 de 4 - Serviços selecionados"}
+                        {bookingStep === "data" && "Passo 3 de 4 - Escolha a data"}
+                        {bookingStep === "horario" && "Passo 4 de 4 - Escolha o horário"}
                       </p>
                     )}
                   </div>
@@ -2444,7 +2473,78 @@ export default function PublicMenuPage() {
 
                 {/* Conteúdo do Agendamento */}
                 <div className="flex-1 overflow-auto p-4">
-                  {/* Passo 1: Serviços */}
+                  {/* Passo 1: Telefone */}
+                  {bookingStep === "telefone" && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Telefone / WhatsApp *
+                        </label>
+                        <input
+                          type="tel"
+                          value={bookingForm.phone ? formatPhone(bookingForm.phone) : ""}
+                          onChange={(e) => {
+                            const formatted = formatPhone(e.target.value);
+                            const cleanPhone = formatted.replace(/\D/g, "");
+                            setBookingForm({ ...bookingForm, phone: cleanPhone });
+                            // Buscar cliente quando telefone estiver completo
+                            if (cleanPhone.length >= 10) {
+                              searchBookingClientByPhone(cleanPhone);
+                            } else {
+                              setBookingClientFound(null);
+                            }
+                          }}
+                          placeholder="(00) 00000-0000"
+                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                          style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                          data-testid="input-booking-phone"
+                        />
+                      </div>
+                      
+                      {isSearchingBookingClient && (
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="text-sm">Buscando cadastro...</span>
+                        </div>
+                      )}
+                      
+                      {bookingClientFound === true && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-green-700">
+                            <Check className="h-4 w-4" />
+                            <span className="text-sm font-medium">Cliente encontrado!</span>
+                          </div>
+                          <p className="text-sm text-green-600 mt-1">
+                            Olá, <strong>{bookingForm.name}</strong>! Seus dados foram carregados.
+                          </p>
+                        </div>
+                      )}
+                      
+                      {bookingClientFound === false && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-3">
+                          <p className="text-sm text-blue-700">
+                            Novo por aqui? Informe seu nome para criar seu cadastro.
+                          </p>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Nome completo *
+                            </label>
+                            <input
+                              type="text"
+                              value={bookingForm.name}
+                              onChange={(e) => setBookingForm({ ...bookingForm, name: e.target.value })}
+                              placeholder="Seu nome"
+                              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                              style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                              data-testid="input-booking-name"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Passo 2: Serviços */}
                   {bookingStep === "servicos" && (
                     <div className="space-y-4">
                       <p className="text-gray-600 text-sm">
@@ -2609,109 +2709,72 @@ export default function PublicMenuPage() {
                           </button>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                          {availableSlots.map((slot) => (
-                            <button
-                              key={slot}
-                              onClick={() => setSelectedTime(slot)}
-                              className={`p-3 rounded-xl border-2 font-medium transition-all ${
-                                selectedTime === slot
-                                  ? 'text-white border-transparent'
-                                  : 'text-gray-700 border-gray-200 hover:border-gray-300'
-                              }`}
-                              style={{
-                                backgroundColor: selectedTime === slot ? brandColor : undefined,
-                                borderColor: selectedTime === slot ? brandColor : undefined,
-                              }}
-                              data-testid={`button-slot-${slot.replace(':', '')}`}
-                            >
-                              {slot}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Passo 4: Dados */}
-                  {bookingStep === "dados" && (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Nome completo
-                        </label>
-                        <input
-                          type="text"
-                          value={bookingForm.name}
-                          onChange={(e) => setBookingForm(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder="Seu nome completo"
-                          className="w-full p-3 border rounded-xl focus:ring-2 focus:border-transparent"
-                          style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
-                          data-testid="input-booking-name"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Telefone / WhatsApp
-                        </label>
-                        <input
-                          type="tel"
-                          value={bookingForm.phone}
-                          onChange={(e) => setBookingForm(prev => ({ ...prev, phone: formatPhone(e.target.value) }))}
-                          placeholder="(00) 00000-0000"
-                          maxLength={15}
-                          className="w-full p-3 border rounded-xl focus:ring-2 focus:border-transparent"
-                          style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
-                          data-testid="input-booking-phone"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Observações (opcional)
-                        </label>
-                        <textarea
-                          value={bookingForm.notes}
-                          onChange={(e) => setBookingForm(prev => ({ ...prev, notes: e.target.value }))}
-                          placeholder="Alguma observação para o estabelecimento?"
-                          rows={2}
-                          className="w-full p-3 border rounded-xl resize-none focus:ring-2 focus:border-transparent"
-                          style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
-                          data-testid="input-booking-notes"
-                        />
-                      </div>
-
-                      {/* Resumo do Agendamento */}
-                      <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                        <h4 className="font-medium text-gray-900 mb-2">Resumo do Agendamento</h4>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Data</span>
-                          <span className="font-medium">
-                            {new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { 
-                              weekday: 'short', day: 'numeric', month: 'short' 
-                            })}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Horário</span>
-                          <span className="font-medium">{selectedTime}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Duração</span>
-                          <span className="font-medium">{formatDuration(totalDuration)}</span>
-                        </div>
-                        <div className="border-t pt-2 mt-2">
-                          {selectedServices.map((service) => (
-                            <div key={service.id} className="flex justify-between text-sm">
-                              <span className="text-gray-600">{service.name}</span>
-                              <span className="font-medium">{formatCurrency(getServicePrice(service))}</span>
+                        <>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            {availableSlots.map((slot) => (
+                              <button
+                                key={slot}
+                                onClick={() => setSelectedTime(slot)}
+                                className={`p-3 rounded-xl border-2 font-medium transition-all ${
+                                  selectedTime === slot
+                                    ? 'text-white border-transparent'
+                                    : 'text-gray-700 border-gray-200 hover:border-gray-300'
+                                }`}
+                                style={{
+                                  backgroundColor: selectedTime === slot ? brandColor : undefined,
+                                  borderColor: selectedTime === slot ? brandColor : undefined,
+                                }}
+                                data-testid={`button-slot-${slot.replace(':', '')}`}
+                              >
+                                {slot}
+                              </button>
+                            ))}
+                          </div>
+                          
+                          {/* Resumo do Agendamento quando horário selecionado */}
+                          {selectedTime && (
+                            <div className="bg-gray-50 rounded-xl p-4 space-y-2 mt-4">
+                              <h4 className="font-medium text-gray-900 mb-2">Resumo do Agendamento</h4>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Cliente</span>
+                                <span className="font-medium">{bookingForm.name}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Telefone</span>
+                                <span className="font-medium">{formatPhone(bookingForm.phone)}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Data</span>
+                                <span className="font-medium">
+                                  {new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { 
+                                    weekday: 'short', day: 'numeric', month: 'short' 
+                                  })}
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Horário</span>
+                                <span className="font-medium">{selectedTime}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Duração</span>
+                                <span className="font-medium">{formatDuration(totalDuration)}</span>
+                              </div>
+                              <div className="border-t pt-2 mt-2">
+                                {selectedServices.map((service) => (
+                                  <div key={service.id} className="flex justify-between text-sm">
+                                    <span className="text-gray-600">{service.name}</span>
+                                    <span className="font-medium">{formatCurrency(getServicePrice(service))}</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="border-t pt-2 mt-2 flex justify-between font-bold">
+                                <span>Total</span>
+                                <span style={{ color: brandColor }}>{formatCurrency(servicesTotal)}</span>
+                              </div>
                             </div>
-                          ))}
-                        </div>
-                        <div className="border-t pt-2 mt-2 flex justify-between font-bold">
-                          <span>Total</span>
-                          <span style={{ color: brandColor }}>{formatCurrency(servicesTotal)}</span>
-                        </div>
-                      </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   )}
 
@@ -2786,7 +2849,7 @@ export default function PublicMenuPage() {
                             Agendando...
                           </>
                         ) : (
-                          bookingStep === "dados" ? "Confirmar Agendamento" : "Continuar"
+                          bookingStep === "horario" ? "Confirmar Agendamento" : "Continuar"
                         )}
                       </button>
                     </div>
