@@ -1,7 +1,28 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Search, SlidersHorizontal, Package, ShoppingBag, User, X, ChevronDown, LogOut, UtensilsCrossed, ClipboardList, History, MapPin, Menu as MenuIcon, Plus, Minus, Trash2, ShoppingCart, CreditCard, Banknote, Smartphone, Check, Loader2, Calendar, Clock, Scissors, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { 
+  Search, SlidersHorizontal, Package, ShoppingBag, User, X, ChevronDown, LogOut, 
+  UtensilsCrossed, ClipboardList, History, MapPin, Menu as MenuIcon, Plus, Minus, 
+  Trash2, ShoppingCart, CreditCard, Banknote, Smartphone, Check, Loader2, Calendar, 
+  Clock, Scissors, AlertTriangle, ChevronLeft, ChevronRight,
+  Coffee, Pizza, Cake, Beer, Wine, IceCream, Sandwich, Apple, Beef, Fish, Salad, 
+  Soup, Cookie, Croissant, Drumstick, Gift, Heart, Star, Sparkles, Flame, Leaf, 
+  Droplets, Milk, Egg, Wheat, Cherry, Grape,
+  type LucideIcon
+} from "lucide-react";
 import { DayPicker } from "react-day-picker";
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  Package, Coffee, Pizza, Cake, Beer, Wine, IceCream, Sandwich,
+  Apple, Beef, Fish, Salad, Soup, Cookie, Croissant, Drumstick,
+  UtensilsCrossed, ShoppingBag, Gift, Heart, Star, Sparkles,
+  Flame, Leaf, Droplets, Milk, Egg, Wheat, Cherry, Grape, Scissors
+};
+
+const getCategoryIcon = (iconName: string | null | undefined): LucideIcon => {
+  if (!iconName) return Package;
+  return ICON_MAP[iconName] || Package;
+};
 import { ptBR } from "date-fns/locale";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, isBefore, isAfter, startOfDay, addDays } from "date-fns";
 import "react-day-picker/dist/style.css";
@@ -34,6 +55,7 @@ interface MenuProduct {
 interface MenuCategory {
   id: string;
   name: string;
+  icon?: string | null;
 }
 
 interface DeliveryNeighborhood {
@@ -1265,22 +1287,25 @@ export default function PublicMenuPage() {
                       </button>
                     ))
                   ) : (
-                    menuData.categories.map((category) => (
-                      <button
-                        key={category.id}
-                        onClick={() => setActiveCategory(category.id)}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all ${
-                          activeCategory === category.id
-                            ? "text-white border-transparent"
-                            : "bg-white border-gray-200 text-gray-700 hover:border-gray-300"
-                        }`}
-                        style={activeCategory === category.id ? { backgroundColor: brandColor } : {}}
-                        data-testid={`button-category-${category.id}`}
-                      >
-                        <Package className="h-4 w-4" />
-                        <span className="font-medium text-sm">{category.name}</span>
-                      </button>
-                    ))
+                    menuData.categories.map((category) => {
+                      const CategoryIcon = getCategoryIcon(category.icon);
+                      return (
+                        <button
+                          key={category.id}
+                          onClick={() => setActiveCategory(category.id)}
+                          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all ${
+                            activeCategory === category.id
+                              ? "text-white border-transparent"
+                              : "bg-white border-gray-200 text-gray-700 hover:border-gray-300"
+                          }`}
+                          style={activeCategory === category.id ? { backgroundColor: brandColor } : {}}
+                          data-testid={`button-category-${category.id}`}
+                        >
+                          <CategoryIcon className="h-4 w-4" />
+                          <span className="font-medium text-sm">{category.name}</span>
+                        </button>
+                      );
+                    })
                   )}
                 </div>
 
