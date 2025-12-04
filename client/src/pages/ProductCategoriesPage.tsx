@@ -5,6 +5,27 @@ import {
   Apple, Beef, Fish, Salad, Soup, Cookie, Croissant, Drumstick,
   UtensilsCrossed, ShoppingBag, Gift, Heart, Star, Sparkles,
   Flame, Leaf, Droplets, Milk, Egg, Wheat, Cherry, Grape,
+  CupSoda, GlassWater, Martini, Citrus, Banana, Carrot, Nut,
+  Popcorn, Candy, Lollipop, CakeSlice, ChefHat, CookingPot,
+  Refrigerator, Microwave, Utensils, Store, Home, Building2,
+  Truck, Bike, Car, Plane, Ship, Train, Bus, Rocket,
+  Clock, Timer, Calendar, Sun, Moon, Cloud, Snowflake, Zap,
+  Music, Headphones, Radio, Tv, Monitor, Smartphone, Tablet, Camera,
+  Gamepad2, Puzzle, Dices, Trophy, Medal, Crown, Award, Target,
+  Shirt, Watch, Glasses, Briefcase, Backpack, Luggage, Umbrella,
+  Flower2, TreePine, Mountain, Waves, Compass, Map, Globe, Navigation,
+  Dog, Cat, Bird, Bug, Rabbit, Squirrel, Fish as FishIcon, Turtle,
+  Baby, Users, UserCircle, Smile, Frown, Meh, ThumbsUp, ThumbsDown,
+  Palette, Brush, Pencil, Pen, Scissors, Ruler, Wrench, Hammer,
+  Lightbulb, Battery, Plug, Wifi, Bluetooth, Signal, Radio as RadioIcon,
+  Book, BookOpen, Newspaper, FileText, Mail, Send, MessageCircle, Phone,
+  Lock, Key, Shield, Eye, Search as SearchIcon, Filter, Settings, Cog,
+  Plus as PlusIcon, Minus, X, Check, AlertCircle, Info, HelpCircle, Bell,
+  Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Repeat, Shuffle,
+  Download, Upload, Share, Link, Bookmark, Archive, Folder, File,
+  Database, Server, HardDrive, Cpu, Terminal, Code, Binary, Hash,
+  Percent, DollarSign, CreditCard, Wallet, PiggyBank, Receipt, Calculator,
+  Barcode, QrCode, Scan, Box, Boxes, Container, PackageCheck, PackageX,
   type LucideIcon
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -19,38 +40,124 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ProductCategory } from "@shared/schema";
 
-const AVAILABLE_ICONS: { name: string; icon: LucideIcon; label: string }[] = [
-  { name: "Package", icon: Package, label: "Pacote" },
-  { name: "Coffee", icon: Coffee, label: "Café" },
-  { name: "Pizza", icon: Pizza, label: "Pizza" },
-  { name: "Cake", icon: Cake, label: "Bolo" },
-  { name: "Beer", icon: Beer, label: "Cerveja" },
-  { name: "Wine", icon: Wine, label: "Vinho" },
-  { name: "IceCream", icon: IceCream, label: "Sorvete" },
-  { name: "Sandwich", icon: Sandwich, label: "Sanduíche" },
-  { name: "Apple", icon: Apple, label: "Fruta" },
-  { name: "Beef", icon: Beef, label: "Carne" },
-  { name: "Fish", icon: Fish, label: "Peixe" },
-  { name: "Salad", icon: Salad, label: "Salada" },
-  { name: "Soup", icon: Soup, label: "Sopa" },
-  { name: "Cookie", icon: Cookie, label: "Biscoito" },
-  { name: "Croissant", icon: Croissant, label: "Padaria" },
-  { name: "Drumstick", icon: Drumstick, label: "Frango" },
-  { name: "UtensilsCrossed", icon: UtensilsCrossed, label: "Refeição" },
-  { name: "ShoppingBag", icon: ShoppingBag, label: "Compras" },
-  { name: "Gift", icon: Gift, label: "Presente" },
-  { name: "Heart", icon: Heart, label: "Favoritos" },
-  { name: "Star", icon: Star, label: "Destaque" },
-  { name: "Sparkles", icon: Sparkles, label: "Especial" },
-  { name: "Flame", icon: Flame, label: "Picante" },
-  { name: "Leaf", icon: Leaf, label: "Vegano" },
-  { name: "Droplets", icon: Droplets, label: "Bebidas" },
-  { name: "Milk", icon: Milk, label: "Laticínios" },
-  { name: "Egg", icon: Egg, label: "Ovos" },
-  { name: "Wheat", icon: Wheat, label: "Grãos" },
-  { name: "Cherry", icon: Cherry, label: "Frutas" },
-  { name: "Grape", icon: Grape, label: "Uva" },
-];
+const ICON_CATEGORIES = {
+  "Comidas": [
+    { name: "Pizza", icon: Pizza, label: "Pizza" },
+    { name: "Sandwich", icon: Sandwich, label: "Sanduíche" },
+    { name: "Beef", icon: Beef, label: "Carne" },
+    { name: "Fish", icon: Fish, label: "Peixe" },
+    { name: "Drumstick", icon: Drumstick, label: "Frango" },
+    { name: "Salad", icon: Salad, label: "Salada" },
+    { name: "Soup", icon: Soup, label: "Sopa" },
+    { name: "Egg", icon: Egg, label: "Ovos" },
+    { name: "Popcorn", icon: Popcorn, label: "Pipoca" },
+    { name: "Nut", icon: Nut, label: "Castanhas" },
+  ],
+  "Doces & Sobremesas": [
+    { name: "Cake", icon: Cake, label: "Bolo" },
+    { name: "CakeSlice", icon: CakeSlice, label: "Fatia de Bolo" },
+    { name: "IceCream", icon: IceCream, label: "Sorvete" },
+    { name: "Cookie", icon: Cookie, label: "Biscoito" },
+    { name: "Croissant", icon: Croissant, label: "Croissant" },
+    { name: "Candy", icon: Candy, label: "Doce" },
+    { name: "Lollipop", icon: Lollipop, label: "Pirulito" },
+  ],
+  "Bebidas": [
+    { name: "Coffee", icon: Coffee, label: "Café" },
+    { name: "Beer", icon: Beer, label: "Cerveja" },
+    { name: "Wine", icon: Wine, label: "Vinho" },
+    { name: "CupSoda", icon: CupSoda, label: "Refrigerante" },
+    { name: "GlassWater", icon: GlassWater, label: "Água" },
+    { name: "Martini", icon: Martini, label: "Coquetel" },
+    { name: "Milk", icon: Milk, label: "Leite" },
+    { name: "Droplets", icon: Droplets, label: "Bebidas" },
+  ],
+  "Frutas & Vegetais": [
+    { name: "Apple", icon: Apple, label: "Maçã" },
+    { name: "Cherry", icon: Cherry, label: "Cereja" },
+    { name: "Grape", icon: Grape, label: "Uva" },
+    { name: "Citrus", icon: Citrus, label: "Cítricos" },
+    { name: "Banana", icon: Banana, label: "Banana" },
+    { name: "Carrot", icon: Carrot, label: "Cenoura" },
+    { name: "Leaf", icon: Leaf, label: "Vegano" },
+    { name: "Wheat", icon: Wheat, label: "Grãos" },
+  ],
+  "Cozinha & Restaurante": [
+    { name: "UtensilsCrossed", icon: UtensilsCrossed, label: "Talheres" },
+    { name: "Utensils", icon: Utensils, label: "Utensílios" },
+    { name: "ChefHat", icon: ChefHat, label: "Chef" },
+    { name: "CookingPot", icon: CookingPot, label: "Panela" },
+    { name: "Refrigerator", icon: Refrigerator, label: "Geladeira" },
+    { name: "Microwave", icon: Microwave, label: "Microondas" },
+    { name: "Flame", icon: Flame, label: "Picante" },
+  ],
+  "Compras & Delivery": [
+    { name: "Package", icon: Package, label: "Pacote" },
+    { name: "ShoppingBag", icon: ShoppingBag, label: "Sacola" },
+    { name: "Store", icon: Store, label: "Loja" },
+    { name: "Truck", icon: Truck, label: "Entrega" },
+    { name: "Bike", icon: Bike, label: "Motoboy" },
+    { name: "Box", icon: Box, label: "Caixa" },
+    { name: "Boxes", icon: Boxes, label: "Caixas" },
+    { name: "PackageCheck", icon: PackageCheck, label: "Entregue" },
+  ],
+  "Destaques & Promoções": [
+    { name: "Star", icon: Star, label: "Destaque" },
+    { name: "Heart", icon: Heart, label: "Favoritos" },
+    { name: "Sparkles", icon: Sparkles, label: "Especial" },
+    { name: "Gift", icon: Gift, label: "Presente" },
+    { name: "Trophy", icon: Trophy, label: "Campeão" },
+    { name: "Crown", icon: Crown, label: "Premium" },
+    { name: "Award", icon: Award, label: "Premiado" },
+    { name: "Medal", icon: Medal, label: "Medalha" },
+    { name: "Percent", icon: Percent, label: "Desconto" },
+    { name: "Zap", icon: Zap, label: "Relâmpago" },
+  ],
+  "Tempo & Ocasiões": [
+    { name: "Clock", icon: Clock, label: "Horário" },
+    { name: "Timer", icon: Timer, label: "Rápido" },
+    { name: "Calendar", icon: Calendar, label: "Agenda" },
+    { name: "Sun", icon: Sun, label: "Dia" },
+    { name: "Moon", icon: Moon, label: "Noite" },
+    { name: "Snowflake", icon: Snowflake, label: "Gelado" },
+  ],
+  "Pagamentos": [
+    { name: "DollarSign", icon: DollarSign, label: "Dinheiro" },
+    { name: "CreditCard", icon: CreditCard, label: "Cartão" },
+    { name: "Wallet", icon: Wallet, label: "Carteira" },
+    { name: "Receipt", icon: Receipt, label: "Recibo" },
+    { name: "Calculator", icon: Calculator, label: "Calculadora" },
+    { name: "PiggyBank", icon: PiggyBank, label: "Economia" },
+  ],
+  "Comunicação": [
+    { name: "Phone", icon: Phone, label: "Telefone" },
+    { name: "MessageCircle", icon: MessageCircle, label: "Chat" },
+    { name: "Mail", icon: Mail, label: "Email" },
+    { name: "Bell", icon: Bell, label: "Notificação" },
+    { name: "Send", icon: Send, label: "Enviar" },
+  ],
+  "Diversos": [
+    { name: "Tag", icon: Tag, label: "Tag" },
+    { name: "Bookmark", icon: Bookmark, label: "Salvar" },
+    { name: "Target", icon: Target, label: "Alvo" },
+    { name: "Lightbulb", icon: Lightbulb, label: "Ideia" },
+    { name: "Smile", icon: Smile, label: "Feliz" },
+    { name: "ThumbsUp", icon: ThumbsUp, label: "Positivo" },
+    { name: "Check", icon: Check, label: "Confirmado" },
+    { name: "Info", icon: Info, label: "Info" },
+    { name: "HelpCircle", icon: HelpCircle, label: "Ajuda" },
+    { name: "Settings", icon: Settings, label: "Config" },
+    { name: "Home", icon: Home, label: "Casa" },
+    { name: "Users", icon: Users, label: "Pessoas" },
+    { name: "Flower2", icon: Flower2, label: "Flor" },
+    { name: "Music", icon: Music, label: "Música" },
+    { name: "Camera", icon: Camera, label: "Foto" },
+    { name: "Gamepad2", icon: Gamepad2, label: "Games" },
+  ],
+};
+
+const AVAILABLE_ICONS: { name: string; icon: LucideIcon; label: string }[] = 
+  Object.values(ICON_CATEGORIES).flat();
 
 const getIconComponent = (iconName: string | null): LucideIcon => {
   const found = AVAILABLE_ICONS.find(i => i.name === iconName);
@@ -61,6 +168,7 @@ export default function ProductCategoriesPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ProductCategory | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedIconCategory, setSelectedIconCategory] = useState<string>("Comidas");
   const [formData, setFormData] = useState({
     name: "",
     icon: "Package",
@@ -390,30 +498,51 @@ export default function ProductCategoriesPage() {
             </div>
 
             <div className="grid gap-2">
-              <Label>Ícone da Categoria</Label>
-              <div className="grid grid-cols-6 gap-2 p-3 border rounded-lg border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto">
-                {AVAILABLE_ICONS.map((iconItem) => {
-                  const IconComponent = iconItem.icon;
-                  const isSelected = formData.icon === iconItem.name;
-                  return (
+              <Label>Ícone da Categoria ({AVAILABLE_ICONS.length} opções)</Label>
+              <div className="border rounded-lg border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="flex flex-wrap gap-1 p-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                  {Object.keys(ICON_CATEGORIES).map((category) => (
                     <button
-                      key={iconItem.name}
+                      key={category}
                       type="button"
-                      onClick={() => setFormData({ ...formData, icon: iconItem.name })}
-                      className={`p-2 rounded-lg flex flex-col items-center justify-center gap-1 transition-all ${
-                        isSelected
+                      onClick={() => setSelectedIconCategory(category)}
+                      className={`px-2 py-1 text-xs rounded-md transition-all ${
+                        selectedIconCategory === category
                           ? "bg-primary text-white"
-                          : "bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+                          : "bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300"
                       }`}
-                      title={iconItem.label}
-                      data-testid={`button-icon-${iconItem.name}`}
                     >
-                      <IconComponent className="h-5 w-5" />
-                      <span className="text-[10px] truncate w-full text-center">{iconItem.label}</span>
+                      {category}
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
+                <div className="grid grid-cols-5 sm:grid-cols-8 gap-2 p-3 max-h-48 overflow-y-auto">
+                  {ICON_CATEGORIES[selectedIconCategory as keyof typeof ICON_CATEGORIES]?.map((iconItem) => {
+                    const IconComponent = iconItem.icon;
+                    const isSelected = formData.icon === iconItem.name;
+                    return (
+                      <button
+                        key={iconItem.name}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, icon: iconItem.name })}
+                        className={`p-2 rounded-lg flex flex-col items-center justify-center gap-1 transition-all ${
+                          isSelected
+                            ? "bg-primary text-white ring-2 ring-primary ring-offset-2"
+                            : "bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+                        }`}
+                        title={iconItem.label}
+                        data-testid={`button-icon-${iconItem.name}`}
+                      >
+                        <IconComponent className="h-5 w-5" />
+                        <span className="text-[10px] truncate w-full text-center">{iconItem.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Selecione uma categoria acima para ver os ícones disponíveis
+              </p>
             </div>
 
             <div className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4">

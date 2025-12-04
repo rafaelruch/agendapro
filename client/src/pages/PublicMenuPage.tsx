@@ -8,6 +8,17 @@ import {
   Coffee, Pizza, Cake, Beer, Wine, IceCream, Sandwich, Apple, Beef, Fish, Salad, 
   Soup, Cookie, Croissant, Drumstick, Gift, Heart, Star, Sparkles, Flame, Leaf, 
   Droplets, Milk, Egg, Wheat, Cherry, Grape,
+  CupSoda, GlassWater, Martini, Citrus, Banana, Carrot, Nut,
+  Popcorn, Candy, Lollipop, CakeSlice, ChefHat, CookingPot,
+  Refrigerator, Microwave, Utensils, Store, Home,
+  Truck, Bike,
+  Timer, Sun, Moon, Snowflake, Zap,
+  Music, Camera, Gamepad2, Trophy, Medal, Crown, Award, Target,
+  Flower2, Users, Smile, ThumbsUp,
+  Lightbulb, Phone, MessageCircle, Mail, Send, Bell,
+  Bookmark, Info, HelpCircle, Settings, Tag,
+  Percent, DollarSign, Wallet, Receipt, Calculator, PiggyBank,
+  Box, Boxes, PackageCheck,
   type LucideIcon
 } from "lucide-react";
 import { DayPicker } from "react-day-picker";
@@ -16,7 +27,18 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Package, Coffee, Pizza, Cake, Beer, Wine, IceCream, Sandwich,
   Apple, Beef, Fish, Salad, Soup, Cookie, Croissant, Drumstick,
   UtensilsCrossed, ShoppingBag, Gift, Heart, Star, Sparkles,
-  Flame, Leaf, Droplets, Milk, Egg, Wheat, Cherry, Grape, Scissors
+  Flame, Leaf, Droplets, Milk, Egg, Wheat, Cherry, Grape, Scissors,
+  CupSoda, GlassWater, Martini, Citrus, Banana, Carrot, Nut,
+  Popcorn, Candy, Lollipop, CakeSlice, ChefHat, CookingPot,
+  Refrigerator, Microwave, Utensils, Store, Home,
+  Truck, Bike,
+  Timer, Sun, Moon, Snowflake, Zap,
+  Music, Camera, Gamepad2, Trophy, Medal, Crown, Award, Target,
+  Flower2, Users, Smile, ThumbsUp,
+  Lightbulb, Phone, MessageCircle, Mail, Send, Bell,
+  Bookmark, Info, HelpCircle, Settings, Tag,
+  Percent, DollarSign, Wallet, Receipt, Calculator, PiggyBank,
+  Box, Boxes, PackageCheck, Calendar, Clock
 };
 
 const getCategoryIcon = (iconName: string | null | undefined): LucideIcon => {
