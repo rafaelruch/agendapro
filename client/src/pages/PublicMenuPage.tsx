@@ -157,6 +157,8 @@ export default function PublicMenuPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [registerStep, setRegisterStep] = useState<"phone" | "name">("phone");
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [customer, setCustomer] = useState<CustomerData | null>(null);
   const [registerForm, setRegisterForm] = useState({ name: "", phone: "" });
@@ -301,14 +303,57 @@ export default function PublicMenuPage() {
     }
   }, [slug]);
 
+  const handleCheckPhone = async () => {
+    if (!registerForm.phone.trim()) return;
+    
+    const cleanPhone = registerForm.phone.replace(/\D/g, "");
+    if (cleanPhone.length < 10) return;
+    
+    setIsCheckingPhone(true);
+    try {
+      const res = await fetch(`/api/menu/${slug}/client/${cleanPhone}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.client) {
+          // Cliente encontrado - fazer login automaticamente
+          const existingCustomer = { name: data.client.name, phone: cleanPhone };
+          setCustomer(existingCustomer);
+          localStorage.setItem(`menu_customer_${slug}`, JSON.stringify(existingCustomer));
+          setShowRegisterModal(false);
+          setRegisterStep("phone");
+          setRegisterForm({ name: "", phone: "" });
+        } else {
+          // Cliente não encontrado - pedir nome para cadastrar
+          setRegisterStep("name");
+        }
+      } else {
+        // Erro ou cliente não encontrado - pedir nome
+        setRegisterStep("name");
+      }
+    } catch (error) {
+      console.error("Erro ao verificar telefone:", error);
+      setRegisterStep("name");
+    } finally {
+      setIsCheckingPhone(false);
+    }
+  };
+
   const handleRegister = () => {
     if (registerForm.name.trim() && registerForm.phone.trim()) {
-      const newCustomer = { name: registerForm.name.trim(), phone: registerForm.phone.trim() };
+      const cleanPhone = registerForm.phone.replace(/\D/g, "");
+      const newCustomer = { name: registerForm.name.trim(), phone: cleanPhone };
       setCustomer(newCustomer);
       localStorage.setItem(`menu_customer_${slug}`, JSON.stringify(newCustomer));
       setShowRegisterModal(false);
+      setRegisterStep("phone");
       setRegisterForm({ name: "", phone: "" });
     }
+  };
+
+  const closeRegisterModal = () => {
+    setShowRegisterModal(false);
+    setRegisterStep("phone");
+    setRegisterForm({ name: "", phone: "" });
   };
 
   const handleLogout = () => {
@@ -1053,7 +1098,7 @@ export default function PublicMenuPage() {
                   data-testid="button-register"
                 >
                   <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">Cadastrar</span>
+                  <span className="hidden sm:inline">Entrar</span>
                 </button>
               )}
             </div>
@@ -1139,14 +1184,26 @@ export default function PublicMenuPage() {
         </div>
       </header>
 
-      {/* Modal de Cadastro */}
+      {/* Modal de Cadastro/Login */}
       {showRegisterModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
+        <div className="fixed inset-0 z-[260] flex items-center justify-center bg-black/50 p-4" onClick={closeRegisterModal}>
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold text-gray-900">Cadastrar</h2>
+              <div className="flex items-center gap-2">
+                {registerStep === "name" && (
+                  <button
+                    onClick={() => setRegisterStep("phone")}
+                    className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <ChevronLeft className="h-5 w-5 text-gray-500" />
+                  </button>
+                )}
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {registerStep === "phone" ? "Entrar ou Cadastrar" : "Complete seu cadastro"}
+                </h2>
+              </div>
               <button
-                onClick={() => setShowRegisterModal(false)}
+                onClick={closeRegisterModal}
                 className="p-1 hover:bg-gray-100 rounded-full transition-colors"
                 data-testid="button-close-register"
               >
@@ -1154,49 +1211,99 @@ export default function PublicMenuPage() {
               </button>
             </div>
             
-            <div className="p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nome
-                </label>
-                <input
-                  type="text"
-                  value={registerForm.name}
-                  onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
-                  placeholder="Seu nome"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
-                  style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
-                  data-testid="input-register-name"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Telefone
-                </label>
-                <input
-                  type="tel"
-                  value={registerForm.phone}
-                  onChange={(e) => setRegisterForm({ ...registerForm, phone: formatPhone(e.target.value) })}
-                  placeholder="(00) 00000-0000"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
-                  style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
-                  data-testid="input-register-phone"
-                />
-              </div>
-            </div>
+            {registerStep === "phone" ? (
+              <>
+                <div className="p-4 space-y-4">
+                  <p className="text-sm text-gray-600">
+                    Digite seu telefone para entrar ou criar uma conta.
+                  </p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Telefone
+                    </label>
+                    <input
+                      type="tel"
+                      value={registerForm.phone}
+                      onChange={(e) => setRegisterForm({ ...registerForm, phone: formatPhone(e.target.value) })}
+                      placeholder="(00) 00000-0000"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                      style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                      data-testid="input-register-phone"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && registerForm.phone.replace(/\D/g, "").length >= 10) {
+                          handleCheckPhone();
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
 
-            <div className="p-4 border-t">
-              <button
-                onClick={handleRegister}
-                disabled={!registerForm.name.trim() || !registerForm.phone.trim()}
-                className="w-full py-3 rounded-lg text-white font-medium transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: brandColor }}
-                data-testid="button-submit-register"
-              >
-                Confirmar
-              </button>
-            </div>
+                <div className="p-4 border-t">
+                  <button
+                    onClick={handleCheckPhone}
+                    disabled={registerForm.phone.replace(/\D/g, "").length < 10 || isCheckingPhone}
+                    className="w-full py-3 rounded-lg text-white font-medium transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    style={{ backgroundColor: brandColor }}
+                    data-testid="button-check-phone"
+                  >
+                    {isCheckingPhone ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Verificando...
+                      </>
+                    ) : (
+                      "Continuar"
+                    )}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-4 space-y-4">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500">Telefone</p>
+                    <p className="text-sm font-medium text-gray-900">{registerForm.phone}</p>
+                  </div>
+                  
+                  <p className="text-sm text-gray-600">
+                    Você é novo por aqui! Digite seu nome para finalizar o cadastro.
+                  </p>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Seu nome
+                    </label>
+                    <input
+                      type="text"
+                      value={registerForm.name}
+                      onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
+                      placeholder="Como podemos te chamar?"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 text-sm"
+                      style={{ '--tw-ring-color': brandColor } as React.CSSProperties}
+                      data-testid="input-register-name"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && registerForm.name.trim()) {
+                          handleRegister();
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4 border-t">
+                  <button
+                    onClick={handleRegister}
+                    disabled={!registerForm.name.trim()}
+                    className="w-full py-3 rounded-lg text-white font-medium transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: brandColor }}
+                    data-testid="button-submit-register"
+                  >
+                    Finalizar Cadastro
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
