@@ -6,6 +6,7 @@
 
 -- ========== EXTENSOES ==========
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "unaccent";
 
 -- ========== TABELA: tenants ==========
 CREATE TABLE IF NOT EXISTS tenants (
@@ -476,6 +477,15 @@ CREATE INDEX IF NOT EXISTS idx_tenants_menu_slug_lower ON tenants (lower(menu_sl
 -- ========== NORMALIZAÇÃO DE DADOS ==========
 -- Converter todos os menu_slug existentes para minúsculas
 UPDATE tenants SET menu_slug = lower(menu_slug) WHERE menu_slug IS NOT NULL AND menu_slug != lower(menu_slug);
+
+-- ========== INDICES PARA BUSCA ACCENT-INSENSITIVE ==========
+-- Índices funcionais para busca sem considerar acentos
+CREATE INDEX IF NOT EXISTS idx_clients_name_unaccent ON clients (lower(unaccent(name)));
+CREATE INDEX IF NOT EXISTS idx_clients_phone_unaccent ON clients (lower(unaccent(phone)));
+CREATE INDEX IF NOT EXISTS idx_services_name_unaccent ON services (lower(unaccent(name)));
+CREATE INDEX IF NOT EXISTS idx_services_category_unaccent ON services (lower(unaccent(category)));
+CREATE INDEX IF NOT EXISTS idx_products_name_unaccent ON products (lower(unaccent(name)));
+CREATE INDEX IF NOT EXISTS idx_products_description_unaccent ON products (lower(unaccent(COALESCE(description, ''))));
 
 -- ========== FIM DA MIGRACAO ==========
 -- Script executado com sucesso!
