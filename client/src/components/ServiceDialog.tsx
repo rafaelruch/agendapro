@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { ImagePlus, X, Loader2 } from "lucide-react";
 import type { Service } from "@shared/schema";
 
@@ -246,17 +247,13 @@ export function ServiceDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="value">Valor (R$)</Label>
-              <Input
+              <Label htmlFor="value">Valor</Label>
+              <CurrencyInput
                 id="value"
-                type="number"
-                step="0.01"
-                min="0"
                 value={formData.value}
-                onChange={(e) =>
-                  setFormData({ ...formData, value: e.target.value })
+                onChange={(value) =>
+                  setFormData({ ...formData, value })
                 }
-                placeholder="0.00"
                 data-testid="input-service-value"
                 required
               />
@@ -333,17 +330,13 @@ export function ServiceDialog({
             {showPromotion && (
               <div className="grid gap-4 pl-6 border-l-2 border-primary/20">
                 <div className="grid gap-2">
-                  <Label htmlFor="promotionalValue">Valor Promocional (R$)</Label>
-                  <Input
+                  <Label htmlFor="promotionalValue">Valor Promocional</Label>
+                  <CurrencyInput
                     id="promotionalValue"
-                    type="number"
-                    step="0.01"
-                    min="0"
                     value={formData.promotionalValue}
-                    onChange={(e) =>
-                      setFormData({ ...formData, promotionalValue: e.target.value })
+                    onChange={(value) =>
+                      setFormData({ ...formData, promotionalValue: value })
                     }
-                    placeholder="0.00"
                     data-testid="input-service-promotional-value"
                   />
                 </div>

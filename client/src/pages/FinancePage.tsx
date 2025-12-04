@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -944,14 +945,10 @@ export default function FinancePage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label>Valor (R$) <span className="text-meta-1">*</span></Label>
-              <Input
-                type="number"
-                step={0.01}
-                min={0}
+              <Label>Valor <span className="text-meta-1">*</span></Label>
+              <CurrencyInput
                 value={expenseForm.amount}
-                onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                placeholder="0,00"
+                onChange={(value) => setExpenseForm({ ...expenseForm, amount: value })}
                 data-testid="input-expense-amount"
               />
             </div>
@@ -1041,14 +1038,10 @@ export default function FinancePage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label>Valor (R$) <span className="text-meta-1">*</span></Label>
-              <Input
-                type="number"
-                step={0.01}
-                min={0}
+              <Label>Valor <span className="text-meta-1">*</span></Label>
+              <CurrencyInput
                 value={incomeForm.amount}
-                onChange={(e) => setIncomeForm({ ...incomeForm, amount: e.target.value })}
-                placeholder="0,00"
+                onChange={(value) => setIncomeForm({ ...incomeForm, amount: value })}
                 data-testid="input-income-amount"
               />
             </div>

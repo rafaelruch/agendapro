@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Upload, X, Image as ImageIcon, Plus, Trash2, Star, Tag } from "lucide-react";
@@ -291,15 +292,11 @@ export function ProductDialog({
           </div>
           
           <div className="grid gap-2">
-            <Label htmlFor="price">Preço (R$)</Label>
-            <Input
+            <Label htmlFor="price">Preço</Label>
+            <CurrencyInput
               id="price"
-              type="number"
-              step={0.01}
-              min="0"
               value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              placeholder="0.00"
+              onChange={(value) => setFormData({ ...formData, price: value })}
               data-testid="input-product-price"
               required
             />
@@ -343,15 +340,11 @@ export function ProductDialog({
 
           {formData.isOnSale && (
             <div className="grid gap-2">
-              <Label htmlFor="salePrice">Preço Promocional (R$)</Label>
-              <Input
+              <Label htmlFor="salePrice">Preço Promocional</Label>
+              <CurrencyInput
                 id="salePrice"
-                type="number"
-                step={0.01}
-                min="0"
                 value={formData.salePrice}
-                onChange={(e) => setFormData({ ...formData, salePrice: e.target.value })}
-                placeholder="0.00"
+                onChange={(value) => setFormData({ ...formData, salePrice: value })}
                 data-testid="input-product-sale-price"
               />
               {formData.price && formData.salePrice && parseFloat(formData.salePrice) < parseFloat(formData.price) && (
@@ -462,15 +455,11 @@ export function ProductDialog({
                     />
                   </div>
                   <div>
-                    <Label htmlFor="addonPrice">Preço (R$)</Label>
-                    <Input
+                    <Label htmlFor="addonPrice">Preço</Label>
+                    <CurrencyInput
                       id="addonPrice"
-                      type="number"
-                      step={0.01}
-                      min="0"
                       value={newAddon.price}
-                      onChange={(e) => setNewAddon({ ...newAddon, price: e.target.value })}
-                      placeholder="0.00"
+                      onChange={(value) => setNewAddon({ ...newAddon, price: value })}
                       data-testid="input-addon-price"
                     />
                   </div>
