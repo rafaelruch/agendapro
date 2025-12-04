@@ -677,3 +677,13 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .dark .flatpickr-time .flatpickr-time-separator {
   color: rgb(156 163 175) !important;
 }
+
+/* Hide scrollbar for carousels */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}

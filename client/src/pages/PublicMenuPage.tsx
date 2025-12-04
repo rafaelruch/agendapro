@@ -1412,58 +1412,60 @@ export default function PublicMenuPage() {
                   {isServicesMenu ? "Nossos Serviços" : "Explorar Categorias"}
                 </h2>
                 
-                {/* Pills de Categorias em Grid */}
-                <div className="flex flex-wrap gap-2 mb-6">
-                  <button
-                    onClick={() => setActiveCategory(null)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all ${
-                      activeCategory === null
-                        ? "text-white border-transparent"
-                        : "bg-white border-gray-200 text-gray-700 hover:border-gray-300"
-                    }`}
-                    style={activeCategory === null ? { backgroundColor: brandColor } : {}}
-                    data-testid="button-category-all"
-                  >
-                    {!isServicesMenu && <UtensilsCrossed className="h-4 w-4" />}
-                    <span className="font-medium text-sm">Todos</span>
-                  </button>
-                  {isServicesMenu ? (
-                    serviceCategories.map((category) => (
-                      <button
-                        key={category}
-                        onClick={() => setActiveCategory(category)}
-                        className={`px-4 py-2.5 rounded-xl border-2 transition-all ${
-                          activeCategory === category
-                            ? "text-white border-transparent"
-                            : "bg-white border-gray-200 text-gray-700 hover:border-gray-300"
-                        }`}
-                        style={activeCategory === category ? { backgroundColor: brandColor } : {}}
-                        data-testid={`button-category-${category}`}
-                      >
-                        <span className="font-medium text-sm">{category}</span>
-                      </button>
-                    ))
-                  ) : (
-                    menuData.categories.map((category) => {
-                      const CategoryIcon = getCategoryIcon(category.icon);
-                      return (
+                {/* Pills de Categorias - Carrossel horizontal no mobile, wrap no desktop */}
+                <div className="mb-6 -mx-6 px-6 md:mx-0 md:px-0">
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide md:flex-wrap md:overflow-visible">
+                    <button
+                      onClick={() => setActiveCategory(null)}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all flex-shrink-0 ${
+                        activeCategory === null
+                          ? "text-white border-transparent"
+                          : "bg-white border-gray-200 text-gray-700 hover:border-gray-300"
+                      }`}
+                      style={activeCategory === null ? { backgroundColor: brandColor } : {}}
+                      data-testid="button-category-all"
+                    >
+                      {!isServicesMenu && <UtensilsCrossed className="h-4 w-4" />}
+                      <span className="font-medium text-sm whitespace-nowrap">Todos</span>
+                    </button>
+                    {isServicesMenu ? (
+                      serviceCategories.map((category) => (
                         <button
-                          key={category.id}
-                          onClick={() => setActiveCategory(category.id)}
-                          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all ${
-                            activeCategory === category.id
+                          key={category}
+                          onClick={() => setActiveCategory(category)}
+                          className={`px-4 py-2.5 rounded-xl border-2 transition-all flex-shrink-0 ${
+                            activeCategory === category
                               ? "text-white border-transparent"
                               : "bg-white border-gray-200 text-gray-700 hover:border-gray-300"
                           }`}
-                          style={activeCategory === category.id ? { backgroundColor: brandColor } : {}}
-                          data-testid={`button-category-${category.id}`}
+                          style={activeCategory === category ? { backgroundColor: brandColor } : {}}
+                          data-testid={`button-category-${category}`}
                         >
-                          <CategoryIcon className="h-4 w-4" />
-                          <span className="font-medium text-sm">{category.name}</span>
+                          <span className="font-medium text-sm whitespace-nowrap">{category}</span>
                         </button>
-                      );
-                    })
-                  )}
+                      ))
+                    ) : (
+                      menuData.categories.map((category) => {
+                        const CategoryIcon = getCategoryIcon(category.icon);
+                        return (
+                          <button
+                            key={category.id}
+                            onClick={() => setActiveCategory(category.id)}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all flex-shrink-0 ${
+                              activeCategory === category.id
+                                ? "text-white border-transparent"
+                                : "bg-white border-gray-200 text-gray-700 hover:border-gray-300"
+                            }`}
+                            style={activeCategory === category.id ? { backgroundColor: brandColor } : {}}
+                            data-testid={`button-category-${category.id}`}
+                          >
+                            <CategoryIcon className="h-4 w-4" />
+                            <span className="font-medium text-sm whitespace-nowrap">{category.name}</span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
 
                 {/* Abas Populares / Promoções */}
