@@ -73,7 +73,7 @@ import {
 } from "@shared/schema";
 import { randomBytes } from "crypto";
 import { db } from "./db";
-import { eq, and, gte, lte, desc, or, like, isNull } from "drizzle-orm";
+import { eq, and, gte, lte, desc, or, like, isNull, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 export interface IStorage {
@@ -326,7 +326,10 @@ export class DbStorage implements IStorage {
   }
 
   async getTenantByMenuSlug(slug: string): Promise<Tenant | undefined> {
-    const result = await db.select().from(tenants).where(eq(tenants.menuSlug, slug)).limit(1);
+    // Busca case-insensitive usando lower() no SQL
+    const result = await db.select().from(tenants).where(
+      sql`lower(${tenants.menuSlug}) = ${slug.toLowerCase()}`
+    ).limit(1);
     return result[0];
   }
 
