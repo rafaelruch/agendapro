@@ -52,6 +52,15 @@ import "react-day-picker/dist/style.css";
 type ActiveSection = "cardapio" | "pedidos" | "historico" | "enderecos";
 type PaymentMethod = "cash" | "pix" | "debit" | "credit";
 
+// Função para normalizar texto (remover acentos e converter para minúsculas)
+const normalizeText = (text: string | null | undefined): string => {
+  if (!text) return "";
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+};
+
 interface CustomerData {
   name: string;
   phone: string;
@@ -936,13 +945,13 @@ export default function PublicMenuPage() {
     let products = menuData.products;
     
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+      const query = normalizeText(searchQuery);
       products = products.filter(
         (p) => {
           const categoryName = menuData.categories.find(c => c.id === p.categoryId)?.name || "";
-          return p.name.toLowerCase().includes(query) ||
-            (p.description && p.description.toLowerCase().includes(query)) ||
-            categoryName.toLowerCase().includes(query);
+          return normalizeText(p.name).includes(query) ||
+            normalizeText(p.description).includes(query) ||
+            normalizeText(categoryName).includes(query);
         }
       );
     }
@@ -997,18 +1006,18 @@ export default function PublicMenuPage() {
     let services = menuData.services;
     
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+      const query = normalizeText(searchQuery);
       services = services.filter(
         (s) =>
-          s.name.toLowerCase().includes(query) ||
-          (s.description && s.description.toLowerCase().includes(query)) ||
-          (s.category && s.category.toLowerCase().includes(query))
+          normalizeText(s.name).includes(query) ||
+          normalizeText(s.description).includes(query) ||
+          normalizeText(s.category).includes(query)
       );
     }
     
     if (activeCategory) {
       services = services.filter((s) => 
-        s.category?.toLowerCase() === activeCategory.toLowerCase()
+        normalizeText(s.category) === normalizeText(activeCategory)
       );
     }
     

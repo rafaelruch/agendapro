@@ -458,8 +458,8 @@ export class DbStorage implements IStorage {
         and(
           eq(clients.tenantId, tenantId),
           or(
-            ilike(clients.name, searchPattern),
-            ilike(clients.phone, searchPattern)
+            sql`unaccent(${clients.name}) ILIKE unaccent(${searchPattern})`,
+            sql`unaccent(${clients.phone}) ILIKE unaccent(${searchPattern})`
           )
         )
       );
@@ -612,8 +612,8 @@ export class DbStorage implements IStorage {
         and(
           eq(services.tenantId, tenantId),
           or(
-            ilike(services.name, searchPattern),
-            ilike(services.category, searchPattern)
+            sql`unaccent(${services.name}) ILIKE unaccent(${searchPattern})`,
+            sql`unaccent(${services.category}) ILIKE unaccent(${searchPattern})`
           )
         )
       )
@@ -1837,14 +1837,15 @@ export class DbStorage implements IStorage {
   }
 
   async searchProducts(tenantId: string, searchTerm: string): Promise<Product[]> {
+    const searchPattern = `%${searchTerm}%`;
     return await db
       .select()
       .from(products)
       .where(and(
         eq(products.tenantId, tenantId),
         or(
-          ilike(products.name, `%${searchTerm}%`),
-          ilike(products.description, `%${searchTerm}%`)
+          sql`unaccent(${products.name}) ILIKE unaccent(${searchPattern})`,
+          sql`unaccent(COALESCE(${products.description}, '')) ILIKE unaccent(${searchPattern})`
         )
       ))
       .orderBy(products.name);
