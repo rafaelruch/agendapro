@@ -1369,7 +1369,7 @@ export default function PublicMenuPage() {
                                     <img
                                       src={service.imageUrl}
                                       alt={service.name}
-                                      className="max-h-full max-w-full object-contain"
+                                      className="w-full h-full object-cover"
                                       loading="lazy"
                                       data-testid={`img-service-${service.id}`}
                                     />
@@ -1487,7 +1487,7 @@ export default function PublicMenuPage() {
                                   <img
                                     src={product.imageUrl}
                                     alt={product.name}
-                                    className="max-h-full max-w-full object-contain"
+                                    className="w-full h-full object-cover"
                                     loading="lazy"
                                     data-testid={`img-product-${product.id}`}
                                   />

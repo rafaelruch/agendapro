@@ -193,7 +193,7 @@ export function ServiceDialog({
               <div className="text-xs text-gray-500">
                 <p>Formatos: JPG, PNG, GIF</p>
                 <p>Tamanho máximo: 5MB</p>
-                <p>Recomendado: 400x400px</p>
+                <p className="font-medium text-primary">Tamanho ideal: 800x557px</p>
               </div>
             </div>
           </div>
