@@ -938,9 +938,12 @@ export default function PublicMenuPage() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       products = products.filter(
-        (p) =>
-          p.name.toLowerCase().includes(query) ||
-          (p.description && p.description.toLowerCase().includes(query))
+        (p) => {
+          const categoryName = menuData.categories.find(c => c.id === p.categoryId)?.name || "";
+          return p.name.toLowerCase().includes(query) ||
+            (p.description && p.description.toLowerCase().includes(query)) ||
+            categoryName.toLowerCase().includes(query);
+        }
       );
     }
     
@@ -998,12 +1001,15 @@ export default function PublicMenuPage() {
       services = services.filter(
         (s) =>
           s.name.toLowerCase().includes(query) ||
-          (s.description && s.description.toLowerCase().includes(query))
+          (s.description && s.description.toLowerCase().includes(query)) ||
+          (s.category && s.category.toLowerCase().includes(query))
       );
     }
     
     if (activeCategory) {
-      services = services.filter((s) => s.category === activeCategory);
+      services = services.filter((s) => 
+        s.category?.toLowerCase() === activeCategory.toLowerCase()
+      );
     }
     
     return services;
