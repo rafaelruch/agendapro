@@ -1348,7 +1348,7 @@ export default function PublicMenuPage() {
                             >
                               <div className="bg-white rounded-xl overflow-hidden">
                                 {/* Imagem do Serviço */}
-                                <div className="relative bg-gray-200 p-4 flex items-center justify-center h-40 rounded-xl">
+                                <div className="relative bg-gray-200 h-40 rounded-xl overflow-hidden">
                                   {isOnPromotion && (
                                     <div 
                                       className="absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-medium text-white"
@@ -1374,7 +1374,9 @@ export default function PublicMenuPage() {
                                       data-testid={`img-service-${service.id}`}
                                     />
                                   ) : (
-                                    <Scissors className="h-16 w-16 text-gray-300" />
+                                    <div className="w-full h-full flex items-center justify-center">
+                                      <Scissors className="h-16 w-16 text-gray-300" />
+                                    </div>
                                   )}
                                 </div>
 
@@ -1472,7 +1474,7 @@ export default function PublicMenuPage() {
                           >
                             <div className="bg-white rounded-xl overflow-hidden">
                               {/* Imagem do Produto */}
-                              <div className="relative bg-gray-200 p-4 flex items-center justify-center h-40 rounded-xl">
+                              <div className="relative bg-gray-200 h-40 rounded-xl overflow-hidden">
                                 {product.isOnSale && (
                                   <div 
                                     className="absolute top-2 left-2 p-1.5 rounded-lg"
@@ -1492,7 +1494,9 @@ export default function PublicMenuPage() {
                                     data-testid={`img-product-${product.id}`}
                                   />
                                 ) : (
-                                  <Package className="h-16 w-16 text-gray-300" />
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Package className="h-16 w-16 text-gray-300" />
+                                  </div>
                                 )}
                               </div>
 
