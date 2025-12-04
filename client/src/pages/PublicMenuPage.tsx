@@ -2851,7 +2851,7 @@ export default function PublicMenuPage() {
                             Agendando...
                           </>
                         ) : (
-                          bookingStep === "horario" ? "Confirmar Agendamento" : "Continuar"
+                          bookingStep === "horario" ? "Confirmar" : "Continuar"
                         )}
                       </button>
                     </div>
