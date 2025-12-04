@@ -33,11 +33,14 @@ export function ServiceDialog({
     promotionStartDate: "",
     promotionEndDate: "",
   });
+  const [showPromotion, setShowPromotion] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (initialData) {
+      const hasPromotion = !!(initialData.promotionalValue || initialData.promotionStartDate || initialData.promotionEndDate);
+      setShowPromotion(hasPromotion);
       setFormData({
         name: initialData.name,
         category: initialData.category,
@@ -52,6 +55,7 @@ export function ServiceDialog({
         promotionEndDate: initialData.promotionEndDate || "",
       });
     } else {
+      setShowPromotion(false);
       setFormData({
         name: "",
         category: "",
@@ -116,15 +120,15 @@ export function ServiceDialog({
       isActive: formData.isActive,
     };
     
-    const hasPromoValue = formData.promotionalValue && formData.promotionalValue.trim() !== '';
-    const hasStartDate = formData.promotionStartDate && formData.promotionStartDate.trim() !== '';
-    const hasEndDate = formData.promotionEndDate && formData.promotionEndDate.trim() !== '';
-    
-    if (hasPromoValue || hasStartDate || hasEndDate) {
+    if (showPromotion) {
+      const hasPromoValue = formData.promotionalValue && formData.promotionalValue.trim() !== '';
+      const hasStartDate = formData.promotionStartDate && formData.promotionStartDate.trim() !== '';
+      const hasEndDate = formData.promotionEndDate && formData.promotionEndDate.trim() !== '';
+      
       data.promotionalValue = hasPromoValue ? parseFloat(formData.promotionalValue) : null;
       data.promotionStartDate = hasStartDate ? formData.promotionStartDate : null;
       data.promotionEndDate = hasEndDate ? formData.promotionEndDate : null;
-    } else if (initialData) {
+    } else {
       data.promotionalValue = null;
       data.promotionStartDate = null;
       data.promotionEndDate = null;
@@ -305,50 +309,72 @@ export function ServiceDialog({
           
           {/* Seção de Promoção */}
           <div className="border-t pt-4 mt-2">
-            <h3 className="text-sm font-semibold mb-3">Promoção (Opcional)</h3>
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="promotionalValue">Valor Promocional (R$)</Label>
-                <Input
-                  id="promotionalValue"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.promotionalValue}
-                  onChange={(e) =>
-                    setFormData({ ...formData, promotionalValue: e.target.value })
+            <label className="flex items-center gap-2 cursor-pointer mb-3">
+              <input
+                type="checkbox"
+                checked={showPromotion}
+                onChange={(e) => {
+                  setShowPromotion(e.target.checked);
+                  if (!e.target.checked) {
+                    setFormData({
+                      ...formData,
+                      promotionalValue: "",
+                      promotionStartDate: "",
+                      promotionEndDate: "",
+                    });
                   }
-                  placeholder="0.00"
-                  data-testid="input-service-promotional-value"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
+                }}
+                className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                data-testid="checkbox-service-promotion"
+              />
+              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Em promoção</span>
+            </label>
+            
+            {showPromotion && (
+              <div className="grid gap-4 pl-6 border-l-2 border-primary/20">
                 <div className="grid gap-2">
-                  <Label htmlFor="promotionStartDate">Data Início</Label>
+                  <Label htmlFor="promotionalValue">Valor Promocional (R$)</Label>
                   <Input
-                    id="promotionStartDate"
-                    type="date"
-                    value={formData.promotionStartDate}
+                    id="promotionalValue"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.promotionalValue}
                     onChange={(e) =>
-                      setFormData({ ...formData, promotionStartDate: e.target.value })
+                      setFormData({ ...formData, promotionalValue: e.target.value })
                     }
-                    data-testid="input-service-promotion-start"
+                    placeholder="0.00"
+                    data-testid="input-service-promotional-value"
                   />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="promotionEndDate">Data Fim</Label>
-                  <Input
-                    id="promotionEndDate"
-                    type="date"
-                    value={formData.promotionEndDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, promotionEndDate: e.target.value })
-                    }
-                    data-testid="input-service-promotion-end"
-                  />
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="promotionStartDate">Data Início</Label>
+                    <Input
+                      id="promotionStartDate"
+                      type="date"
+                      value={formData.promotionStartDate}
+                      onChange={(e) =>
+                        setFormData({ ...formData, promotionStartDate: e.target.value })
+                      }
+                      data-testid="input-service-promotion-start"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="promotionEndDate">Data Fim</Label>
+                    <Input
+                      id="promotionEndDate"
+                      type="date"
+                      value={formData.promotionEndDate}
+                      onChange={(e) =>
+                        setFormData({ ...formData, promotionEndDate: e.target.value })
+                      }
+                      data-testid="input-service-promotion-end"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
         <div className="flex items-center justify-end gap-3 px-6 pb-6 sm:px-9.5 sm:pb-9.5 border-t pt-4">
