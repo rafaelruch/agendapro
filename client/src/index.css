@@ -558,13 +558,6 @@
   pointer-events: auto;
 }
 
-aside, .sidebar, nav {
-  z-index: 100 !important;
-}
-
-header {
-  z-index: 100 !important;
-}
 
 /* ============================================
    TAILADMIN DATE/TIME INPUT CUSTOMIZATION
