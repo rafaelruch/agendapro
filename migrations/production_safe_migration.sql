@@ -469,5 +469,13 @@ CREATE INDEX IF NOT EXISTS idx_financial_transactions_tenant_id ON financial_tra
 CREATE INDEX IF NOT EXISTS idx_financial_transactions_date ON financial_transactions(date);
 CREATE INDEX IF NOT EXISTS idx_tenant_module_permissions_tenant_id ON tenant_module_permissions(tenant_id);
 
+-- ========== INDICE CASE-INSENSITIVE PARA MENU SLUG ==========
+-- Necessário para busca de cardápio público funcionar independente de maiúsculas/minúsculas
+CREATE INDEX IF NOT EXISTS idx_tenants_menu_slug_lower ON tenants (lower(menu_slug));
+
+-- ========== NORMALIZAÇÃO DE DADOS ==========
+-- Converter todos os menu_slug existentes para minúsculas
+UPDATE tenants SET menu_slug = lower(menu_slug) WHERE menu_slug IS NOT NULL AND menu_slug != lower(menu_slug);
+
 -- ========== FIM DA MIGRACAO ==========
 -- Script executado com sucesso!
