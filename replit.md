@@ -59,6 +59,17 @@ All data tables throughout the system must adhere to a standardized structure fo
 ### Production Deployment & Migrations
 The application is deployed on Easypanel, not Replit. Production database migrations are managed via the Master Admin SQL Migration panel. Any new tables or schema modifications require generating a corresponding SQL script to be executed in production. This includes updates to `shared/schema.ts`, SQL script generation, and documentation for the Master Admin panel.
 
+**IMPORTANTE**: O arquivo `migrations/production_safe_migration.sql` contém o script completo e seguro para migração de produção. Este script:
+- Verifica se tabelas/colunas existem antes de criar (idempotente)
+- Pode ser executado múltiplas vezes sem problemas
+- Inclui todas as tabelas e colunas do sistema
+- Deve ser atualizado sempre que houver alterações no schema (`shared/schema.ts`)
+
+Sempre que adicionar novas tabelas, colunas ou modificações no banco de dados:
+1. Atualizar `shared/schema.ts`
+2. Atualizar `migrations/production_safe_migration.sql` com as novas estruturas
+3. Fornecer o script atualizado ao usuário para execução em produção
+
 ### System Design Choices
 - **Backend**: Express.js.
 - **Database**: PostgreSQL with Drizzle ORM.
