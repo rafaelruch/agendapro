@@ -4040,14 +4040,14 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       );
 
       // Separar ativos e histórico
-      const activeStatuses = ['pending', 'confirmed'];
-      const historyStatuses = ['completed', 'cancelled', 'no_show'];
+      // Histórico mostra APENAS concluídos ou cancelados
+      const historyStatuses = ['completed', 'cancelled'];
       
       const activeAppointments = appointments.filter(apt => 
-        activeStatuses.includes(apt.status) && apt.date >= today
+        !historyStatuses.includes(apt.status)
       );
       const historyAppointments = appointments.filter(apt => 
-        historyStatuses.includes(apt.status) || apt.date < today
+        historyStatuses.includes(apt.status)
       );
 
       const formatAppointment = async (apt: any) => {
