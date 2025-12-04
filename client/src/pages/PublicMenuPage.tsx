@@ -1695,7 +1695,7 @@ export default function PublicMenuPage() {
 
               {/* Carrinho/Serviços Desktop */}
               <aside className="hidden lg:block w-96 flex-shrink-0 p-6">
-                <div className="bg-white rounded-2xl border border-gray-200">
+                <div className="bg-white rounded-2xl border border-gray-200 sticky top-28">
                   {/* Header */}
                   <div className="p-4 border-b">
                     <h3 className="font-bold text-gray-900">
