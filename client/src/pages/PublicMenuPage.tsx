@@ -2445,9 +2445,9 @@ export default function PublicMenuPage() {
 
           {/* Modal de Agendamento */}
           {showAppointmentModal && (
-            <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4" onClick={closeAppointmentModal}>
+            <div className="fixed inset-0 z-[100] bg-black/50 flex items-end md:items-center justify-center" onClick={closeAppointmentModal}>
               <div 
-                className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-xl"
+                className="bg-white rounded-t-2xl md:rounded-2xl w-full max-w-lg max-h-[80vh] md:max-h-[85vh] overflow-hidden flex flex-col shadow-xl md:m-4"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header do Agendamento */}
