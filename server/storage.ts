@@ -73,7 +73,7 @@ import {
 } from "@shared/schema";
 import { randomBytes } from "crypto";
 import { db } from "./db";
-import { eq, and, gte, lte, desc, or, like, isNull, sql } from "drizzle-orm";
+import { eq, and, gte, lte, desc, or, like, ilike, isNull, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 export interface IStorage {
@@ -458,8 +458,8 @@ export class DbStorage implements IStorage {
         and(
           eq(clients.tenantId, tenantId),
           or(
-            like(clients.name, searchPattern),
-            like(clients.phone, searchPattern)
+            ilike(clients.name, searchPattern),
+            ilike(clients.phone, searchPattern)
           )
         )
       );
@@ -612,8 +612,8 @@ export class DbStorage implements IStorage {
         and(
           eq(services.tenantId, tenantId),
           or(
-            like(services.name, searchPattern),
-            like(services.category, searchPattern)
+            ilike(services.name, searchPattern),
+            ilike(services.category, searchPattern)
           )
         )
       )
@@ -1843,8 +1843,8 @@ export class DbStorage implements IStorage {
       .where(and(
         eq(products.tenantId, tenantId),
         or(
-          like(products.name, `%${searchTerm}%`),
-          like(products.description, `%${searchTerm}%`)
+          ilike(products.name, `%${searchTerm}%`),
+          ilike(products.description, `%${searchTerm}%`)
         )
       ))
       .orderBy(products.name);
