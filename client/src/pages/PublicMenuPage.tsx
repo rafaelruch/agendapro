@@ -956,7 +956,7 @@ export default function PublicMenuPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header Principal - Estilo iFood */}
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
+      <header className="sticky top-0 z-[200] bg-white border-b border-gray-200">
         {/* Header Desktop */}
         <div className="hidden md:block px-6 py-2">
           <div className="flex items-center justify-between gap-3">
@@ -1030,7 +1030,7 @@ export default function PublicMenuPage() {
 
                   {/* Menu Dropdown do Perfil */}
                   {showProfileMenu && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[100]">
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[250]">
                       <div className="px-4 py-2 border-b border-gray-100">
                         <p className="text-sm font-medium text-gray-900 truncate">{customer.name}</p>
                         <p className="text-xs text-gray-500">{customer.phone}</p>
@@ -1121,7 +1121,7 @@ export default function PublicMenuPage() {
 
           {/* Dropdown Perfil Mobile */}
           {showProfileMenu && customer && (
-            <div className="absolute right-4 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[100]">
+            <div className="absolute right-4 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[250]">
               <div className="px-4 py-2 border-b border-gray-100">
                 <p className="text-sm font-medium text-gray-900 truncate">{customer.name}</p>
                 <p className="text-xs text-gray-500">{customer.phone}</p>
