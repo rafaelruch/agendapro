@@ -2663,6 +2663,21 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
+  // POST /api/upload/service-image - Upload de imagem de serviço
+  app.post("/api/upload/service-image", authenticateRequest, uploadLimiter, imageUpload.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Nenhuma imagem enviada" });
+      }
+      
+      const imageUrl = `/uploads/${req.file.filename}`;
+      res.json({ url: imageUrl });
+    } catch (error: any) {
+      console.error("Error uploading service image:", error);
+      res.status(500).json({ error: error.message || "Erro ao fazer upload da imagem do serviço" });
+    }
+  });
+
   // ===========================================
   // ROTAS DE CATEGORIAS DE PRODUTOS (COM ISOLAMENTO TENANT)
   // ===========================================
