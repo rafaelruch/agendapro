@@ -1288,7 +1288,7 @@ export default function PublicMenuPage() {
                     style={activeCategory === null ? { backgroundColor: brandColor } : {}}
                     data-testid="button-category-all"
                   >
-                    {isServicesMenu ? <Scissors className="h-4 w-4" /> : <UtensilsCrossed className="h-4 w-4" />}
+                    {!isServicesMenu && <UtensilsCrossed className="h-4 w-4" />}
                     <span className="font-medium text-sm">Todos</span>
                   </button>
                   {isServicesMenu ? (
@@ -1296,7 +1296,7 @@ export default function PublicMenuPage() {
                       <button
                         key={category}
                         onClick={() => setActiveCategory(category)}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all ${
+                        className={`px-4 py-2.5 rounded-xl border-2 transition-all ${
                           activeCategory === category
                             ? "text-white border-transparent"
                             : "bg-white border-gray-200 text-gray-700 hover:border-gray-300"
@@ -1304,7 +1304,6 @@ export default function PublicMenuPage() {
                         style={activeCategory === category ? { backgroundColor: brandColor } : {}}
                         data-testid={`button-category-${category}`}
                       >
-                        <Scissors className="h-4 w-4" />
                         <span className="font-medium text-sm">{category}</span>
                       </button>
                     ))
