@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ClientDialog } from "@/components/ClientDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { normalizeText } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import type { Client, Appointment } from "@shared/schema";
 import { format, parseISO } from 'date-fns';
@@ -97,8 +98,8 @@ export default function ClientsPage() {
   });
 
   const filteredClients = clients.filter((client) =>
-    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    client.phone.toLowerCase().includes(searchQuery.toLowerCase())
+    normalizeText(client.name).includes(normalizeText(searchQuery)) ||
+    normalizeText(client.phone).includes(normalizeText(searchQuery))
   );
 
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage);

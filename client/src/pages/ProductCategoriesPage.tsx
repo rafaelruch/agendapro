@@ -37,6 +37,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Modal } from "@/components/ui/modal";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { normalizeText } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import type { ProductCategory } from "@shared/schema";
 
@@ -261,7 +262,7 @@ export default function ProductCategoriesPage() {
   });
 
   const filteredCategories = searchQuery
-    ? categories.filter((c) => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? categories.filter((c) => normalizeText(c.name).includes(normalizeText(searchQuery)))
     : categories;
 
   const sortedCategories = [...filteredCategories].sort((a, b) => a.displayOrder - b.displayOrder);

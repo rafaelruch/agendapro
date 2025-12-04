@@ -28,6 +28,7 @@ import { Modal } from "@/components/ui/modal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { normalizeText } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { 
   PAYMENT_METHODS, 
@@ -298,7 +299,7 @@ export default function FinancePage() {
 
   const filteredTransactions = transactions.filter((tx) => {
     if (searchQuery) {
-      return tx.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return normalizeText(tx.description).includes(normalizeText(searchQuery));
     }
     return true;
   });

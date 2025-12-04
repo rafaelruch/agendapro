@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { normalizeText } from "@/lib/utils";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -601,12 +602,12 @@ export default function AdminPage() {
 
             const filteredAppointments = allAppointments.filter((apt) => {
               const tenant = tenants.find(t => t.id === apt.tenantId);
-              const searchLower = appointmentsSearch.toLowerCase();
+              const searchNormalized = normalizeText(appointmentsSearch);
               return (
-                apt.clientId.toLowerCase().includes(searchLower) ||
-                (tenant?.name || "").toLowerCase().includes(searchLower) ||
-                apt.status.toLowerCase().includes(searchLower) ||
-                formatDate(apt.date).includes(searchLower)
+                normalizeText(apt.clientId).includes(searchNormalized) ||
+                normalizeText(tenant?.name).includes(searchNormalized) ||
+                normalizeText(apt.status).includes(searchNormalized) ||
+                formatDate(apt.date).includes(appointmentsSearch)
               );
             });
 

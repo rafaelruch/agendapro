@@ -27,6 +27,7 @@ import {
 import { DayPicker, DateRange } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { normalizeText } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import type { Appointment, Client, Service, Professional } from "@shared/schema";
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays, isToday, isTomorrow, isYesterday, isSameDay } from 'date-fns';
@@ -185,11 +186,11 @@ export default function AppointmentsPage() {
 
     // Filter by search (client name or phone)
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+      const query = normalizeText(searchQuery);
       result = result.filter(apt => 
-        apt.client?.name.toLowerCase().includes(query) ||
-        apt.client?.phone.toLowerCase().includes(query) ||
-        apt.services?.some(s => s.name.toLowerCase().includes(query))
+        normalizeText(apt.client?.name).includes(query) ||
+        normalizeText(apt.client?.phone).includes(query) ||
+        apt.services?.some(s => normalizeText(s.name).includes(query))
       );
     }
 

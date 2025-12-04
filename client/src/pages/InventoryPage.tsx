@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { ProductDialog } from "@/components/ProductDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { normalizeText } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import type { Product, ProductCategory } from "@shared/schema";
 
@@ -109,8 +110,8 @@ export default function InventoryPage() {
   const filteredProducts = searchQuery
     ? products.filter(
         (p) =>
-          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
+          normalizeText(p.name).includes(normalizeText(searchQuery)) ||
+          normalizeText(p.description).includes(normalizeText(searchQuery))
       )
     : products;
 

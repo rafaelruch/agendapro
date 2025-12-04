@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { UserDialog } from "@/components/UserDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { normalizeText } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
 
@@ -128,9 +129,9 @@ export default function UsersPage() {
 
   const filteredUsers = users.filter(
     (user) =>
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.username.toLowerCase().includes(searchQuery.toLowerCase())
+      normalizeText(user.name).includes(normalizeText(searchQuery)) ||
+      normalizeText(user.email).includes(normalizeText(searchQuery)) ||
+      normalizeText(user.username).includes(normalizeText(searchQuery))
   );
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);

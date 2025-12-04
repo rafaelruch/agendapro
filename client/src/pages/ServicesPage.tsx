@@ -8,6 +8,7 @@ import { TableHead } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ServiceDialog } from "@/components/ServiceDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { normalizeText } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import type { Service } from "@shared/schema";
 import { getServiceEffectiveValue, isServiceInPromotion } from "@shared/schema";
@@ -182,8 +183,8 @@ export default function ServicesPage() {
 
   const filteredServices = services.filter(
     (service) =>
-      service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      service.category.toLowerCase().includes(searchQuery.toLowerCase())
+      normalizeText(service.name).includes(normalizeText(searchQuery)) ||
+      normalizeText(service.category).includes(normalizeText(searchQuery))
   );
 
   const totalPages = Math.ceil(filteredServices.length / itemsPerPage);

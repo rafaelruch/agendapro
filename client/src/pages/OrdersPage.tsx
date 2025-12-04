@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ORDER_STATUS_LABELS, type OrderWithDetails, type OrderStatus, type PaymentMethod } from "@shared/schema";
 import { OrderDialog } from "@/components/OrderDialog";
 import { printThermalReceipt } from "@/components/ThermalReceipt";
+import { normalizeText } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -111,8 +112,8 @@ export default function OrdersPage() {
     
     const matchesSearch =
       !searchQuery ||
-      clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      clientPhone.includes(searchQuery) ||
+      normalizeText(clientName).includes(normalizeText(searchQuery)) ||
+      normalizeText(clientPhone).includes(normalizeText(searchQuery)) ||
       String(order.orderNumber).includes(searchQuery);
 
     const matchesStatus =

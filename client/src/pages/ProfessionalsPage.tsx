@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableRow, TableHead } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { ProfessionalDialog } from "@/components/ProfessionalDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { normalizeText } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 interface Professional {
@@ -105,7 +106,7 @@ export default function ProfessionalsPage() {
   });
 
   const filteredProfessionals = professionals.filter((professional) =>
-    professional.name.toLowerCase().includes(searchQuery.toLowerCase())
+    normalizeText(professional.name).includes(normalizeText(searchQuery))
   );
 
   const totalPages = Math.ceil(filteredProfessionals.length / itemsPerPage);
