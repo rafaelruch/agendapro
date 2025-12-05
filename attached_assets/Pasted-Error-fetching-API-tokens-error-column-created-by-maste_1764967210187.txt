@@ -1,0 +1,75 @@
+Error fetching API tokens: error: column "created_by_master" does not exist
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.getApiTokensByTenant (file:///app/dist/index.js:1264:16)
+    at async file:///app/dist/index.js:2556:22 {
+  length: 117,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '64',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+8:39:32 PM [express] GET /api/admin/tenants/07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c/api-tokens 500 in 6…
+Error creating API token: error: column "created_by_master" of relation "tenant_api_tokens" does not exist
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.createApiToken (file:///app/dist/index.js:1251:24)
+    at async file:///app/dist/index.js:2574:38 {
+  length: 147,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '90',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '1065',
+  routine: 'checkInsertTargets'
+}
+8:39:37 PM [express] POST /api/admin/tenants/07ea94ce-20e7-4ce2-ae6d-e0fecc5e709c/api-tokens 500 in …
+Error fetching API tokens: error: column "created_by_master" does not exist
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DbStorage.getApiTokensByTenant (file:///app/dist/index.js:1264:16)
+    at async file:///app/dist/index.js:2556:22 {
+  length: 117,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '64',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+8:39:49 PM [express] GET /api/admin/tenants/1bb52c47-11bf-4b35-a7b9-4dc4fa508b7e/api-tokens 500 in 1…
