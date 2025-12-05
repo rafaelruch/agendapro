@@ -58,12 +58,8 @@ const getEndpoints = (baseUrl: string): { [key: string]: EndpointExample[] } => 
 {
   "error": "Cliente não encontrado com este telefone"
 }`,
-      curlExample: `# Buscar cliente pelo telefone
-curl -X GET "${baseUrl}/api/clients/phone/11999999999" \\
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"
-
-# Para uso no N8N com dados de webhook:
-# URL: ${baseUrl}/api/clients/phone/{{ $json.telefone }}`
+      curlExample: `curl -X GET "${baseUrl}/api/clients/phone/11999999999" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"`
     },
     {
       method: "GET",
