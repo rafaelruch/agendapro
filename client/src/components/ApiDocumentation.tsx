@@ -2364,8 +2364,8 @@ export function ApiDocumentation() {
           
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
             <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">🔗 URL Base da API</h3>
-            <div className="flex items-center gap-2">
-              <code className="text-sm bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded flex-1">{baseUrl || 'https://seu-dominio.com'}</code>
+            <div className="relative">
+              <code className="text-sm bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded block pr-20">{baseUrl || 'https://seu-dominio.com'}</code>
               <CopyButton text={baseUrl || 'https://seu-dominio.com'} />
             </div>
           </div>
