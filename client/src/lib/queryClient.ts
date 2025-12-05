@@ -1,8 +1,65 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { showGlobalToast } from "@/context/ToastContext";
 
-async function throwIfResNotOk(res: Response) {
+let lastUnauthorizedRedirect = 0;
+
+function handleUnauthorized() {
+  const now = Date.now();
+  if (now - lastUnauthorizedRedirect < 3000) {
+    return;
+  }
+  lastUnauthorizedRedirect = now;
+  
+  showGlobalToast({
+    title: "Sessão expirada",
+    message: "Faça login novamente para continuar.",
+    variant: "warning",
+    duration: 4000,
+  });
+  
+  setTimeout(() => {
+    window.location.href = "/login";
+  }, 1500);
+}
+
+function parseErrorMessage(text: string): { title: string; message: string; variant: "error" | "warning" } {
+  try {
+    const json = JSON.parse(text);
+    const errorMsg = json.error || json.message || text;
+    
+    if (errorMsg.includes("já cadastrado") || errorMsg.includes("já existe") || errorMsg.includes("duplicado")) {
+      return { title: "Registro duplicado", message: errorMsg, variant: "warning" };
+    }
+    if (errorMsg.includes("obrigatório") || errorMsg.includes("required") || errorMsg.includes("faltando")) {
+      return { title: "Campo obrigatório", message: errorMsg, variant: "warning" };
+    }
+    if (errorMsg.includes("inválido") || errorMsg.includes("invalid")) {
+      return { title: "Dados inválidos", message: errorMsg, variant: "warning" };
+    }
+    if (errorMsg.includes("Conflito") || errorMsg.includes("conflict")) {
+      return { title: "Conflito de horário", message: errorMsg, variant: "warning" };
+    }
+    
+    return { title: "Erro", message: errorMsg, variant: "error" };
+  } catch {
+    return { title: "Erro", message: text, variant: "error" };
+  }
+}
+
+async function throwIfResNotOk(res: Response, showToast = true) {
   if (!res.ok) {
+    if (res.status === 401) {
+      handleUnauthorized();
+      throw new Error("401: Sessão expirada");
+    }
+    
     const text = (await res.text()) || res.statusText;
+    
+    if (showToast && res.status >= 400) {
+      const { title, message, variant } = parseErrorMessage(text);
+      showGlobalToast({ title, message, variant });
+    }
+    
     throw new Error(`${res.status}: ${text}`);
   }
 }
@@ -11,6 +68,7 @@ export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
+  options?: { showToast?: boolean }
 ): Promise<Response> {
   const res = await fetch(url, {
     method,
@@ -19,7 +77,7 @@ export async function apiRequest(
     credentials: "include",
   });
 
-  await throwIfResNotOk(res);
+  await throwIfResNotOk(res, options?.showToast ?? true);
   return res;
 }
 
@@ -29,15 +87,24 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
+    const queryPath = queryKey.join("/") as string;
+    const res = await fetch(queryPath, {
       credentials: "include",
     });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+    if (res.status === 401) {
+      if (unauthorizedBehavior === "returnNull") {
+        const isAuthCheck = queryPath.includes("/api/auth/me") || queryPath.includes("/api/setup/status");
+        if (!isAuthCheck) {
+          handleUnauthorized();
+        }
+        return null;
+      }
+      handleUnauthorized();
+      throw new Error("401: Sessão expirada");
     }
 
-    await throwIfResNotOk(res);
+    await throwIfResNotOk(res, true);
     return await res.json();
   };
 

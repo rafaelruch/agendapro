@@ -2,6 +2,7 @@ import { Switch, Route, Redirect } from "wouter";
 import { queryClient, getQueryFn } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
+import { ToastProvider, useToast as useGlobalToast, setGlobalToast } from "@/context/ToastContext";
 import { AppSidebarNew } from "@/components/AppSidebarNew";
 import Backdrop from "@/components/Backdrop";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -29,11 +30,20 @@ import KitchenPage from "@/pages/KitchenPage";
 import FinancePage from "@/pages/FinancePage";
 import PublicMenuPage from "@/pages/PublicMenuPage";
 import NotFound from "@/pages/not-found";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-// import { useToast } from "@/hooks/use-toast"; // TODO: Implement TailAdmin toast
 import type { Client } from "@shared/schema";
+
+function ToastConnector() {
+  const { showToast } = useGlobalToast();
+  
+  useEffect(() => {
+    setGlobalToast(showToast);
+  }, [showToast]);
+  
+  return null;
+}
 
 interface AuthData {
   user: {
@@ -243,9 +253,12 @@ function AppContent() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <SidebarProvider>
-        <AppContent />
-      </SidebarProvider>
+      <ToastProvider>
+        <ToastConnector />
+        <SidebarProvider>
+          <AppContent />
+        </SidebarProvider>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }
