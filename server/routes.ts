@@ -110,6 +110,31 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+// Helper para verificar tenantId e retornar resposta apropriada
+// Retorna tenantId se válido, ou envia resposta de erro e retorna null
+function requireTenantIdOrFail(req: Request, res: Response): string | null {
+  // Se é master admin sem tenant, retornar 403 (não 401) com mensagem clara
+  if (req.session.userId && req.session.role === 'master_admin') {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      res.status(403).json({ 
+        error: "Acesso restrito",
+        message: "Master admin precisa acessar esta página através do painel administrativo selecionando um tenant específico."
+      });
+      return null;
+    }
+    return tenantId;
+  }
+  
+  // Para usuários normais
+  const tenantId = getTenantId(req);
+  if (!tenantId) {
+    res.status(401).json({ error: "Não autenticado" });
+    return null;
+  }
+  return tenantId;
+}
+
 // Middleware para verificar se é admin master
 function requireMasterAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.session.userId || req.session.role !== 'master_admin') {
@@ -784,10 +809,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/settings/api-tokens - List API tokens for current tenant
   app.get("/api/settings/api-tokens", authenticateRequest, requireModule("api-tokens"), async (req, res) => {
     try {
-      const tenantId = getTenantId(req);
-      if (!tenantId) {
-        return res.status(401).json({ error: "Não autenticado" });
-      }
+      const tenantId = requireTenantIdOrFail(req, res);
+      if (!tenantId) return;
 
       const tokens = await storage.getApiTokensByTenant(tenantId);
       const tokensWithoutHashes = tokens.map(({ tokenHash, ...token }) => token);
@@ -801,11 +824,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/settings/api-tokens - Create new API token
   app.post("/api/settings/api-tokens", authenticateRequest, requireModule("api-tokens"), async (req, res) => {
     try {
-      const tenantId = getTenantId(req);
-      const userId = req.session.userId;
+      const tenantId = requireTenantIdOrFail(req, res);
+      if (!tenantId) return;
       
-      if (!tenantId || !userId) {
-        return res.status(401).json({ error: "Não autenticado ou sem permissão" });
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Não autenticado" });
       }
 
       const { label } = req.body;
@@ -830,10 +854,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Tokens criados pelo master admin não podem ser excluídos pelo tenant
   app.delete("/api/settings/api-tokens/:id", authenticateRequest, requireModule("api-tokens"), async (req, res) => {
     try {
-      const tenantId = getTenantId(req);
-      if (!tenantId) {
-        return res.status(401).json({ error: "Não autenticado" });
-      }
+      const tenantId = requireTenantIdOrFail(req, res);
+      if (!tenantId) return;
 
       const success = await storage.revokeApiToken(req.params.id, tenantId);
       if (!success) {
@@ -858,10 +880,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/business-hours - List business hours for current tenant
   app.get("/api/business-hours", authenticateRequest, requireModule("business-hours"), async (req, res) => {
     try {
-      const tenantId = getTenantId(req);
-      if (!tenantId) {
-        return res.status(401).json({ error: "Não autenticado" });
-      }
+      const tenantId = requireTenantIdOrFail(req, res);
+      if (!tenantId) return;
       
       const businessHours = await storage.getBusinessHours(tenantId);
       res.json(businessHours);
@@ -874,10 +894,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/business-hours - Create business hours
   app.post("/api/business-hours", authenticateRequest, requireModule("business-hours"), requireTenantAdmin, async (req, res) => {
     try {
-      const tenantId = getTenantId(req);
-      if (!tenantId) {
-        return res.status(401).json({ error: "Não autenticado" });
-      }
+      const tenantId = requireTenantIdOrFail(req, res);
+      if (!tenantId) return;
 
       const validatedData = insertBusinessHoursSchema.parse({
         ...req.body,
@@ -898,10 +916,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PUT /api/business-hours/:id - Update business hours
   app.put("/api/business-hours/:id", authenticateRequest, requireModule("business-hours"), requireTenantAdmin, async (req, res) => {
     try {
-      const tenantId = getTenantId(req);
-      if (!tenantId) {
-        return res.status(401).json({ error: "Não autenticado" });
-      }
+      const tenantId = requireTenantIdOrFail(req, res);
+      if (!tenantId) return;
 
       // Omit tenantId from update to prevent tenant reassignment
       const validatedData = insertBusinessHoursSchema.omit({ tenantId: true }).partial().parse(req.body);
@@ -924,10 +940,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // DELETE /api/business-hours/:id - Delete business hours
   app.delete("/api/business-hours/:id", authenticateRequest, requireModule("business-hours"), requireTenantAdmin, async (req, res) => {
     try {
-      const tenantId = getTenantId(req);
-      if (!tenantId) {
-        return res.status(401).json({ error: "Não autenticado" });
-      }
+      const tenantId = requireTenantIdOrFail(req, res);
+      if (!tenantId) return;
 
       const success = await storage.deleteBusinessHours(req.params.id, tenantId);
       if (!success) {
@@ -949,10 +963,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/professionals - List all professionals of current tenant
   app.get("/api/professionals", authenticateRequest, requireModule("professionals"), async (req, res) => {
     try {
-      const tenantId = getTenantId(req);
-      if (!tenantId) {
-        return res.status(401).json({ error: "Não autenticado" });
-      }
+      const tenantId = requireTenantIdOrFail(req, res);
+      if (!tenantId) return;
 
       const search = req.query.search as string;
       const serviceIds = req.query.serviceIds ? (req.query.serviceIds as string).split(',') : undefined;
@@ -981,10 +993,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/professionals/:id - Get a specific professional
   app.get("/api/professionals/:id", authenticateRequest, requireModule("professionals"), async (req, res) => {
     try {
-      const tenantId = getTenantId(req);
-      if (!tenantId) {
-        return res.status(401).json({ error: "Não autenticado" });
-      }
+      const tenantId = requireTenantIdOrFail(req, res);
+      if (!tenantId) return;
 
       const professional = await storage.getProfessionalWithDetails(req.params.id, tenantId);
       if (!professional) {
@@ -1001,10 +1011,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/professionals - Create a new professional
   app.post("/api/professionals", authenticateRequest, requireModule("professionals"), async (req, res) => {
     try {
-      const tenantId = getTenantId(req);
-      if (!tenantId) {
-        return res.status(401).json({ error: "Não autenticado" });
-      }
+      const tenantId = requireTenantIdOrFail(req, res);
+      if (!tenantId) return;
 
       const validatedData = insertProfessionalSchema.omit({ tenantId: true }).parse(req.body);
 
@@ -1046,10 +1054,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PUT /api/professionals/:id - Update a professional
   app.put("/api/professionals/:id", authenticateRequest, requireModule("professionals"), async (req, res) => {
     try {
-      const tenantId = getTenantId(req);
-      if (!tenantId) {
-        return res.status(401).json({ error: "Não autenticado" });
-      }
+      const tenantId = requireTenantIdOrFail(req, res);
+      if (!tenantId) return;
 
       const validatedData = insertProfessionalSchema.omit({ tenantId: true }).partial().parse(req.body);
 
