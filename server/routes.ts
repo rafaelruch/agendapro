@@ -454,6 +454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/admin/tenants/:tenantId/api-tokens - Create API token for specific tenant (master admin only)
+  // Tokens criados pelo master admin ficam ativos no tenant e não podem ser excluídos pelo tenant
   app.post("/api/admin/tenants/:tenantId/api-tokens", requireMasterAdmin, async (req, res) => {
     try {
       const { label } = req.body;
@@ -467,7 +468,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Não autenticado" });
       }
 
-      const { token, tokenRecord } = await storage.createApiToken(req.params.tenantId, label, userId);
+      // Marca o token como criado pelo master admin (não pode ser excluído pelo tenant)
+      const { token, tokenRecord } = await storage.createApiToken(req.params.tenantId, label, userId, true);
       
       const { tokenHash, ...tokenWithoutHash } = tokenRecord;
       res.status(201).json({
@@ -825,6 +827,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // DELETE /api/settings/api-tokens/:id - Revoke API token
+  // Tokens criados pelo master admin não podem ser excluídos pelo tenant
   app.delete("/api/settings/api-tokens/:id", authenticateRequest, requireModule("api-tokens"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
@@ -838,7 +841,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.status(204).send();
-    } catch (error) {
+    } catch (error: any) {
+      if (error.message === "TOKEN_CREATED_BY_MASTER") {
+        return res.status(403).json({ error: "Este token foi criado pelo administrador master e não pode ser excluído" });
+      }
       console.error("Error revoking API token:", error);
       res.status(500).json({ error: "Erro ao revogar token" });
     }
