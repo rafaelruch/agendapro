@@ -40,6 +40,33 @@ const getEndpoints = (baseUrl: string): { [key: string]: EndpointExample[] } => 
     },
     {
       method: "GET",
+      path: "/api/clients/phone/:phone",
+      description: "Buscar cliente exatamente pelo número de telefone (ideal para N8N)",
+      auth: "Bearer Token",
+      parameters: [
+        { name: "phone", type: "string", required: true, description: "Número de telefone (apenas números, mínimo 10 dígitos)" }
+      ],
+      responseExample: `{
+  "id": "123e4567-e89b-12d3-a456-426614174000",
+  "name": "João Silva",
+  "phone": "11999999999",
+  "birthdate": "1990-05-15",
+  "tenantId": "tenant-123"
+}
+
+// Se não encontrar:
+{
+  "error": "Cliente não encontrado com este telefone"
+}`,
+      curlExample: `# Buscar cliente pelo telefone
+curl -X GET "${baseUrl}/api/clients/phone/11999999999" \\
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"
+
+# Para uso no N8N com dados de webhook:
+# URL: ${baseUrl}/api/clients/phone/{{ $json.telefone }}`
+    },
+    {
+      method: "GET",
       path: "/api/clients/:id",
       description: "Obter um cliente específico por ID",
       auth: "Bearer Token",

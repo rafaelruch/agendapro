@@ -1193,6 +1193,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/clients/phone/:phone - Get client by phone number
+  app.get("/api/clients/phone/:phone", authenticateRequest, requireModule("clients"), async (req, res) => {
+    try {
+      const userRole = req.session.role;
+      let tenantId: string | null;
+
+      if (userRole === 'master_admin') {
+        tenantId = req.query.tenantId as string || null;
+        if (!tenantId) {
+          return res.status(400).json({ 
+            error: "Master admin deve especificar tenantId via query param: ?tenantId=..." 
+          });
+        }
+      } else {
+        tenantId = getTenantId(req)!;
+      }
+
+      // Limpar telefone - apenas números
+      const cleanPhone = req.params.phone.replace(/\D/g, "");
+      if (cleanPhone.length < 10) {
+        return res.status(400).json({ error: "Telefone inválido - deve ter pelo menos 10 dígitos" });
+      }
+
+      const client = await storage.getClientByPhone(cleanPhone, tenantId);
+      if (!client) {
+        return res.status(404).json({ error: "Cliente não encontrado com este telefone" });
+      }
+      res.json(client);
+    } catch (error) {
+      console.error("Error fetching client by phone:", error);
+      res.status(500).json({ error: "Erro ao buscar cliente por telefone" });
+    }
+  });
+
   // GET /api/clients/:id - Get a specific client
   app.get("/api/clients/:id", authenticateRequest, requireModule("clients"), async (req, res) => {
     try {
