@@ -1174,9 +1174,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userRole === 'master_admin') {
         tenantId = req.query.tenantId as string || null;
         if (!tenantId) {
-          return res.status(400).json({ 
-            error: "Master admin deve especificar tenantId via query param: ?tenantId=..." 
-          });
+          // Master admin sem tenant especificado retorna lista vazia
+          return res.json([]);
         }
       } else {
         tenantId = getTenantId(req)!;
@@ -1207,9 +1206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userRole === 'master_admin') {
         tenantId = req.query.tenantId as string || null;
         if (!tenantId) {
-          return res.status(400).json({ 
-            error: "Master admin deve especificar tenantId via query param: ?tenantId=..." 
-          });
+          return res.status(404).json({ error: "Cliente não encontrado" });
         }
       } else {
         tenantId = getTenantId(req)!;
@@ -1481,9 +1478,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userRole === 'master_admin') {
         tenantId = req.query.tenantId as string || null;
         if (!tenantId) {
-          return res.status(400).json({ 
-            error: "Master admin deve especificar tenantId via query param: ?tenantId=..." 
-          });
+          // Master admin sem tenant especificado retorna lista vazia
+          return res.json([]);
         }
       } else {
         tenantId = getTenantId(req)!;
@@ -1818,9 +1814,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       if (userRole === 'master_admin') {
         tenantId = req.query.tenantId as string || null;
         if (!tenantId) {
-          return res.status(400).json({ 
-            error: "Master admin deve especificar tenantId via query param: ?tenantId=..." 
-          });
+          // Master admin sem tenant especificado retorna lista vazia
+          return res.json([]);
         }
       } else {
         tenantId = getTenantId(req)!;
