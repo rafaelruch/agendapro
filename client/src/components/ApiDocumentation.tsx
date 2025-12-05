@@ -2126,8 +2126,11 @@ curl -X GET "${baseUrl}/api/finance/summary?startDate=2025-12-01&endDate=2025-12
 });
 
 const sections = [
-  { id: "overview", label: "Visão Geral" },
-  { id: "authentication", label: "Autenticação" },
+  { id: "overview", label: "🚀 Início Rápido N8N" },
+  { id: "n8nConfig", label: "⚙️ Configuração N8N" },
+  { id: "n8nWorkflows", label: "📋 Workflows Prontos" },
+  { id: "erros", label: "⚠️ Códigos de Erro" },
+  { id: "authentication", label: "🔐 Autenticação" },
   { id: "clientes", label: "Clientes" },
   { id: "servicos", label: "Serviços" },
   { id: "profissionais", label: "Profissionais" },
@@ -2329,53 +2332,418 @@ export function ApiDocumentation() {
       </nav>
 
       <div className="flex-1 overflow-y-auto p-6">
+        {/* SEÇÃO 1: INÍCIO RÁPIDO N8N */}
         <section ref={(el) => { sectionRefs.current['overview'] = el; }} className="mb-12">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">API REST - AgendaPro</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">🚀 API REST - Guia N8N</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Documentação completa da API REST para integração com N8N e outros sistemas.
-            Todos os endpoints retornam dados em formato JSON.
+            Documentação otimizada para integração com <strong>N8N</strong>. Todos os exemplos estão prontos para copiar e colar no nó HTTP Request.
           </p>
           
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
-            <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">🔗 URL Base</h3>
-            <code className="text-sm bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded">{baseUrl || 'https://seu-dominio.com'}</code>
+            <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">🔗 URL Base da API</h3>
+            <div className="flex items-center gap-2">
+              <code className="text-sm bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded flex-1">{baseUrl || 'https://seu-dominio.com'}</code>
+              <CopyButton text={baseUrl || 'https://seu-dominio.com'} />
+            </div>
           </div>
 
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-2">💡 Dica para N8N</h3>
-            <p className="text-sm text-amber-700 dark:text-amber-400">
-              Use o endpoint <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">PUT /api/appointments?id=apt-xxx</code> para 
-              atualizar agendamentos via query parameter, facilitando a integração com N8N.
-            </p>
-          </div>
-        </section>
-
-        <section ref={(el) => { sectionRefs.current['authentication'] = el; }} className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Autenticação</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            A API utiliza autenticação via Bearer Token. Você pode gerar tokens na seção de configurações do sistema.
-          </p>
-          
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
-            <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Header de Autenticação</h4>
-            <pre className="text-xs bg-gray-900 dark:bg-gray-950 text-gray-100 p-3 rounded-lg">
-              <code>Authorization: Bearer seu_token_aqui</code>
-            </pre>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-green-800 dark:text-green-300 mb-2">✅ Endpoints Autenticados</h4>
+              <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2">1️⃣ Gere seu Token</h4>
               <p className="text-sm text-green-700 dark:text-green-400">
-                A maioria dos endpoints requer Bearer Token. Use tokens gerados em Configurações → Tokens de API.
+                Acesse Configurações → Tokens de API e crie um token para usar no N8N.
+              </p>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">2️⃣ Configure o N8N</h4>
+              <p className="text-sm text-blue-700 dark:text-blue-400">
+                Crie uma credencial "Header Auth" com nome <code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">Authorization</code>.
               </p>
             </div>
             <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-purple-800 dark:text-purple-300 mb-2">🌐 Endpoints Públicos</h4>
+              <h4 className="font-semibold text-purple-800 dark:text-purple-300 mb-2">3️⃣ Faça Requisições</h4>
               <p className="text-sm text-purple-700 dark:text-purple-400">
-                Endpoints em <code>/api/menu/:slug/*</code> não requerem autenticação (menu público).
+                Use o nó HTTP Request com os exemplos desta documentação.
               </p>
             </div>
+          </div>
+
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-2">⚡ Dicas Importantes para N8N</h3>
+            <ul className="text-sm text-amber-700 dark:text-amber-400 space-y-2">
+              <li>• <strong>Campos OBRIGATÓRIO:</strong> Procure por este marcador nos exemplos - são campos que causam erro se não enviados</li>
+              <li>• <strong>Expressões N8N:</strong> Use <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">{"{{ $json.id }}"}</code> para referenciar dados de nós anteriores</li>
+              <li>• <strong>Datas:</strong> Sempre no formato <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">YYYY-MM-DD</code> (ex: 2025-12-05)</li>
+              <li>• <strong>Horários:</strong> Sempre no formato <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">HH:MM</code> (ex: 14:30)</li>
+              <li>• <strong>Valores monetários:</strong> Envie como número decimal (ex: 150.50, não "R$ 150,50")</li>
+            </ul>
+          </div>
+        </section>
+
+        {/* SEÇÃO 2: CONFIGURAÇÃO N8N */}
+        <section ref={(el) => { sectionRefs.current['n8nConfig'] = el; }} className="mb-12">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">⚙️ Configuração do N8N</h2>
+          
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Passo 1: Criar Credencial de Autenticação</h3>
+            <ol className="list-decimal list-inside text-sm text-gray-600 dark:text-gray-400 space-y-2 mb-4">
+              <li>No N8N, vá em <strong>Credentials</strong> → <strong>Add Credential</strong></li>
+              <li>Selecione <strong>Header Auth</strong></li>
+              <li>Configure assim:</li>
+            </ol>
+            <div className="relative">
+              <pre className="text-xs bg-gray-900 dark:bg-gray-950 text-gray-100 p-4 rounded-lg overflow-x-auto">
+                <code>{`Name: AgendaPro API
+Header Name: Authorization
+Header Value: Bearer SEU_TOKEN_AQUI`}</code>
+              </pre>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Passo 2: Configurar Nó HTTP Request</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Para cada requisição, configure o nó HTTP Request assim:</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Para requisições GET:</h4>
+                <pre className="text-xs bg-gray-900 text-gray-100 p-3 rounded">
+                  <code>{`Method: GET
+URL: ${baseUrl}/api/clients
+Authentication: Header Auth
+Credential: AgendaPro API`}</code>
+                </pre>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Para requisições POST/PUT:</h4>
+                <pre className="text-xs bg-gray-900 text-gray-100 p-3 rounded">
+                  <code>{`Method: POST
+URL: ${baseUrl}/api/clients
+Authentication: Header Auth
+Credential: AgendaPro API
+Body Content Type: JSON
+Body: (cole o JSON do exemplo)`}</code>
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Usando Expressões N8N nos Campos</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Para usar dados dinâmicos de nós anteriores:</p>
+            
+            <div className="relative">
+              <pre className="text-xs bg-gray-900 dark:bg-gray-950 text-gray-100 p-4 rounded-lg overflow-x-auto">
+                <code>{`// Exemplo: Criar agendamento usando dados de um formulário
+{
+  "clientId": "{{ $json.clientId }}",
+  "serviceIds": ["{{ $json.serviceId }}"],
+  "professionalId": "{{ $json.professionalId }}",
+  "date": "{{ $json.date }}",
+  "time": "{{ $json.time }}"
+}
+
+// Exemplo: Atualizar status usando ID do nó anterior
+URL: ${baseUrl}/api/appointments/{{ $json.appointmentId }}/status
+
+// Exemplo: Buscar cliente por telefone de um webhook
+URL: ${baseUrl}/api/clients?search={{ $json.phone }}`}</code>
+              </pre>
+            </div>
+          </div>
+        </section>
+
+        {/* SEÇÃO 3: WORKFLOWS PRONTOS */}
+        <section ref={(el) => { sectionRefs.current['n8nWorkflows'] = el; }} className="mb-12">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">📋 Workflows Prontos para N8N</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Exemplos de workflows completos que você pode replicar no N8N:
+          </p>
+
+          <div className="space-y-6">
+            {/* Workflow 1 */}
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+              <div className="bg-green-50 dark:bg-green-900/30 p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="font-semibold text-green-800 dark:text-green-300">📅 Workflow: Criar Cliente + Agendamento</h3>
+                <p className="text-sm text-green-700 dark:text-green-400">Webhook recebe dados → Cria/busca cliente → Cria agendamento</p>
+              </div>
+              <div className="p-4">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <span className="bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded">1</span>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">Webhook (Trigger)</h4>
+                      <p className="text-xs text-gray-500 mb-2">Recebe dados do formulário/chatbot</p>
+                      <pre className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">{`// Dados recebidos:
+{ "nome": "João", "telefone": "11999999999", "servico": "Corte", "data": "2025-12-10", "hora": "14:00" }`}</pre>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded">2</span>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">HTTP Request - Buscar Cliente</h4>
+                      <pre className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">{`GET ${baseUrl}/api/clients?search={{ $json.telefone }}`}</pre>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded">3</span>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">IF - Cliente existe?</h4>
+                      <pre className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">{`Condição: {{ $json.length > 0 }}`}</pre>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">3a</span>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">HTTP Request - Criar Cliente (se não existe)</h4>
+                      <pre className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">{`POST ${baseUrl}/api/clients
+Body: { "name": "{{ $node.Webhook.json.nome }}", "phone": "{{ $node.Webhook.json.telefone }}" }`}</pre>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded">4</span>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">HTTP Request - Buscar Serviço por Nome</h4>
+                      <pre className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">{`GET ${baseUrl}/api/services`}</pre>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">5</span>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">HTTP Request - Criar Agendamento</h4>
+                      <pre className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">{`POST ${baseUrl}/api/appointments
+Body: {
+  "clientId": "{{ $json.clientId }}",
+  "serviceIds": ["{{ $json.serviceId }}"],
+  "date": "{{ $node.Webhook.json.data }}",
+  "time": "{{ $node.Webhook.json.hora }}"
+}`}</pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Workflow 2 */}
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+              <div className="bg-purple-50 dark:bg-purple-900/30 p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="font-semibold text-purple-800 dark:text-purple-300">🔔 Workflow: Lembrete de Agendamento</h3>
+                <p className="text-sm text-purple-700 dark:text-purple-400">Cron diário → Busca agendamentos → Envia WhatsApp</p>
+              </div>
+              <div className="p-4">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <span className="bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded">1</span>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">Cron (Trigger) - Executar todo dia 8h</h4>
+                      <pre className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">{`0 8 * * *`}</pre>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded">2</span>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">HTTP Request - Buscar Agendamentos de Amanhã</h4>
+                      <pre className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">{`GET ${baseUrl}/api/appointments?date={{ $today.plus(1, 'day').format('yyyy-MM-dd') }}&status=scheduled`}</pre>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded">3</span>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">Split In Batches - Para cada agendamento</h4>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded">4</span>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">WhatsApp/SMS - Enviar lembrete</h4>
+                      <pre className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">{`Olá {{ $json.client.name }}! Lembrete do seu agendamento amanhã às {{ $json.time }}.`}</pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Workflow 3 */}
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+              <div className="bg-orange-50 dark:bg-orange-900/30 p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="font-semibold text-orange-800 dark:text-orange-300">🍕 Workflow: Pedido via WhatsApp</h3>
+                <p className="text-sm text-orange-700 dark:text-orange-400">Webhook WhatsApp → Cria pedido → Notifica cozinha</p>
+              </div>
+              <div className="p-4">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">1</span>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">Webhook WhatsApp - Recebe pedido</h4>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">2</span>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">HTTP Request - Criar Pedido</h4>
+                      <pre className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">{`POST ${baseUrl}/api/orders
+Body: {
+  "client": {
+    "phone": "{{ $json.from }}",
+    "name": "{{ $json.customerName }}"
+  },
+  "items": [
+    { "productId": "{{ $json.productId }}", "quantity": {{ $json.qty }} }
+  ],
+  "notes": "{{ $json.notes }}",
+  "paymentMethod": "pix"
+}`}</pre>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">3</span>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">Telegram/Slack - Notificar cozinha</h4>
+                      <pre className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">{`🆕 Pedido #{{ $json.orderNumber }} - {{ $json.client.name }}`}</pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* SEÇÃO 4: CÓDIGOS DE ERRO */}
+        <section ref={(el) => { sectionRefs.current['erros'] = el; }} className="mb-12">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">⚠️ Códigos de Erro e Tratamento no N8N</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Como tratar erros da API no seu workflow N8N:
+          </p>
+
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden mb-6">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-gray-100">Código</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-gray-100">Significado</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-gray-100">Como resolver no N8N</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tr>
+                  <td className="px-4 py-3"><Badge className="bg-green-500/10 text-green-700 border-green-500/30">200</Badge></td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">Sucesso</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">Continue o workflow normalmente</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3"><Badge className="bg-green-500/10 text-green-700 border-green-500/30">201</Badge></td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">Criado com sucesso</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">O recurso foi criado. Use o ID retornado.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3"><Badge className="bg-red-500/10 text-red-700 border-red-500/30">400</Badge></td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">Dados inválidos</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">Verifique se enviou todos os campos OBRIGATÓRIOS</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3"><Badge className="bg-red-500/10 text-red-700 border-red-500/30">401</Badge></td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">Não autorizado</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">Token inválido ou expirado. Gere um novo token.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3"><Badge className="bg-red-500/10 text-red-700 border-red-500/30">403</Badge></td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">Proibido</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">Sem permissão. Verifique o role do usuário.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3"><Badge className="bg-red-500/10 text-red-700 border-red-500/30">404</Badge></td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">Não encontrado</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">Verifique se o ID existe no sistema.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3"><Badge className="bg-red-500/10 text-red-700 border-red-500/30">409</Badge></td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">Conflito</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">Horário já ocupado ou telefone duplicado.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3"><Badge className="bg-red-500/10 text-red-700 border-red-500/30">500</Badge></td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">Erro interno</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">Problema no servidor. Tente novamente.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
+            <h4 className="font-semibold text-amber-800 dark:text-amber-300 mb-2">💡 Dica: Tratamento de Erros no N8N</h4>
+            <p className="text-sm text-amber-700 dark:text-amber-400 mb-3">
+              Configure o nó HTTP Request para <strong>não parar em erros</strong>:
+            </p>
+            <pre className="text-xs bg-amber-100 dark:bg-amber-900/50 p-3 rounded">{`Settings → "Continue On Fail" → ON
+
+Depois use um nó IF para verificar:
+Condição: {{ $json.error }} não existe
+  ✓ True: Continue o workflow
+  ✗ False: Envie notificação de erro`}</pre>
+          </div>
+
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <h4 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">🔍 Mensagens de Erro Comuns</h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex gap-2">
+                <code className="bg-red-100 dark:bg-red-900/50 px-2 py-1 rounded text-red-700 dark:text-red-300 text-xs">"Conflito de horário"</code>
+                <span className="text-blue-700 dark:text-blue-400">→ Agendamento já existe nesse horário</span>
+              </div>
+              <div className="flex gap-2">
+                <code className="bg-red-100 dark:bg-red-900/50 px-2 py-1 rounded text-red-700 dark:text-red-300 text-xs">"Telefone já cadastrado"</code>
+                <span className="text-blue-700 dark:text-blue-400">→ Cliente já existe. Use GET para buscar.</span>
+              </div>
+              <div className="flex gap-2">
+                <code className="bg-red-100 dark:bg-red-900/50 px-2 py-1 rounded text-red-700 dark:text-red-300 text-xs">"Token inválido"</code>
+                <span className="text-blue-700 dark:text-blue-400">→ Gere um novo token em Configurações.</span>
+              </div>
+              <div className="flex gap-2">
+                <code className="bg-red-100 dark:bg-red-900/50 px-2 py-1 rounded text-red-700 dark:text-red-300 text-xs">"Fora do horário comercial"</code>
+                <span className="text-blue-700 dark:text-blue-400">→ Horário solicitado está fora do expediente.</span>
+              </div>
+              <div className="flex gap-2">
+                <code className="bg-red-100 dark:bg-red-900/50 px-2 py-1 rounded text-red-700 dark:text-red-300 text-xs">"Campo obrigatório"</code>
+                <span className="text-blue-700 dark:text-blue-400">→ Faltou enviar um campo marcado como OBRIGATÓRIO.</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* SEÇÃO 5: AUTENTICAÇÃO */}
+        <section ref={(el) => { sectionRefs.current['authentication'] = el; }} className="mb-12">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">🔐 Autenticação</h2>
+          
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-6">
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Header de Autenticação (copie para o N8N)</h4>
+            <div className="relative">
+              <pre className="text-xs bg-gray-900 dark:bg-gray-950 text-gray-100 p-3 rounded-lg">
+                <code>Authorization: Bearer seu_token_aqui</code>
+              </pre>
+              <CopyButton text="Authorization: Bearer seu_token_aqui" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-green-800 dark:text-green-300 mb-2">✅ Endpoints com Token</h4>
+              <p className="text-sm text-green-700 dark:text-green-400">
+                Todos os endpoints <code>/api/*</code> requerem Bearer Token (exceto menu público).
+              </p>
+            </div>
+            <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-purple-800 dark:text-purple-300 mb-2">🌐 Endpoints Públicos (sem token)</h4>
+              <p className="text-sm text-purple-700 dark:text-purple-400">
+                <code>/api/menu/:slug/*</code> - Menu público para clientes.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-red-800 dark:text-red-300 mb-2">⚠️ Master Admin</h4>
+            <p className="text-sm text-red-700 dark:text-red-400">
+              Se você é Master Admin e precisa acessar dados de um tenant específico, adicione <code className="bg-red-100 dark:bg-red-900/50 px-1 rounded">?tenantId=xxx</code> na URL.
+              <br />Exemplo: <code className="bg-red-100 dark:bg-red-900/50 px-1 rounded">GET /api/appointments?tenantId=tenant-123</code>
+            </p>
           </div>
         </section>
 
