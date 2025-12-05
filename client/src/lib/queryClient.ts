@@ -3,7 +3,23 @@ import { showGlobalToast } from "@/context/ToastContext";
 
 let lastUnauthorizedRedirect = 0;
 
-function handleUnauthorized() {
+function isTenantRequiredError(text: string): boolean {
+  try {
+    const json = JSON.parse(text);
+    const errorMsg = json.error || json.message || "";
+    return errorMsg.includes("tenantId") || 
+           errorMsg.includes("Master admin deve especificar") ||
+           errorMsg.includes("Tenant ID");
+  } catch {
+    return text.includes("tenantId") || text.includes("Master admin");
+  }
+}
+
+function handleUnauthorized(responseText?: string) {
+  if (responseText && isTenantRequiredError(responseText)) {
+    return;
+  }
+  
   const now = Date.now();
   if (now - lastUnauthorizedRedirect < 3000) {
     return;
@@ -48,12 +64,12 @@ function parseErrorMessage(text: string): { title: string; message: string; vari
 
 async function throwIfResNotOk(res: Response, showToast = true) {
   if (!res.ok) {
+    const text = (await res.text()) || res.statusText;
+    
     if (res.status === 401) {
-      handleUnauthorized();
+      handleUnauthorized(text);
       throw new Error("401: Sessão expirada");
     }
-    
-    const text = (await res.text()) || res.statusText;
     
     if (showToast && res.status >= 400) {
       const { title, message, variant } = parseErrorMessage(text);
@@ -93,14 +109,16 @@ export const getQueryFn: <T>(options: {
     });
 
     if (res.status === 401) {
+      const text = await res.clone().text();
+      
       if (unauthorizedBehavior === "returnNull") {
         const isAuthCheck = queryPath.includes("/api/auth/me") || queryPath.includes("/api/setup/status");
         if (!isAuthCheck) {
-          handleUnauthorized();
+          handleUnauthorized(text);
         }
         return null;
       }
-      handleUnauthorized();
+      handleUnauthorized(text);
       throw new Error("401: Sessão expirada");
     }
 
