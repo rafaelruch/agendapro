@@ -207,10 +207,19 @@ CREATE TABLE IF NOT EXISTS tenant_api_tokens (
     token_hash TEXT NOT NULL UNIQUE,
     label TEXT NOT NULL,
     created_by VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_by_master BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP DEFAULT NOW(),
     last_used_at TIMESTAMP,
     revoked_at TIMESTAMP
 );
+
+-- Adicionar coluna created_by_master se nao existir
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tenant_api_tokens' AND column_name = 'created_by_master') THEN
+        ALTER TABLE tenant_api_tokens ADD COLUMN created_by_master BOOLEAN NOT NULL DEFAULT false;
+    END IF;
+END $$;
 
 -- ========== TABELA: business_hours ==========
 CREATE TABLE IF NOT EXISTS business_hours (
