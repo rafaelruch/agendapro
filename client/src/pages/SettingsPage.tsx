@@ -8,7 +8,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Copy, Trash2, Key, AlertCircle } from "lucide-react";
+import { Copy, Trash2, Key, AlertCircle, Shield } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { BusinessHoursManager } from "@/components/BusinessHoursManager";
 
@@ -18,6 +19,7 @@ type ApiToken = {
   createdAt: string;
   lastUsedAt: string | null;
   createdBy: string;
+  createdByMaster: boolean;
 };
 
 export default function SettingsPage() {
@@ -203,21 +205,35 @@ export default function SettingsPage() {
                       data-testid={`token-item-${token.id}`}
                     >
                       <div className="flex-1">
-                        <p className="font-medium">{token.label}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{token.label}</p>
+                          {token.createdByMaster && (
+                            <Badge variant="secondary" className="text-xs gap-1">
+                              <Shield className="h-3 w-3" />
+                              Admin Master
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           Criado em {new Date(token.createdAt).toLocaleDateString('pt-BR')}
                           {token.lastUsedAt && ` • Último uso: ${new Date(token.lastUsedAt).toLocaleDateString('pt-BR')}`}
                         </p>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => revokeTokenMutation.mutate(token.id)}
-                        disabled={revokeTokenMutation.isPending}
-                        data-testid={`button-revoke-${token.id}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {token.createdByMaster ? (
+                        <span className="text-xs text-muted-foreground px-2">
+                          Não pode ser excluído
+                        </span>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => revokeTokenMutation.mutate(token.id)}
+                          disabled={revokeTokenMutation.isPending}
+                          data-testid={`button-revoke-${token.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
