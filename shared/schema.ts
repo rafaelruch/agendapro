@@ -218,6 +218,7 @@ export const tenantApiTokens = pgTable("tenant_api_tokens", {
   tokenHash: text("token_hash").notNull().unique(),
   label: text("label").notNull(),
   createdBy: varchar("created_by").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdByMaster: boolean("created_by_master").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
   lastUsedAt: timestamp("last_used_at"),
   revokedAt: timestamp("revoked_at"),

@@ -149,8 +149,9 @@ export interface IStorage {
   }>;
 
   // API Token operations
-  createApiToken(tenantId: string, label: string, createdBy: string): Promise<{ token: string; tokenRecord: TenantApiToken }>;
+  createApiToken(tenantId: string, label: string, createdBy: string, createdByMaster?: boolean): Promise<{ token: string; tokenRecord: TenantApiToken }>;
   getApiTokensByTenant(tenantId: string): Promise<TenantApiToken[]>;
+  getApiToken(id: string): Promise<TenantApiToken | undefined>;
   revokeApiToken(id: string, tenantId: string): Promise<boolean>;
   revokeApiTokenAdmin(id: string): Promise<boolean>;
   validateApiToken(token: string): Promise<{ tenantId: string; tokenId: string } | null>;
@@ -1113,7 +1114,7 @@ export class DbStorage implements IStorage {
   }
 
   // API Token operations
-  async createApiToken(tenantId: string, label: string, createdBy: string): Promise<{ token: string; tokenRecord: TenantApiToken }> {
+  async createApiToken(tenantId: string, label: string, createdBy: string, createdByMaster: boolean = false): Promise<{ token: string; tokenRecord: TenantApiToken }> {
     const token = randomBytes(32).toString('hex');
     const tokenHash = await bcrypt.hash(token, 10);
     
@@ -1122,6 +1123,7 @@ export class DbStorage implements IStorage {
       tokenHash,
       label,
       createdBy,
+      createdByMaster,
     }).returning();
     
     return {
@@ -1141,7 +1143,22 @@ export class DbStorage implements IStorage {
       .orderBy(desc(tenantApiTokens.createdAt));
   }
 
+  async getApiToken(id: string): Promise<TenantApiToken | undefined> {
+    const result = await db
+      .select()
+      .from(tenantApiTokens)
+      .where(eq(tenantApiTokens.id, id))
+      .limit(1);
+    return result[0];
+  }
+
   async revokeApiToken(id: string, tenantId: string): Promise<boolean> {
+    // Verificar se o token foi criado pelo master admin
+    const token = await this.getApiToken(id);
+    if (token?.createdByMaster) {
+      throw new Error("TOKEN_CREATED_BY_MASTER");
+    }
+    
     const result = await db
       .update(tenantApiTokens)
       .set({ revokedAt: new Date() })
