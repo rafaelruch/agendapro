@@ -523,6 +523,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ===========================================
+  // ROTAS MASTER ADMIN - ACESSO A DADOS DE TENANT ESPECÍFICO
+  // ===========================================
+
+  // GET /api/admin/tenants/:tenantId/professionals - List professionals for specific tenant (master admin only)
+  app.get("/api/admin/tenants/:tenantId/professionals", requireMasterAdmin, async (req, res) => {
+    try {
+      const professionals = await storage.getAllProfessionalsWithDetails(req.params.tenantId);
+      res.json(professionals);
+    } catch (error) {
+      console.error("Error fetching professionals:", error);
+      res.status(500).json({ error: "Erro ao buscar profissionais" });
+    }
+  });
+
+  // GET /api/admin/tenants/:tenantId/services - List services for specific tenant (master admin only)
+  app.get("/api/admin/tenants/:tenantId/services", requireMasterAdmin, async (req, res) => {
+    try {
+      const services = await storage.getAllServices(req.params.tenantId);
+      res.json(services);
+    } catch (error) {
+      console.error("Error fetching services:", error);
+      res.status(500).json({ error: "Erro ao buscar serviços" });
+    }
+  });
+
+  // GET /api/admin/tenants/:tenantId/clients - List clients for specific tenant (master admin only)
+  app.get("/api/admin/tenants/:tenantId/clients", requireMasterAdmin, async (req, res) => {
+    try {
+      const clients = await storage.getAllClients(req.params.tenantId);
+      res.json(clients);
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+      res.status(500).json({ error: "Erro ao buscar clientes" });
+    }
+  });
+
+  // ===========================================
   // ROTAS MASTER ADMIN - GESTÃO DE MÓDULOS POR TENANT
   // ===========================================
 
@@ -3996,7 +4033,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       }
 
       // Remover duplicatas e ordenar
-      const uniqueSlots = [...new Set(availableSlots)].sort();
+      const uniqueSlots = Array.from(new Set(availableSlots)).sort();
 
       res.json({
         date: date,

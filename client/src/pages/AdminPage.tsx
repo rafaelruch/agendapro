@@ -91,6 +91,23 @@ export default function AdminPage() {
     enabled: !!modulesTenantId,
   });
 
+  const editingTenantId = editingAppointment?.tenantId || "";
+
+  const { data: editingProfessionals = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/tenants", editingTenantId, "professionals"],
+    enabled: !!editingTenantId && appointmentDialogOpen,
+  });
+
+  const { data: editingServices = [] } = useQuery<Service[]>({
+    queryKey: ["/api/admin/tenants", editingTenantId, "services"],
+    enabled: !!editingTenantId && appointmentDialogOpen,
+  });
+
+  const { data: editingClients = [] } = useQuery<Client[]>({
+    queryKey: ["/api/admin/tenants", editingTenantId, "clients"],
+    enabled: !!editingTenantId && appointmentDialogOpen,
+  });
+
   const createTenantMutation = useMutation({
     mutationFn: async (tenant: any) => {
       const res = await apiRequest("POST", "/api/admin/tenants", { ...tenant, active: true });
@@ -1135,8 +1152,10 @@ export default function AdminPage() {
           setAppointmentDialogOpen(open);
           if (!open) setEditingAppointment(null);
         }}
-        clients={[]} // Master admin doesn't need client list for editing
-        services={[]} // Master admin doesn't need service list for editing
+        clients={editingClients}
+        services={editingServices}
+        professionals={editingProfessionals}
+        skipProfessionalsQuery={true}
         initialData={editingAppointment || undefined}
         onSave={(data) => {
           if (editingAppointment) {

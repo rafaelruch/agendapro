@@ -35,6 +35,11 @@ interface Service {
   duration: number;
 }
 
+interface Professional {
+  id: string;
+  name: string;
+}
+
 interface AppointmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -43,6 +48,8 @@ interface AppointmentDialogProps {
   onSave: (appointment: FrontendAppointmentData) => void;
   onClientCreated?: () => void;
   initialData?: Partial<FrontendAppointmentData>;
+  professionals?: Professional[];
+  skipProfessionalsQuery?: boolean;
 }
 
 export function AppointmentDialog({
@@ -53,6 +60,8 @@ export function AppointmentDialog({
   onSave,
   onClientCreated,
   initialData,
+  professionals: professionalsProp,
+  skipProfessionalsQuery = false,
 }: AppointmentDialogProps) {
   const defaultFormData = {
     clientId: "",
@@ -67,9 +76,12 @@ export function AppointmentDialog({
   const [formData, setFormData] = useState(defaultFormData);
   const [showQuickClientDialog, setShowQuickClientDialog] = useState(false);
 
-  const { data: professionals = [] } = useQuery<any[]>({
+  const { data: fetchedProfessionals = [] } = useQuery<any[]>({
     queryKey: ["/api/professionals"],
+    enabled: open && !skipProfessionalsQuery && !professionalsProp,
   });
+
+  const professionals = professionalsProp || fetchedProfessionals;
 
   useEffect(() => {
     if (open) {
