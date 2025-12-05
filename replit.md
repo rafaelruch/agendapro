@@ -14,6 +14,30 @@ Whenever ANY new feature or implementation is added to the system, it MUST be do
 
 Always update the API documentation immediately after implementing new features, endpoints, or modifying existing functionality.
 
+### API Documentation Guidelines (N8N-First Approach)
+The API documentation is structured with N8N integration as the primary focus. When adding new endpoints or modules:
+
+1. **Add endpoint to `getEndpoints()` function** in `ApiDocumentation.tsx`:
+   - Include all fields with explicit markers: `(OBRIGATÓRIO)` for required fields, `(opcional)` for optional
+   - Provide complete cURL examples ready to copy/paste
+   - Include realistic response examples
+
+2. **Add section to `sections` array** if it's a new module:
+   - Follow the format: `{ id: 'module-name', label: '📦 Module Label' }`
+   - Use appropriate emoji for visual identification
+
+3. **Document required fields clearly**:
+   - Clients: name, phone (OBRIGATÓRIO)
+   - Services: name, category, value, duration (OBRIGATÓRIO)
+   - Appointments: clientId, serviceIds, date, time (OBRIGATÓRIO)
+   - Orders: client.name, client.phone, items array (OBRIGATÓRIO)
+   - Finance: description, amount, date, paymentMethod (OBRIGATÓRIO)
+
+4. **Include N8N-specific guidance** where helpful:
+   - Expression examples: `{{ $json.fieldName }}`
+   - Error handling tips (Continue On Fail pattern)
+   - Common workflow patterns
+
 ## System Architecture
 
 ### UI/UX Decisions

@@ -2309,7 +2309,7 @@ export function ApiDocumentation() {
 
   return (
     <div className="flex h-full">
-      <nav className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 p-4 overflow-y-auto flex-shrink-0">
+      <nav className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 p-4 overflow-y-auto flex-shrink-0 sticky top-0 h-screen">
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Documentação API</h2>
         <ul className="space-y-1">
           {sections.map((section) => (
