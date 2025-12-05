@@ -130,10 +130,10 @@ app.use(session({
   proxy: process.env.NODE_ENV === 'production',
   cookie: {
     httpOnly: true,
-    // Em produção: secure=true (requer HTTPS), sameSite=strict (proteção CSRF)
-    // Em desenvolvimento: secure=false (permite HTTP local)
+    // Em produção: secure=true (requer HTTPS)
+    // sameSite=lax é mais compatível com proxies reversos (Easypanel, etc)
     secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    sameSite: 'lax',
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
   }
 }));

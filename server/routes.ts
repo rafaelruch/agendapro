@@ -138,6 +138,11 @@ function requireTenantIdOrFail(req: Request, res: Response): string | null {
 // Middleware para verificar se é admin master
 function requireMasterAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.session.userId || req.session.role !== 'master_admin') {
+    console.log("[requireMasterAdmin] Acesso negado:", {
+      hasUserId: !!req.session.userId,
+      role: req.session.role,
+      sessionId: req.sessionID,
+    });
     return res.status(403).json({ error: "Acesso negado. Apenas administradores master." });
   }
   next();
