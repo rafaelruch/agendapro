@@ -14,6 +14,7 @@ interface EndpointExample {
   requestBody?: string;
   responseExample?: string;
   curlExample: string;
+  notes?: string;
 }
 
 const getEndpoints = (baseUrl: string): { [key: string]: EndpointExample[] } => ({
@@ -2145,6 +2146,181 @@ curl -X GET "${baseUrl}/api/finance/summary?startDate=2025-12-01&endDate=2025-12
     "enabledModules": ["clients", "services", "professionals", "business-hours", "finance"]
   }'`
     }
+  ],
+
+  webhooks: [
+    {
+      method: "GET",
+      path: "/api/webhooks",
+      description: "Listar todos os webhooks configurados do tenant. Webhooks permitem integração com N8N e outras ferramentas de automação, enviando notificações automáticas quando eventos ocorrem no sistema.",
+      auth: "Bearer Token",
+      responseExample: `[
+  {
+    "id": "wh_abc123",
+    "name": "N8N - Novos Clientes",
+    "targetUrl": "https://n8n.seudominio.com/webhook/clientes",
+    "secret": "***",
+    "modules": ["clients", "appointments"],
+    "events": ["create", "update"],
+    "active": true,
+    "retryCount": 3,
+    "createdAt": "2024-01-15T10:00:00.000Z"
+  }
+]`,
+      curlExample: `curl -X GET "${baseUrl}/api/webhooks" \\
+  -H "Authorization: Bearer SEU_TOKEN_API"`
+    },
+    {
+      method: "POST",
+      path: "/api/webhooks",
+      description: "Criar novo webhook. O webhook receberá uma requisição POST com o payload do evento sempre que uma operação correspondente ocorrer no sistema.",
+      auth: "Bearer Token",
+      requestBody: `{
+  "name": "N8N - Novos Clientes",             // (OBRIGATÓRIO) Nome identificador
+  "targetUrl": "https://n8n.exemplo.com/webhook/...", // (OBRIGATÓRIO) URL de destino
+  "secret": "minha-chave-secreta",            // (opcional) Para assinatura HMAC-SHA256
+  "modules": ["clients", "services"],         // (OBRIGATÓRIO) Módulos: clients, services, products, appointments, orders, professionals, finance
+  "events": ["create", "update", "delete"],   // (OBRIGATÓRIO) Eventos: create, update, delete
+  "active": true                              // (opcional) Status do webhook, default: true
+}`,
+      responseExample: `{
+  "id": "wh_abc123",
+  "name": "N8N - Novos Clientes",
+  "targetUrl": "https://n8n.exemplo.com/webhook/...",
+  "modules": ["clients", "services"],
+  "events": ["create", "update", "delete"],
+  "active": true,
+  "createdAt": "2024-01-15T10:00:00.000Z"
+}`,
+      notes: `**Módulos Disponíveis:**
+- clients - Clientes
+- services - Serviços  
+- products - Produtos
+- appointments - Agendamentos
+- orders - Pedidos
+- professionals - Profissionais
+- finance - Transações Financeiras
+
+**Eventos Disponíveis:**
+- create - Quando um item é criado
+- update - Quando um item é atualizado
+- delete - Quando um item é excluído
+
+**Payload do Webhook (POST para sua URL):**
+{ "event": "create", "module": "clients", "timestamp": "ISO8601", "tenantId": "...", "data": {...} }
+
+**Headers Enviados:**
+- Content-Type: application/json
+- X-AgendaPro-Event: create
+- X-AgendaPro-Module: clients
+- X-AgendaPro-Signature: <HMAC-SHA256> (se secret configurado)`,
+      curlExample: `curl -X POST "${baseUrl}/api/webhooks" \\
+  -H "Authorization: Bearer SEU_TOKEN_API" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "N8N - Novos Clientes",
+    "targetUrl": "https://n8n.exemplo.com/webhook/abc123",
+    "secret": "minha-chave-secreta",
+    "modules": ["clients", "appointments"],
+    "events": ["create", "update"]
+  }'`
+    },
+    {
+      method: "PUT",
+      path: "/api/webhooks/:id",
+      description: "Atualizar webhook existente",
+      auth: "Bearer Token",
+      parameters: [
+        { name: "id", type: "string", required: true, description: "ID do webhook" }
+      ],
+      requestBody: `{
+  "name": "N8N - Clientes Atualizados",
+  "targetUrl": "https://n8n.exemplo.com/webhook/novo",
+  "modules": ["clients"],
+  "events": ["update"],
+  "active": true
+}`,
+      responseExample: `{
+  "id": "wh_abc123",
+  "name": "N8N - Clientes Atualizados",
+  "targetUrl": "https://n8n.exemplo.com/webhook/novo",
+  "modules": ["clients"],
+  "events": ["update"],
+  "active": true,
+  "updatedAt": "2024-01-16T11:00:00.000Z"
+}`,
+      curlExample: `curl -X PUT "${baseUrl}/api/webhooks/wh_abc123" \\
+  -H "Authorization: Bearer SEU_TOKEN_API" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "N8N - Clientes Atualizados",
+    "events": ["update"]
+  }'`
+    },
+    {
+      method: "DELETE",
+      path: "/api/webhooks/:id",
+      description: "Excluir webhook",
+      auth: "Bearer Token",
+      parameters: [
+        { name: "id", type: "string", required: true, description: "ID do webhook" }
+      ],
+      responseExample: `{ "success": true }`,
+      curlExample: `curl -X DELETE "${baseUrl}/api/webhooks/wh_abc123" \\
+  -H "Authorization: Bearer SEU_TOKEN_API"`
+    },
+    {
+      method: "GET",
+      path: "/api/webhooks/:id/deliveries",
+      description: "Listar histórico de entregas do webhook. Útil para debug e monitoramento.",
+      auth: "Bearer Token",
+      parameters: [
+        { name: "id", type: "string", required: true, description: "ID do webhook" }
+      ],
+      queryParams: [
+        { name: "limit", type: "number", required: false, description: "Número de entregas a retornar (default: 50)" }
+      ],
+      responseExample: `[
+  {
+    "id": "del_xyz789",
+    "webhookId": "wh_abc123",
+    "module": "clients",
+    "event": "create",
+    "status": "success",
+    "responseStatus": 200,
+    "attemptCount": 1,
+    "createdAt": "2024-01-15T10:30:00.000Z"
+  },
+  {
+    "id": "del_xyz790",
+    "webhookId": "wh_abc123",
+    "module": "appointments",
+    "event": "update",
+    "status": "failed",
+    "responseStatus": 500,
+    "attemptCount": 3,
+    "errorMessage": "Connection timeout",
+    "createdAt": "2024-01-15T11:00:00.000Z"
+  }
+]`,
+      curlExample: `curl -X GET "${baseUrl}/api/webhooks/wh_abc123/deliveries?limit=10" \\
+  -H "Authorization: Bearer SEU_TOKEN_API"`
+    },
+    {
+      method: "POST",
+      path: "/api/webhooks/deliveries/:deliveryId/retry",
+      description: "Reenviar uma entrega que falhou. O sistema tentará enviar o webhook novamente com o payload original.",
+      auth: "Bearer Token",
+      parameters: [
+        { name: "deliveryId", type: "string", required: true, description: "ID da entrega a reenviar" }
+      ],
+      responseExample: `{
+  "success": true,
+  "message": "Webhook reenviado com sucesso"
+}`,
+      curlExample: `curl -X POST "${baseUrl}/api/webhooks/deliveries/del_xyz790/retry" \\
+  -H "Authorization: Bearer SEU_TOKEN_API"`
+    }
   ]
 });
 
@@ -2168,7 +2344,8 @@ const sections = [
   { id: "financeiro", label: "Financeiro" },
   { id: "menuPublico", label: "Menu Público" },
   { id: "tokens", label: "Tokens de API" },
-  { id: "modulos", label: "Módulos (Master Admin)" }
+  { id: "modulos", label: "Módulos (Master Admin)" },
+  { id: "webhooks", label: "🔗 Webhooks" }
 ];
 
 function CopyButton({ text }: { text: string }) {
@@ -2301,6 +2478,15 @@ function EndpointCard({ endpoint }: { endpoint: EndpointExample }) {
               <pre className="text-xs bg-gray-50 dark:bg-gray-800 p-3 rounded-lg overflow-x-auto border border-gray-200 dark:border-gray-700">
                 <code>{endpoint.responseExample}</code>
               </pre>
+            </div>
+          )}
+
+          {endpoint.notes && (
+            <div className="mt-4">
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Notas</h4>
+              <div className="text-xs bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-700 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                {endpoint.notes}
+              </div>
             </div>
           )}
         </div>

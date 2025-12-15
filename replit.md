@@ -32,6 +32,7 @@ The API documentation is structured with N8N integration as the primary focus. W
    - Appointments: clientId, serviceIds, date, time (OBRIGATÓRIO)
    - Orders: client.name, client.phone, items array (OBRIGATÓRIO)
    - Finance: description, amount, date, paymentMethod (OBRIGATÓRIO)
+   - Webhooks: name, targetUrl, modules, events (OBRIGATÓRIO)
 
 4. **Include N8N-specific guidance** where helpful:
    - Expression examples: `{{ $json.fieldName }}`
@@ -59,6 +60,20 @@ All data tables throughout the system must adhere to a standardized structure fo
     - **Functionalities**: Dashboard, automatic transactions from orders/appointments, manual expense/income registration, customizable categories, multiple payment methods, discounts, filtering.
     - **API Endpoints**: CRUD for categories and manual transactions, transaction listing with filters, financial summary, appointment payment registration.
     - **Integration**: Automatic revenue transactions created upon order delivery or appointment payment registration.
+- **Webhook System**:
+    - **Features**: Tenant-scoped webhook configuration for N8N and automation tool integration, HMAC-SHA256 signature authentication, delivery tracking with retry mechanism.
+    - **Database**: Tables `webhooks` (config) and `webhook_deliveries` (log) with full tenant isolation.
+    - **Modules Supported**: clients, services, products, appointments, orders, professionals, finance.
+    - **Events**: create, update, delete.
+    - **Payload Structure**: `{ event, module, timestamp, tenantId, data: {...} }` with custom headers X-AgendaPro-Event, X-AgendaPro-Module, X-AgendaPro-Signature.
+    - **API Endpoints**:
+        - `GET /api/webhooks` - List all webhooks
+        - `POST /api/webhooks` - Create webhook
+        - `PUT /api/webhooks/:id` - Update webhook
+        - `DELETE /api/webhooks/:id` - Delete webhook
+        - `GET /api/webhooks/:id/deliveries` - Delivery history
+        - `POST /api/webhooks/deliveries/:deliveryId/retry` - Retry failed delivery
+    - **Frontend Page**: WebhooksPage.tsx (accessible from sidebar for admin users with webhooks module enabled)
 - **Public Menu System**:
     - **Features**: Public catalog page accessible via unique URL (/menu/{slug}), customizable branding (logo and brand color), product categories with display order, mobile-first responsive design.
     - **Menu Types**: Supports two mutually exclusive modes - "delivery" (products/orders) and "services" (appointments).
