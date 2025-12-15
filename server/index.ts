@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import rateLimit from "express-rate-limit";
+import connectPgSimple from "connect-pg-simple";
+import { Pool } from "@neondatabase/serverless";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -123,16 +125,36 @@ if (sessionSecret.length < 32) {
 
 log(`🔒 SESSION_SECRET configurado (${sessionSecret.length} caracteres)`);
 
+// Configurar store de sessão
+// Em produção: usar PostgreSQL para persistência
+// Em desenvolvimento: usar MemoryStore (mais simples)
+const isProduction = process.env.NODE_ENV === 'production';
+let sessionStore: session.Store | undefined;
+
+if (isProduction && process.env.DATABASE_URL) {
+  const PgStore = connectPgSimple(session);
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  sessionStore = new PgStore({
+    pool: pool as any,
+    tableName: 'user_sessions',
+    createTableIfMissing: true,
+  });
+  log('📦 Usando PostgreSQL para armazenamento de sessões');
+} else {
+  log('⚠️  Usando MemoryStore para sessões (apenas desenvolvimento)');
+}
+
 app.use(session({
+  store: sessionStore,
   secret: sessionSecret, // SEM FALLBACK - sempre usa a variável de ambiente
   resave: false,
   saveUninitialized: false,
-  proxy: process.env.NODE_ENV === 'production',
+  proxy: isProduction,
   cookie: {
     httpOnly: true,
     // Em produção: secure=true (requer HTTPS)
     // sameSite=lax é mais compatível com proxies reversos (Easypanel, etc)
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProduction,
     sameSite: 'lax',
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
   }
