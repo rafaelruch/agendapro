@@ -2321,6 +2321,128 @@ curl -X GET "${baseUrl}/api/finance/summary?startDate=2025-12-01&endDate=2025-12
       curlExample: `curl -X POST "${baseUrl}/api/webhooks/deliveries/del_xyz790/retry" \\
   -H "Authorization: Bearer SEU_TOKEN_API"`
     }
+  ],
+
+  webhooksAdmin: [
+    {
+      method: "GET",
+      path: "/api/admin/tenants/:tenantId/webhooks",
+      description: "Listar todos os webhooks de um tenant específico (apenas Master Admin). Permite gerenciar webhooks de qualquer tenant do sistema.",
+      auth: "Session (Master Admin)",
+      parameters: [
+        { name: "tenantId", type: "string", required: true, description: "ID do tenant" }
+      ],
+      responseExample: `[
+  {
+    "id": "wh_abc123",
+    "name": "N8N - Novos Clientes",
+    "targetUrl": "https://n8n.seudominio.com/webhook/clientes",
+    "modules": ["clients", "appointments"],
+    "events": ["create", "update"],
+    "active": true,
+    "tenantId": "tenant-1",
+    "createdAt": "2024-01-15T10:00:00.000Z"
+  }
+]`,
+      curlExample: `# Este endpoint requer sessão de Master Admin (não suporta Bearer Token)
+# Acesse via painel administrativo`
+    },
+    {
+      method: "POST",
+      path: "/api/admin/tenants/:tenantId/webhooks",
+      description: "Criar webhook para um tenant específico (apenas Master Admin)",
+      auth: "Session (Master Admin)",
+      parameters: [
+        { name: "tenantId", type: "string", required: true, description: "ID do tenant" }
+      ],
+      requestBody: `{
+  "name": "N8N - Integração",           // (OBRIGATÓRIO)
+  "targetUrl": "https://n8n.exemplo.com/webhook/...", // (OBRIGATÓRIO)
+  "secret": "chave-secreta",            // (opcional)
+  "modules": ["clients", "services"],   // (OBRIGATÓRIO)
+  "events": ["create", "update"],       // (OBRIGATÓRIO)
+  "active": true                        // (opcional)
+}`,
+      responseExample: `{
+  "id": "wh_abc123",
+  "name": "N8N - Integração",
+  "targetUrl": "https://n8n.exemplo.com/webhook/...",
+  "modules": ["clients", "services"],
+  "events": ["create", "update"],
+  "active": true,
+  "tenantId": "tenant-1"
+}`,
+      curlExample: `# Este endpoint requer sessão de Master Admin`
+    },
+    {
+      method: "PUT",
+      path: "/api/admin/tenants/:tenantId/webhooks/:id",
+      description: "Atualizar webhook de um tenant (apenas Master Admin)",
+      auth: "Session (Master Admin)",
+      parameters: [
+        { name: "tenantId", type: "string", required: true, description: "ID do tenant" },
+        { name: "id", type: "string", required: true, description: "ID do webhook" }
+      ],
+      requestBody: `{
+  "name": "Nome atualizado",
+  "active": false
+}`,
+      responseExample: `{
+  "id": "wh_abc123",
+  "name": "Nome atualizado",
+  "active": false,
+  "updatedAt": "2024-01-16T11:00:00.000Z"
+}`,
+      curlExample: `# Este endpoint requer sessão de Master Admin`
+    },
+    {
+      method: "DELETE",
+      path: "/api/admin/tenants/:tenantId/webhooks/:id",
+      description: "Excluir webhook de um tenant (apenas Master Admin)",
+      auth: "Session (Master Admin)",
+      parameters: [
+        { name: "tenantId", type: "string", required: true, description: "ID do tenant" },
+        { name: "id", type: "string", required: true, description: "ID do webhook" }
+      ],
+      responseExample: `// HTTP 204 No Content`,
+      curlExample: `# Este endpoint requer sessão de Master Admin`
+    },
+    {
+      method: "GET",
+      path: "/api/admin/tenants/:tenantId/webhooks/:id/deliveries",
+      description: "Visualizar histórico de entregas de um webhook (apenas Master Admin)",
+      auth: "Session (Master Admin)",
+      parameters: [
+        { name: "tenantId", type: "string", required: true, description: "ID do tenant" },
+        { name: "id", type: "string", required: true, description: "ID do webhook" }
+      ],
+      responseExample: `[
+  {
+    "id": "del_xyz789",
+    "webhookId": "wh_abc123",
+    "module": "clients",
+    "event": "create",
+    "status": "success",
+    "responseStatus": 200,
+    "createdAt": "2024-01-15T10:30:00.000Z"
+  }
+]`,
+      curlExample: `# Este endpoint requer sessão de Master Admin`
+    },
+    {
+      method: "POST",
+      path: "/api/admin/tenants/:tenantId/webhooks/deliveries/:deliveryId/retry",
+      description: "Reenviar entrega que falhou (apenas Master Admin)",
+      auth: "Session (Master Admin)",
+      parameters: [
+        { name: "tenantId", type: "string", required: true, description: "ID do tenant" },
+        { name: "deliveryId", type: "string", required: true, description: "ID da entrega" }
+      ],
+      responseExample: `{
+  "message": "Retry agendado com sucesso"
+}`,
+      curlExample: `# Este endpoint requer sessão de Master Admin`
+    }
   ]
 });
 
@@ -2345,7 +2467,8 @@ const sections = [
   { id: "menuPublico", label: "Menu Público" },
   { id: "tokens", label: "Tokens de API" },
   { id: "modulos", label: "Módulos (Master Admin)" },
-  { id: "webhooks", label: "🔗 Webhooks" }
+  { id: "webhooks", label: "🔗 Webhooks" },
+  { id: "webhooksAdmin", label: "🔗 Webhooks (Master Admin)" }
 ];
 
 function CopyButton({ text }: { text: string }) {

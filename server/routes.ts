@@ -660,6 +660,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===========================================
+  // ROTAS MASTER ADMIN - GESTÃO DE WEBHOOKS POR TENANT
+  // ===========================================
+
+  // GET /api/admin/tenants/:tenantId/webhooks - List webhooks for specific tenant (master admin only)
+  app.get("/api/admin/tenants/:tenantId/webhooks", requireMasterAdmin, async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant não encontrado" });
+      }
+
+      const webhooks = await storage.getAllWebhooks(tenantId);
+      res.json(webhooks);
+    } catch (error) {
+      console.error("Error fetching webhooks:", error);
+      res.status(500).json({ error: "Erro ao buscar webhooks" });
+    }
+  });
+
+  // POST /api/admin/tenants/:tenantId/webhooks - Create webhook for specific tenant (master admin only)
+  app.post("/api/admin/tenants/:tenantId/webhooks", requireMasterAdmin, async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant não encontrado" });
+      }
+
+      const validatedData = insertWebhookSchema.omit({ tenantId: true }).parse(req.body);
+      const webhook = await storage.createWebhook({ ...validatedData, tenantId });
+      res.status(201).json(webhook);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Dados inválidos", details: error.errors });
+      }
+      console.error("Error creating webhook:", error);
+      res.status(500).json({ error: "Erro ao criar webhook" });
+    }
+  });
+
+  // PUT /api/admin/tenants/:tenantId/webhooks/:id - Update webhook for specific tenant (master admin only)
+  app.put("/api/admin/tenants/:tenantId/webhooks/:id", requireMasterAdmin, async (req, res) => {
+    try {
+      const { tenantId, id } = req.params;
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant não encontrado" });
+      }
+
+      const validatedData = insertWebhookSchema.omit({ tenantId: true }).partial().parse(req.body);
+      const webhook = await storage.updateWebhook(id, tenantId, validatedData);
+      if (!webhook) {
+        return res.status(404).json({ error: "Webhook não encontrado" });
+      }
+      res.json(webhook);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Dados inválidos", details: error.errors });
+      }
+      console.error("Error updating webhook:", error);
+      res.status(500).json({ error: "Erro ao atualizar webhook" });
+    }
+  });
+
+  // DELETE /api/admin/tenants/:tenantId/webhooks/:id - Delete webhook for specific tenant (master admin only)
+  app.delete("/api/admin/tenants/:tenantId/webhooks/:id", requireMasterAdmin, async (req, res) => {
+    try {
+      const { tenantId, id } = req.params;
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant não encontrado" });
+      }
+
+      const success = await storage.deleteWebhook(id, tenantId);
+      if (!success) {
+        return res.status(404).json({ error: "Webhook não encontrado" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting webhook:", error);
+      res.status(500).json({ error: "Erro ao excluir webhook" });
+    }
+  });
+
+  // GET /api/admin/tenants/:tenantId/webhooks/:id/deliveries - Get deliveries for webhook (master admin only)
+  app.get("/api/admin/tenants/:tenantId/webhooks/:id/deliveries", requireMasterAdmin, async (req, res) => {
+    try {
+      const { tenantId, id } = req.params;
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant não encontrado" });
+      }
+
+      const deliveries = await storage.getWebhookDeliveries(tenantId, id);
+      res.json(deliveries);
+    } catch (error) {
+      console.error("Error fetching webhook deliveries:", error);
+      res.status(500).json({ error: "Erro ao buscar entregas do webhook" });
+    }
+  });
+
+  // POST /api/admin/tenants/:tenantId/webhooks/deliveries/:deliveryId/retry - Retry webhook delivery (master admin only)
+  app.post("/api/admin/tenants/:tenantId/webhooks/deliveries/:deliveryId/retry", requireMasterAdmin, async (req, res) => {
+    try {
+      const { tenantId, deliveryId } = req.params;
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant não encontrado" });
+      }
+
+      const delivery = await storage.getWebhookDelivery(deliveryId, tenantId);
+      if (!delivery) {
+        return res.status(404).json({ error: "Entrega não encontrada" });
+      }
+
+      // Update to pending for retry
+      await storage.updateWebhookDelivery(deliveryId, {
+        status: 'pending',
+        attemptCount: delivery.attemptCount + 1,
+        lastAttemptAt: new Date(),
+      });
+
+      res.json({ message: "Retry agendado com sucesso" });
+    } catch (error) {
+      console.error("Error retrying webhook delivery:", error);
+      res.status(500).json({ error: "Erro ao reagendar entrega" });
+    }
+  });
+
   // GET /api/admin/appointments - List all appointments from all tenants (master admin only)
   app.get("/api/admin/appointments", requireMasterAdmin, async (req, res) => {
     try {

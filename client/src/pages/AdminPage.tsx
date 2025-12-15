@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Building2, Users, Trash2, Key, Copy, AlertCircle, Pencil, Calendar as CalendarIcon, Eye, Check, X, Search, ChevronLeft, ChevronRight, Package, ToggleLeft, ToggleRight } from "lucide-react";
+import { Plus, Building2, Users, Trash2, Key, Copy, AlertCircle, Pencil, Calendar as CalendarIcon, Eye, Check, X, Search, ChevronLeft, ChevronRight, Package, ToggleLeft, ToggleRight, Webhook, RefreshCw, History, CheckCircle, XCircle, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -17,7 +17,10 @@ import { ApiDocumentation } from "@/components/ApiDocumentation";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { AppointmentDialog } from "@/components/AppointmentDialog";
 import { MigrationsPanel } from "@/components/MigrationsPanel";
-import type { Tenant, User, Appointment, Client, Service } from "@shared/schema";
+import type { Tenant, User, Appointment, Client, Service, Webhook as WebhookType, WebhookDelivery, WebhookModule, WebhookEvent } from "@shared/schema";
+import { WEBHOOK_MODULES, WEBHOOK_MODULE_LABELS, WEBHOOK_EVENTS, WEBHOOK_EVENT_LABELS } from "@shared/schema";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type ApiToken = {
   id: string;
@@ -62,6 +65,21 @@ export default function AdminPage() {
   const [appointmentsPage, setAppointmentsPage] = useState(1);
   const appointmentsPerPage = 10;
   const [modulesTenantId, setModulesTenantId] = useState<string>("");
+  
+  // Webhooks state
+  const [webhooksTenantId, setWebhooksTenantId] = useState<string>("");
+  const [webhookDialogOpen, setWebhookDialogOpen] = useState(false);
+  const [editingWebhook, setEditingWebhook] = useState<WebhookType | null>(null);
+  const [webhookDeliveriesDialogOpen, setWebhookDeliveriesDialogOpen] = useState(false);
+  const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
+  const [webhookForm, setWebhookForm] = useState({
+    name: "",
+    targetUrl: "",
+    secret: "",
+    modules: [] as string[],
+    events: [] as string[],
+    isActive: true,
+  });
 
   const { data: tenants = [], isLoading } = useQuery<Tenant[]>({
     queryKey: ["/api/admin/tenants"],
@@ -89,6 +107,17 @@ export default function AdminPage() {
   const { data: tenantModules, isLoading: modulesLoading } = useQuery<TenantModulesResponse>({
     queryKey: ["/api/admin/tenants", modulesTenantId, "modules"],
     enabled: !!modulesTenantId,
+  });
+
+  // Webhook queries
+  const { data: webhooks = [], isLoading: webhooksLoading } = useQuery<WebhookType[]>({
+    queryKey: ["/api/admin/tenants", webhooksTenantId, "webhooks"],
+    enabled: !!webhooksTenantId,
+  });
+
+  const { data: webhookDeliveries = [], isLoading: deliveriesLoading, refetch: refetchDeliveries } = useQuery<WebhookDelivery[]>({
+    queryKey: ["/api/admin/tenants", webhooksTenantId, "webhooks", selectedWebhookId, "deliveries"],
+    enabled: !!webhooksTenantId && !!selectedWebhookId,
   });
 
   const editingTenantId = editingAppointment?.tenantId || "";
@@ -246,6 +275,113 @@ export default function AdminPage() {
     },
   });
 
+  // Webhook mutations
+  const createWebhookMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", `/api/admin/tenants/${webhooksTenantId}/webhooks`, data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tenants", webhooksTenantId, "webhooks"] });
+      setWebhookDialogOpen(false);
+      setEditingWebhook(null);
+      resetWebhookForm();
+      toast({ title: "Webhook criado", description: "O webhook foi criado com sucesso." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao criar webhook", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateWebhookMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const res = await apiRequest("PUT", `/api/admin/tenants/${webhooksTenantId}/webhooks/${id}`, data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tenants", webhooksTenantId, "webhooks"] });
+      setWebhookDialogOpen(false);
+      setEditingWebhook(null);
+      resetWebhookForm();
+      toast({ title: "Webhook atualizado", description: "O webhook foi atualizado com sucesso." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao atualizar webhook", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteWebhookMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/admin/tenants/${webhooksTenantId}/webhooks/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tenants", webhooksTenantId, "webhooks"] });
+      toast({ title: "Webhook excluído", description: "O webhook foi excluído com sucesso." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao excluir webhook", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const retryDeliveryMutation = useMutation({
+    mutationFn: async (deliveryId: string) => {
+      await apiRequest("POST", `/api/admin/tenants/${webhooksTenantId}/webhooks/deliveries/${deliveryId}/retry`);
+    },
+    onSuccess: () => {
+      refetchDeliveries();
+      toast({ title: "Retry agendado", description: "A entrega será reenviada." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao reagendar", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const resetWebhookForm = () => {
+    setWebhookForm({
+      name: "",
+      targetUrl: "",
+      secret: "",
+      modules: [],
+      events: [],
+      isActive: true,
+    });
+  };
+
+  const handleEditWebhook = (webhook: WebhookType) => {
+    setEditingWebhook(webhook);
+    setWebhookForm({
+      name: webhook.name,
+      targetUrl: webhook.targetUrl,
+      secret: webhook.secret || "",
+      modules: webhook.modules,
+      events: webhook.events,
+      isActive: webhook.active,
+    });
+    setWebhookDialogOpen(true);
+  };
+
+  const handleSaveWebhook = () => {
+    const data = {
+      name: webhookForm.name,
+      targetUrl: webhookForm.targetUrl,
+      secret: webhookForm.secret || null,
+      modules: webhookForm.modules,
+      events: webhookForm.events,
+      active: webhookForm.isActive,
+    };
+
+    if (editingWebhook) {
+      updateWebhookMutation.mutate({ id: editingWebhook.id, data });
+    } else {
+      createWebhookMutation.mutate(data);
+    }
+  };
+
+  const handleViewDeliveries = (webhookId: string) => {
+    setSelectedWebhookId(webhookId);
+    setWebhookDeliveriesDialogOpen(true);
+  };
+
   const handleCreateTenant = () => {
     if (!tenantForm.name || !tenantForm.email) {
       toast({ title: "Erro", description: "Nome e email são obrigatórios", variant: "destructive" });
@@ -399,14 +535,15 @@ export default function AdminPage() {
       </div>
 
       <Tabs defaultValue="tenants" className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="tenants">Tenants</TabsTrigger>
           <TabsTrigger value="modules">Módulos</TabsTrigger>
+          <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
           <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
-          <TabsTrigger value="tokens">Tokens de API</TabsTrigger>
+          <TabsTrigger value="tokens">Tokens API</TabsTrigger>
           <TabsTrigger value="migrations">Migrations</TabsTrigger>
           <TabsTrigger value="correction">Correção</TabsTrigger>
-          <TabsTrigger value="docs">Documentação API</TabsTrigger>
+          <TabsTrigger value="docs">Docs API</TabsTrigger>
         </TabsList>
 
         <TabsContent value="tenants" className="space-y-6 mt-6">
@@ -582,6 +719,157 @@ export default function AdminPage() {
                     </Alert>
                   )}
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Webhooks Tab */}
+        <TabsContent value="webhooks" className="space-y-6 mt-6">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Gerencie os webhooks configurados para cada tenant para integração com N8N e outras ferramentas.
+            </p>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Webhook className="h-5 w-5" />
+                Gerenciar Webhooks por Tenant
+              </CardTitle>
+              <CardDescription>
+                Selecione um tenant para gerenciar seus webhooks de integração
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <Label htmlFor="webhook-tenant-select">Selecione um Tenant</Label>
+                  <Select value={webhooksTenantId} onValueChange={setWebhooksTenantId}>
+                    <SelectTrigger data-testid="select-webhook-tenant">
+                      <SelectValue placeholder="Selecione um tenant..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tenants.map((tenant) => (
+                        <SelectItem key={tenant.id} value={tenant.id}>
+                          {tenant.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {webhooksTenantId && (
+                  <Button
+                    onClick={() => {
+                      setEditingWebhook(null);
+                      resetWebhookForm();
+                      setWebhookDialogOpen(true);
+                    }}
+                    data-testid="button-new-webhook"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Novo Webhook
+                  </Button>
+                )}
+              </div>
+
+              {webhooksTenantId && (
+                <>
+                  {webhooksLoading ? (
+                    <div className="py-8 text-center text-muted-foreground">Carregando webhooks...</div>
+                  ) : webhooks.length === 0 ? (
+                    <div className="py-8 text-center text-muted-foreground">
+                      Nenhum webhook configurado para este tenant.
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableCell className="font-semibold">Nome</TableCell>
+                          <TableCell className="font-semibold">URL</TableCell>
+                          <TableCell className="font-semibold">Módulos</TableCell>
+                          <TableCell className="font-semibold">Eventos</TableCell>
+                          <TableCell className="font-semibold">Status</TableCell>
+                          <TableCell className="font-semibold text-right">Ações</TableCell>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {webhooks.map((webhook) => (
+                          <TableRow key={webhook.id} data-testid={`row-webhook-${webhook.id}`}>
+                            <TableCell className="font-medium">{webhook.name}</TableCell>
+                            <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                              {webhook.targetUrl}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {webhook.modules.slice(0, 2).map((mod) => (
+                                  <Badge key={mod} variant="secondary" className="text-xs">
+                                    {WEBHOOK_MODULE_LABELS[mod as WebhookModule] || mod}
+                                  </Badge>
+                                ))}
+                                {webhook.modules.length > 2 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{webhook.modules.length - 2}
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {webhook.events.map((evt) => (
+                                  <Badge key={evt} variant="outline" className="text-xs">
+                                    {WEBHOOK_EVENT_LABELS[evt as WebhookEvent] || evt}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={webhook.active ? "default" : "secondary"}>
+                                {webhook.active ? "Ativo" : "Inativo"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => handleViewDeliveries(webhook.id)}
+                                  title="Ver entregas"
+                                  data-testid={`button-deliveries-${webhook.id}`}
+                                >
+                                  <History className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => handleEditWebhook(webhook)}
+                                  title="Editar"
+                                  data-testid={`button-edit-${webhook.id}`}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    if (confirm("Deseja realmente excluir este webhook?")) {
+                                      deleteWebhookMutation.mutate(webhook.id);
+                                    }
+                                  }}
+                                  title="Excluir"
+                                  data-testid={`button-delete-${webhook.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
@@ -1163,6 +1451,238 @@ export default function AdminPage() {
           }
         }}
       />
+
+      {/* Modal para criar/editar webhook */}
+      <Modal 
+        isOpen={webhookDialogOpen} 
+        onClose={() => {
+          setWebhookDialogOpen(false);
+          setEditingWebhook(null);
+          resetWebhookForm();
+        }} 
+        className="sm:max-w-[600px]"
+      >
+        <div className="px-6 pt-6 pb-4 sm:px-9.5 sm:pt-9.5 sm:pb-6">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
+            {editingWebhook ? "Editar Webhook" : "Novo Webhook"}
+          </h3>
+          <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
+            Configure a URL e os eventos que deseja receber
+          </p>
+        </div>
+        <div className="space-y-4 px-6 pb-6 sm:px-9.5 sm:pb-9.5 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-2">
+            <Label htmlFor="webhook-name">Nome *</Label>
+            <Input
+              id="webhook-name"
+              value={webhookForm.name}
+              onChange={(e) => setWebhookForm({ ...webhookForm, name: e.target.value })}
+              placeholder="Meu Webhook N8N"
+              data-testid="input-webhook-name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="webhook-url">URL de Destino *</Label>
+            <Input
+              id="webhook-url"
+              value={webhookForm.targetUrl}
+              onChange={(e) => setWebhookForm({ ...webhookForm, targetUrl: e.target.value })}
+              placeholder="https://n8n.exemplo.com/webhook/..."
+              data-testid="input-webhook-url"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="webhook-secret">Secret (opcional)</Label>
+            <Input
+              id="webhook-secret"
+              value={webhookForm.secret}
+              onChange={(e) => setWebhookForm({ ...webhookForm, secret: e.target.value })}
+              placeholder="Chave secreta para assinatura HMAC"
+              data-testid="input-webhook-secret"
+            />
+            <p className="text-xs text-muted-foreground">
+              Se configurado, as requisições incluirão uma assinatura HMAC-SHA256
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label>Módulos *</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {WEBHOOK_MODULES.map((mod) => (
+                <div key={mod} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`webhook-module-${mod}`}
+                    checked={webhookForm.modules.includes(mod)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setWebhookForm({ ...webhookForm, modules: [...webhookForm.modules, mod] });
+                      } else {
+                        setWebhookForm({ ...webhookForm, modules: webhookForm.modules.filter(m => m !== mod) });
+                      }
+                    }}
+                    data-testid={`checkbox-module-${mod}`}
+                  />
+                  <label htmlFor={`webhook-module-${mod}`} className="text-sm">
+                    {WEBHOOK_MODULE_LABELS[mod as WebhookModule]}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Eventos *</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {WEBHOOK_EVENTS.map((evt) => (
+                <div key={evt} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`webhook-event-${evt}`}
+                    checked={webhookForm.events.includes(evt)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setWebhookForm({ ...webhookForm, events: [...webhookForm.events, evt] });
+                      } else {
+                        setWebhookForm({ ...webhookForm, events: webhookForm.events.filter(e => e !== evt) });
+                      }
+                    }}
+                    data-testid={`checkbox-event-${evt}`}
+                  />
+                  <label htmlFor={`webhook-event-${evt}`} className="text-sm">
+                    {WEBHOOK_EVENT_LABELS[evt as WebhookEvent]}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="webhook-active"
+              checked={webhookForm.isActive}
+              onCheckedChange={(checked) => setWebhookForm({ ...webhookForm, isActive: checked })}
+              data-testid="switch-webhook-active"
+            />
+            <Label htmlFor="webhook-active">Webhook ativo</Label>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-3 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
+          <Button variant="outline" onClick={() => {
+            setWebhookDialogOpen(false);
+            setEditingWebhook(null);
+            resetWebhookForm();
+          }}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleSaveWebhook} 
+            disabled={createWebhookMutation.isPending || updateWebhookMutation.isPending || !webhookForm.name || !webhookForm.targetUrl || webhookForm.modules.length === 0 || webhookForm.events.length === 0}
+            data-testid="button-save-webhook"
+          >
+            {editingWebhook ? "Salvar" : "Criar Webhook"}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Modal para ver entregas do webhook */}
+      <Modal 
+        isOpen={webhookDeliveriesDialogOpen} 
+        onClose={() => {
+          setWebhookDeliveriesDialogOpen(false);
+          setSelectedWebhookId(null);
+        }} 
+        className="sm:max-w-[800px]"
+      >
+        <div className="px-6 pt-6 pb-4 sm:px-9.5 sm:pt-9.5 sm:pb-6">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+            <History className="h-5 w-5" />
+            Histórico de Entregas
+          </h3>
+          <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
+            Visualize o histórico de entregas deste webhook
+          </p>
+        </div>
+        <div className="px-6 pb-6 sm:px-9.5 sm:pb-9.5 max-h-[60vh] overflow-y-auto">
+          {deliveriesLoading ? (
+            <div className="py-8 text-center text-muted-foreground">Carregando entregas...</div>
+          ) : webhookDeliveries.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              Nenhuma entrega registrada para este webhook.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableCell className="font-semibold">Data/Hora</TableCell>
+                  <TableCell className="font-semibold">Evento</TableCell>
+                  <TableCell className="font-semibold">Módulo</TableCell>
+                  <TableCell className="font-semibold">Status</TableCell>
+                  <TableCell className="font-semibold">Código</TableCell>
+                  <TableCell className="font-semibold text-right">Ações</TableCell>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {webhookDeliveries.map((delivery) => (
+                  <TableRow key={delivery.id}>
+                    <TableCell className="text-sm">
+                      {new Date(delivery.createdAt!).toLocaleString("pt-BR")}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {WEBHOOK_EVENT_LABELS[delivery.event as WebhookEvent] || delivery.event}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="text-xs">
+                        {WEBHOOK_MODULE_LABELS[delivery.module as WebhookModule] || delivery.module}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {delivery.status === "success" ? (
+                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Sucesso
+                        </Badge>
+                      ) : delivery.status === "failed" ? (
+                        <Badge variant="destructive">
+                          <XCircle className="h-3 w-3 mr-1" />
+                          Falhou
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Pendente
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {delivery.responseStatus || "-"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {delivery.status === "failed" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => retryDeliveryMutation.mutate(delivery.id)}
+                          disabled={retryDeliveryMutation.isPending}
+                          data-testid={`button-retry-${delivery.id}`}
+                        >
+                          <RefreshCw className="h-3 w-3 mr-1" />
+                          Retry
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+        <div className="flex items-center justify-end gap-3 px-6 pb-6 sm:px-9.5 sm:pb-9.5">
+          <Button variant="outline" onClick={() => {
+            setWebhookDeliveriesDialogOpen(false);
+            setSelectedWebhookId(null);
+          }}>
+            Fechar
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }
