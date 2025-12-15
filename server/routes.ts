@@ -1212,8 +1212,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tenantId = getTenantId(req)!;
       }
 
-      // Limpar telefone - apenas números
-      const cleanPhone = req.params.phone.replace(/\D/g, "");
+      // Limpar telefone - apenas números e remover código do país 55
+      let cleanPhone = req.params.phone.replace(/\D/g, "");
+      if (cleanPhone.startsWith("55") && cleanPhone.length > 11) {
+        cleanPhone = cleanPhone.slice(2);
+      }
       if (cleanPhone.length < 10) {
         return res.status(400).json({ error: "Telefone inválido - deve ter pelo menos 10 dígitos" });
       }
