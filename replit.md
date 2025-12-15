@@ -66,14 +66,24 @@ All data tables throughout the system must adhere to a standardized structure fo
     - **Modules Supported**: clients, services, products, appointments, orders, professionals, finance.
     - **Events**: create, update, delete.
     - **Payload Structure**: `{ event, module, timestamp, tenantId, data: {...} }` with custom headers X-AgendaPro-Event, X-AgendaPro-Module, X-AgendaPro-Signature.
-    - **API Endpoints**:
+    - **Dual-Location Webhook Management**: Webhooks can be managed from two locations:
+        1. **Master Admin Panel** (AdminPage.tsx → Webhooks tab): Master Admin can manage webhooks for any tenant
+        2. **Tenant Configuration** (WebhooksPage.tsx): Tenant admins can manage their own webhooks
+    - **API Endpoints (Tenant Admin)**:
         - `GET /api/webhooks` - List all webhooks
         - `POST /api/webhooks` - Create webhook
         - `PUT /api/webhooks/:id` - Update webhook
         - `DELETE /api/webhooks/:id` - Delete webhook
         - `GET /api/webhooks/:id/deliveries` - Delivery history
         - `POST /api/webhooks/deliveries/:deliveryId/retry` - Retry failed delivery
-    - **Frontend Page**: WebhooksPage.tsx (accessible from sidebar for admin users with webhooks module enabled)
+    - **API Endpoints (Master Admin)**:
+        - `GET /api/admin/tenants/:tenantId/webhooks` - List tenant webhooks
+        - `POST /api/admin/tenants/:tenantId/webhooks` - Create tenant webhook
+        - `PUT /api/admin/tenants/:tenantId/webhooks/:id` - Update tenant webhook
+        - `DELETE /api/admin/tenants/:tenantId/webhooks/:id` - Delete tenant webhook
+        - `GET /api/admin/tenants/:tenantId/webhooks/:id/deliveries` - Delivery history
+        - `POST /api/admin/tenants/:tenantId/webhooks/deliveries/:deliveryId/retry` - Retry failed delivery
+    - **Frontend Pages**: WebhooksPage.tsx (tenant admins), AdminPage.tsx Webhooks tab (master admin)
 - **Public Menu System**:
     - **Features**: Public catalog page accessible via unique URL (/menu/{slug}), customizable branding (logo and brand color), product categories with display order, mobile-first responsive design.
     - **Menu Types**: Supports two mutually exclusive modes - "delivery" (products/orders) and "services" (appointments).
