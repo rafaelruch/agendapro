@@ -45,6 +45,12 @@ import {
   type RegisterAppointmentPayment,
   type PaymentMethod,
   type TransactionType,
+  type Webhook,
+  type InsertWebhook,
+  type WebhookDelivery,
+  type InsertWebhookDelivery,
+  type WebhookModule,
+  type WebhookEvent,
   clients,
   clientAddresses,
   services,
@@ -66,6 +72,8 @@ import {
   orderItems,
   financeCategories,
   financialTransactions,
+  webhooks,
+  webhookDeliveries,
   MODULE_DEFINITIONS,
   getCoreModuleIds,
   getDefaultEnabledModules,
@@ -317,6 +325,24 @@ export interface IStorage {
     quantity: number;
     revenue: number;
   }[]>;
+  
+  // ==================== WEBHOOK MODULE ====================
+  
+  // Webhook operations (with tenant isolation)
+  getWebhook(id: string, tenantId: string): Promise<Webhook | undefined>;
+  getAllWebhooks(tenantId: string): Promise<Webhook[]>;
+  getActiveWebhooks(tenantId: string): Promise<Webhook[]>;
+  getWebhooksByModuleAndEvent(tenantId: string, module: WebhookModule, event: WebhookEvent): Promise<Webhook[]>;
+  createWebhook(webhook: InsertWebhook): Promise<Webhook>;
+  updateWebhook(id: string, tenantId: string, webhook: Partial<InsertWebhook>): Promise<Webhook | undefined>;
+  deleteWebhook(id: string, tenantId: string): Promise<boolean>;
+  toggleWebhook(id: string, tenantId: string, active: boolean): Promise<Webhook | undefined>;
+  
+  // Webhook Delivery operations
+  getWebhookDelivery(id: string, tenantId: string): Promise<WebhookDelivery | undefined>;
+  getWebhookDeliveries(tenantId: string, webhookId?: string, limit?: number): Promise<WebhookDelivery[]>;
+  createWebhookDelivery(delivery: InsertWebhookDelivery): Promise<WebhookDelivery>;
+  updateWebhookDelivery(id: string, delivery: Partial<InsertWebhookDelivery>): Promise<WebhookDelivery | undefined>;
 }
 
 export class DbStorage implements IStorage {
@@ -2697,6 +2723,106 @@ export class DbStorage implements IStorage {
       .slice(0, limit);
 
     return sorted;
+  }
+
+  // ==================== WEBHOOK MODULE ====================
+
+  async getWebhook(id: string, tenantId: string): Promise<Webhook | undefined> {
+    const result = await db
+      .select()
+      .from(webhooks)
+      .where(and(eq(webhooks.id, id), eq(webhooks.tenantId, tenantId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getAllWebhooks(tenantId: string): Promise<Webhook[]> {
+    return await db
+      .select()
+      .from(webhooks)
+      .where(eq(webhooks.tenantId, tenantId))
+      .orderBy(desc(webhooks.createdAt));
+  }
+
+  async getActiveWebhooks(tenantId: string): Promise<Webhook[]> {
+    return await db
+      .select()
+      .from(webhooks)
+      .where(and(eq(webhooks.tenantId, tenantId), eq(webhooks.active, true)))
+      .orderBy(desc(webhooks.createdAt));
+  }
+
+  async getWebhooksByModuleAndEvent(tenantId: string, module: WebhookModule, event: WebhookEvent): Promise<Webhook[]> {
+    const allActive = await this.getActiveWebhooks(tenantId);
+    return allActive.filter(w => 
+      w.modules.includes(module) && w.events.includes(event)
+    );
+  }
+
+  async createWebhook(webhook: InsertWebhook): Promise<Webhook> {
+    const result = await db.insert(webhooks).values(webhook).returning();
+    return result[0];
+  }
+
+  async updateWebhook(id: string, tenantId: string, webhookData: Partial<InsertWebhook>): Promise<Webhook | undefined> {
+    const result = await db
+      .update(webhooks)
+      .set({ ...webhookData, updatedAt: new Date() })
+      .where(and(eq(webhooks.id, id), eq(webhooks.tenantId, tenantId)))
+      .returning();
+    return result[0];
+  }
+
+  async deleteWebhook(id: string, tenantId: string): Promise<boolean> {
+    const result = await db
+      .delete(webhooks)
+      .where(and(eq(webhooks.id, id), eq(webhooks.tenantId, tenantId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async toggleWebhook(id: string, tenantId: string, active: boolean): Promise<Webhook | undefined> {
+    return this.updateWebhook(id, tenantId, { active });
+  }
+
+  async getWebhookDelivery(id: string, tenantId: string): Promise<WebhookDelivery | undefined> {
+    const result = await db
+      .select()
+      .from(webhookDeliveries)
+      .where(and(eq(webhookDeliveries.id, id), eq(webhookDeliveries.tenantId, tenantId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getWebhookDeliveries(tenantId: string, webhookId?: string, limit: number = 100): Promise<WebhookDelivery[]> {
+    if (webhookId) {
+      return await db
+        .select()
+        .from(webhookDeliveries)
+        .where(and(eq(webhookDeliveries.tenantId, tenantId), eq(webhookDeliveries.webhookId, webhookId)))
+        .orderBy(desc(webhookDeliveries.createdAt))
+        .limit(limit);
+    }
+    return await db
+      .select()
+      .from(webhookDeliveries)
+      .where(eq(webhookDeliveries.tenantId, tenantId))
+      .orderBy(desc(webhookDeliveries.createdAt))
+      .limit(limit);
+  }
+
+  async createWebhookDelivery(delivery: InsertWebhookDelivery): Promise<WebhookDelivery> {
+    const result = await db.insert(webhookDeliveries).values(delivery).returning();
+    return result[0];
+  }
+
+  async updateWebhookDelivery(id: string, deliveryData: Partial<InsertWebhookDelivery>): Promise<WebhookDelivery | undefined> {
+    const result = await db
+      .update(webhookDeliveries)
+      .set(deliveryData)
+      .where(eq(webhookDeliveries.id, id))
+      .returning();
+    return result[0];
   }
 }
 
