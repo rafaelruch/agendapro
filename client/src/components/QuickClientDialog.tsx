@@ -9,7 +9,13 @@ import { useToast } from "@/hooks/use-toast";
 
 // Função para aplicar máscara de telefone brasileiro: (62)98888-7777
 function formatPhoneBR(value: string): string {
-  const numbers = value.replace(/\D/g, "");
+  let numbers = value.replace(/\D/g, "");
+  
+  // Remove o código do país 55 se existir no início
+  if (numbers.startsWith("55") && numbers.length > 11) {
+    numbers = numbers.slice(2);
+  }
+  
   const limited = numbers.slice(0, 11);
   if (limited.length === 0) return "";
   if (limited.length <= 2) return `(${limited}`;
