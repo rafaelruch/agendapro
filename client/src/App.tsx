@@ -29,6 +29,7 @@ import OrdersPage from "@/pages/OrdersPage";
 import KitchenPage from "@/pages/KitchenPage";
 import FinancePage from "@/pages/FinancePage";
 import PublicMenuPage from "@/pages/PublicMenuPage";
+import WebhooksPage from "@/pages/WebhooksPage";
 import NotFound from "@/pages/not-found";
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
@@ -78,6 +79,7 @@ function Router() {
       <Route path="/orders" component={OrdersPage} />
       <Route path="/kitchen" component={KitchenPage} />
       <Route path="/finance" component={FinancePage} />
+      <Route path="/webhooks" component={WebhooksPage} />
       <Route component={NotFound} />
     </Switch>
   );
