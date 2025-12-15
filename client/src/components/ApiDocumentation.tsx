@@ -2328,7 +2328,7 @@ curl -X GET "${baseUrl}/api/finance/summary?startDate=2025-12-01&endDate=2025-12
       method: "GET",
       path: "/api/admin/tenants/:tenantId/webhooks",
       description: "Listar todos os webhooks de um tenant específico (apenas Master Admin). Permite gerenciar webhooks de qualquer tenant do sistema.",
-      auth: "Session (Master Admin)",
+      auth: "Master Admin",
       parameters: [
         { name: "tenantId", type: "string", required: true, description: "ID do tenant" }
       ],
@@ -2351,7 +2351,7 @@ curl -X GET "${baseUrl}/api/finance/summary?startDate=2025-12-01&endDate=2025-12
       method: "POST",
       path: "/api/admin/tenants/:tenantId/webhooks",
       description: "Criar webhook para um tenant específico (apenas Master Admin)",
-      auth: "Session (Master Admin)",
+      auth: "Master Admin",
       parameters: [
         { name: "tenantId", type: "string", required: true, description: "ID do tenant" }
       ],
@@ -2378,7 +2378,7 @@ curl -X GET "${baseUrl}/api/finance/summary?startDate=2025-12-01&endDate=2025-12
       method: "PUT",
       path: "/api/admin/tenants/:tenantId/webhooks/:id",
       description: "Atualizar webhook de um tenant (apenas Master Admin)",
-      auth: "Session (Master Admin)",
+      auth: "Master Admin",
       parameters: [
         { name: "tenantId", type: "string", required: true, description: "ID do tenant" },
         { name: "id", type: "string", required: true, description: "ID do webhook" }
@@ -2399,7 +2399,7 @@ curl -X GET "${baseUrl}/api/finance/summary?startDate=2025-12-01&endDate=2025-12
       method: "DELETE",
       path: "/api/admin/tenants/:tenantId/webhooks/:id",
       description: "Excluir webhook de um tenant (apenas Master Admin)",
-      auth: "Session (Master Admin)",
+      auth: "Master Admin",
       parameters: [
         { name: "tenantId", type: "string", required: true, description: "ID do tenant" },
         { name: "id", type: "string", required: true, description: "ID do webhook" }
@@ -2411,7 +2411,7 @@ curl -X GET "${baseUrl}/api/finance/summary?startDate=2025-12-01&endDate=2025-12
       method: "GET",
       path: "/api/admin/tenants/:tenantId/webhooks/:id/deliveries",
       description: "Visualizar histórico de entregas de um webhook (apenas Master Admin)",
-      auth: "Session (Master Admin)",
+      auth: "Master Admin",
       parameters: [
         { name: "tenantId", type: "string", required: true, description: "ID do tenant" },
         { name: "id", type: "string", required: true, description: "ID do webhook" }
@@ -2433,7 +2433,7 @@ curl -X GET "${baseUrl}/api/finance/summary?startDate=2025-12-01&endDate=2025-12
       method: "POST",
       path: "/api/admin/tenants/:tenantId/webhooks/deliveries/:deliveryId/retry",
       description: "Reenviar entrega que falhou (apenas Master Admin)",
-      auth: "Session (Master Admin)",
+      auth: "Master Admin",
       parameters: [
         { name: "tenantId", type: "string", required: true, description: "ID do tenant" },
         { name: "deliveryId", type: "string", required: true, description: "ID da entrega" }
