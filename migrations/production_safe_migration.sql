@@ -473,6 +473,39 @@ EXCEPTION WHEN duplicate_object THEN
     NULL;
 END $$;
 
+-- ========== TABELA: webhooks ==========
+CREATE TABLE IF NOT EXISTS webhooks (
+    id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id VARCHAR NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    target_url TEXT NOT NULL,
+    secret TEXT,
+    modules TEXT[] NOT NULL,
+    events TEXT[] NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT true,
+    headers TEXT,
+    retry_count INTEGER NOT NULL DEFAULT 3,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ========== TABELA: webhook_deliveries ==========
+CREATE TABLE IF NOT EXISTS webhook_deliveries (
+    id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+    webhook_id VARCHAR NOT NULL REFERENCES webhooks(id) ON DELETE CASCADE,
+    tenant_id VARCHAR NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    module TEXT NOT NULL,
+    event TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    last_attempt_at TIMESTAMP,
+    response_status INTEGER,
+    response_body TEXT,
+    error_message TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
 -- ========== INDICES PARA PERFORMANCE ==========
 CREATE INDEX IF NOT EXISTS idx_clients_tenant_id ON clients(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_clients_phone ON clients(phone);
@@ -488,6 +521,10 @@ CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
 CREATE INDEX IF NOT EXISTS idx_financial_transactions_tenant_id ON financial_transactions(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_financial_transactions_date ON financial_transactions(date);
 CREATE INDEX IF NOT EXISTS idx_tenant_module_permissions_tenant_id ON tenant_module_permissions(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_webhooks_tenant_id ON webhooks(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_tenant_id ON webhook_deliveries(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_webhook_id ON webhook_deliveries(webhook_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_status ON webhook_deliveries(status);
 
 -- ========== INDICE CASE-INSENSITIVE PARA MENU SLUG ==========
 -- Necessário para busca de cardápio público funcionar independente de maiúsculas/minúsculas
