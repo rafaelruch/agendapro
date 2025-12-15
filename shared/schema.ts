@@ -93,6 +93,13 @@ export const MODULE_DEFINITIONS: ModuleDefinition[] = [
     isCore: false,
     defaultEnabled: false,
   },
+  {
+    id: "webhooks",
+    label: "Webhooks",
+    description: "Integrações via webhooks para automações",
+    isCore: false,
+    defaultEnabled: false,
+  },
 ];
 
 // Helper para obter módulos habilitados por padrão
@@ -878,3 +885,101 @@ export const setupSchema = z.object({
 });
 
 export type SetupData = z.infer<typeof setupSchema>;
+
+// ==================== WEBHOOKS ====================
+
+// Módulos que suportam webhooks
+export const WEBHOOK_MODULES = [
+  'clients',
+  'services', 
+  'products',
+  'appointments',
+  'orders',
+  'professionals',
+  'finance',
+] as const;
+
+export type WebhookModule = typeof WEBHOOK_MODULES[number];
+
+export const WEBHOOK_MODULE_LABELS: Record<WebhookModule, string> = {
+  clients: 'Clientes',
+  services: 'Serviços',
+  products: 'Produtos',
+  appointments: 'Agendamentos',
+  orders: 'Pedidos',
+  professionals: 'Profissionais',
+  finance: 'Financeiro',
+};
+
+// Eventos de webhook
+export const WEBHOOK_EVENTS = ['create', 'update', 'delete'] as const;
+export type WebhookEvent = typeof WEBHOOK_EVENTS[number];
+
+export const WEBHOOK_EVENT_LABELS: Record<WebhookEvent, string> = {
+  create: 'Criação',
+  update: 'Atualização',
+  delete: 'Exclusão',
+};
+
+// Status de entrega do webhook
+export const WEBHOOK_DELIVERY_STATUS = ['pending', 'success', 'failed'] as const;
+export type WebhookDeliveryStatus = typeof WEBHOOK_DELIVERY_STATUS[number];
+
+// Tabela de configuração de webhooks
+export const webhooks = pgTable("webhooks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  targetUrl: text("target_url").notNull(),
+  secret: text("secret"), // Para assinatura HMAC
+  modules: text("modules").array().notNull(), // Array de módulos ['clients', 'services', ...]
+  events: text("events").array().notNull(), // Array de eventos ['create', 'update', 'delete']
+  active: boolean("active").notNull().default(true),
+  headers: text("headers"), // JSON string de headers customizados
+  retryCount: integer("retry_count").notNull().default(3),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertWebhookSchema = createInsertSchema(webhooks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertWebhook = z.infer<typeof insertWebhookSchema>;
+export type Webhook = typeof webhooks.$inferSelect;
+
+// Tabela de log de entregas de webhooks
+export const webhookDeliveries = pgTable("webhook_deliveries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  webhookId: varchar("webhook_id").notNull().references(() => webhooks.id, { onDelete: 'cascade' }),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  module: text("module").notNull(),
+  event: text("event").notNull(),
+  payload: text("payload").notNull(), // JSON string do payload enviado
+  status: text("status").notNull().default("pending"), // pending, success, failed
+  attemptCount: integer("attempt_count").notNull().default(0),
+  lastAttemptAt: timestamp("last_attempt_at"),
+  responseStatus: integer("response_status"), // HTTP status code
+  responseBody: text("response_body"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertWebhookDeliverySchema = createInsertSchema(webhookDeliveries).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertWebhookDelivery = z.infer<typeof insertWebhookDeliverySchema>;
+export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
+
+// Tipo para payload de webhook
+export type WebhookPayload = {
+  event: WebhookEvent;
+  module: WebhookModule;
+  timestamp: string;
+  tenantId: string;
+  data: Record<string, unknown>;
+};
