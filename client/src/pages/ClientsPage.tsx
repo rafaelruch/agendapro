@@ -21,6 +21,26 @@ import type { Client, Appointment } from "@shared/schema";
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+// Função para formatar telefone na exibição: (62)98888-7777 ou (62)8888-7777
+function formatPhoneDisplay(value: string): string {
+  if (!value) return "-";
+  let numbers = value.replace(/\D/g, "");
+  
+  // Remove o código do país 55 se existir no início
+  if (numbers.startsWith("55") && numbers.length > 11) {
+    numbers = numbers.slice(2);
+  }
+  
+  // Aplica a máscara (suporta 10 ou 11 dígitos)
+  if (numbers.length === 10) {
+    return `(${numbers.slice(0, 2)})${numbers.slice(2, 6)}-${numbers.slice(6)}`;
+  }
+  if (numbers.length === 11) {
+    return `(${numbers.slice(0, 2)})${numbers.slice(2, 7)}-${numbers.slice(7)}`;
+  }
+  return value; // Retorna original se não tiver formato esperado
+}
+
 export default function ClientsPage() {
   const [showClientDialog, setShowClientDialog] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -229,7 +249,7 @@ export default function ClientsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                        {client.phone || "-"}
+                        {formatPhoneDisplay(client.phone)}
                       </TableCell>
                       <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         {appointmentCount} {appointmentCount === 1 ? 'agendamento' : 'agendamentos'}

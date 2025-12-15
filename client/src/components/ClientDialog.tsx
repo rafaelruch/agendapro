@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 
-// Função para aplicar máscara de telefone brasileiro: (62)98888-7777
+// Função para aplicar máscara de telefone brasileiro: (62)98888-7777 ou (62)8888-7777
 function formatPhoneBR(value: string): string {
   // Remove tudo que não é número
   let numbers = value.replace(/\D/g, "");
@@ -18,10 +18,11 @@ function formatPhoneBR(value: string): string {
   // Limita a 11 dígitos
   const limited = numbers.slice(0, 11);
   
-  // Aplica a máscara
+  // Aplica a máscara (suporta 10 ou 11 dígitos)
   if (limited.length === 0) return "";
   if (limited.length <= 2) return `(${limited}`;
-  if (limited.length <= 7) return `(${limited.slice(0, 2)})${limited.slice(2)}`;
+  if (limited.length <= 6) return `(${limited.slice(0, 2)})${limited.slice(2)}`;
+  if (limited.length <= 10) return `(${limited.slice(0, 2)})${limited.slice(2, 6)}-${limited.slice(6)}`;
   return `(${limited.slice(0, 2)})${limited.slice(2, 7)}-${limited.slice(7)}`;
 }
 

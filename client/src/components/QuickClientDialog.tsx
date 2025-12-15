@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-// Função para aplicar máscara de telefone brasileiro: (62)98888-7777
+// Função para aplicar máscara de telefone brasileiro: (62)98888-7777 ou (62)8888-7777
 function formatPhoneBR(value: string): string {
   let numbers = value.replace(/\D/g, "");
   
@@ -16,10 +16,14 @@ function formatPhoneBR(value: string): string {
     numbers = numbers.slice(2);
   }
   
+  // Limita a 11 dígitos
   const limited = numbers.slice(0, 11);
+  
+  // Aplica a máscara (suporta 10 ou 11 dígitos)
   if (limited.length === 0) return "";
   if (limited.length <= 2) return `(${limited}`;
-  if (limited.length <= 7) return `(${limited.slice(0, 2)})${limited.slice(2)}`;
+  if (limited.length <= 6) return `(${limited.slice(0, 2)})${limited.slice(2)}`;
+  if (limited.length <= 10) return `(${limited.slice(0, 2)})${limited.slice(2, 6)}-${limited.slice(6)}`;
   return `(${limited.slice(0, 2)})${limited.slice(2, 7)}-${limited.slice(7)}`;
 }
 
