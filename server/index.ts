@@ -2,9 +2,9 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import rateLimit from "express-rate-limit";
 import connectPgSimple from "connect-pg-simple";
-import { Pool } from "@neondatabase/serverless";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { pool } from "./db";
 
 const app = express();
 
@@ -133,7 +133,6 @@ let sessionStore: session.Store | undefined;
 
 if (isProduction && process.env.DATABASE_URL) {
   const PgStore = connectPgSimple(session);
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   sessionStore = new PgStore({
     pool: pool as any,
     tableName: 'user_sessions',
