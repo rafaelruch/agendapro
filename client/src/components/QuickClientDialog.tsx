@@ -7,6 +7,21 @@ import { Label } from "@/components/ui/label";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+// Função para aplicar máscara de telefone brasileiro: (62)98888-7777
+function formatPhoneBR(value: string): string {
+  const numbers = value.replace(/\D/g, "");
+  const limited = numbers.slice(0, 11);
+  if (limited.length === 0) return "";
+  if (limited.length <= 2) return `(${limited}`;
+  if (limited.length <= 7) return `(${limited.slice(0, 2)})${limited.slice(2)}`;
+  return `(${limited.slice(0, 2)})${limited.slice(2, 7)}-${limited.slice(7)}`;
+}
+
+// Função para remover máscara
+function unformatPhone(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
 interface QuickClientDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -50,7 +65,16 @@ export function QuickClientDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createClientMutation.mutate(formData);
+    // Enviar telefone sem máscara (apenas números)
+    createClientMutation.mutate({
+      ...formData,
+      phone: unformatPhone(formData.phone),
+    });
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneBR(e.target.value);
+    setFormData({ ...formData, phone: formatted });
   };
 
   return (
@@ -81,8 +105,8 @@ export function QuickClientDialog({
               <Input
                 id="quick-phone"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="(11) 99999-9999"
+                onChange={handlePhoneChange}
+                placeholder="(62)98888-7777"
                 data-testid="input-quick-client-phone"
                 required
               />

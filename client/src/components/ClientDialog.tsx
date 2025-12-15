@@ -5,6 +5,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 
+// Função para aplicar máscara de telefone brasileiro: (62)98888-7777
+function formatPhoneBR(value: string): string {
+  // Remove tudo que não é número
+  const numbers = value.replace(/\D/g, "");
+  
+  // Limita a 11 dígitos
+  const limited = numbers.slice(0, 11);
+  
+  // Aplica a máscara
+  if (limited.length === 0) return "";
+  if (limited.length <= 2) return `(${limited}`;
+  if (limited.length <= 7) return `(${limited.slice(0, 2)})${limited.slice(2)}`;
+  return `(${limited.slice(0, 2)})${limited.slice(2, 7)}-${limited.slice(7)}`;
+}
+
+// Função para remover máscara (apenas números)
+function unformatPhone(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
 interface ClientDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -29,20 +49,32 @@ export function ClientDialog({
   // Atualizar formData quando initialData ou open mudar
   useEffect(() => {
     if (open) {
-      setFormData(
-        initialData || {
-          name: "",
-          phone: "",
-          birthdate: "",
-        }
-      );
+      const data = initialData || {
+        name: "",
+        phone: "",
+        birthdate: "",
+      };
+      // Aplicar máscara ao telefone existente
+      setFormData({
+        ...data,
+        phone: formatPhoneBR(data.phone || ""),
+      });
     }
   }, [initialData, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    // Enviar telefone sem máscara (apenas números)
+    onSave({
+      ...formData,
+      phone: unformatPhone(formData.phone),
+    });
     // NÃO fechar o dialog aqui - o parent fecha no onSuccess da mutation
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneBR(e.target.value);
+    setFormData({ ...formData, phone: formatted });
   };
 
   return (
@@ -74,8 +106,8 @@ export function ClientDialog({
                 id="phone"
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="(00) 00000-0000"
+                onChange={handlePhoneChange}
+                placeholder="(62)98888-7777"
                 data-testid="input-client-phone"
                 required
               />
