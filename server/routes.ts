@@ -23,17 +23,26 @@ import {
   registerAppointmentPaymentSchema,
   loginSchema,
   setupSchema,
+  insertWebhookSchema,
   type InsertUser,
   type OrderStatus,
+  type WebhookModule,
+  type WebhookEvent,
+  type WebhookPayload,
   ORDER_STATUSES,
   PAYMENT_METHODS,
   PAYMENT_METHOD_LABELS,
   TRANSACTION_TYPES,
   TRANSACTION_TYPE_LABELS,
+  WEBHOOK_MODULES,
+  WEBHOOK_EVENTS,
+  WEBHOOK_MODULE_LABELS,
+  WEBHOOK_EVENT_LABELS,
   isServiceInPromotion,
   getServiceEffectiveValue,
   MODULE_DEFINITIONS
 } from "@shared/schema";
+import crypto from "crypto";
 import path from "path";
 import fs from "fs";
 import { z } from "zod";
@@ -4670,6 +4679,470 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     } catch (error: any) {
       console.error("Error deleting addon:", error);
       res.status(500).json({ error: error.message || "Erro ao excluir adicional" });
+    }
+  });
+
+  // ==================== WEBHOOK MODULE ROUTES ====================
+
+  // Função para gerar assinatura HMAC
+  function generateWebhookSignature(payload: string, secret: string): string {
+    return crypto.createHmac('sha256', secret).update(payload).digest('hex');
+  }
+
+  // Função para disparar webhooks de forma assíncrona
+  async function dispatchWebhook(
+    tenantId: string,
+    module: WebhookModule,
+    event: WebhookEvent,
+    data: Record<string, unknown>
+  ): Promise<void> {
+    try {
+      const webhooks = await storage.getWebhooksByModuleAndEvent(tenantId, module, event);
+      
+      for (const webhook of webhooks) {
+        const payload: WebhookPayload = {
+          event,
+          module,
+          timestamp: new Date().toISOString(),
+          tenantId,
+          data,
+        };
+
+        const payloadString = JSON.stringify(payload);
+
+        // Criar registro de entrega
+        const delivery = await storage.createWebhookDelivery({
+          webhookId: webhook.id,
+          tenantId,
+          module,
+          event,
+          payload: payloadString,
+          status: 'pending',
+          attemptCount: 0,
+        });
+
+        // Disparar requisição de forma assíncrona
+        (async () => {
+          try {
+            const headers: Record<string, string> = {
+              'Content-Type': 'application/json',
+              'X-AgendaPro-Event': event,
+              'X-AgendaPro-Module': module,
+              'X-AgendaPro-Delivery-Id': delivery.id,
+              'X-AgendaPro-Timestamp': payload.timestamp,
+            };
+
+            // Adicionar assinatura HMAC se secret configurado
+            if (webhook.secret) {
+              headers['X-AgendaPro-Signature'] = generateWebhookSignature(payloadString, webhook.secret);
+            }
+
+            // Adicionar headers customizados
+            if (webhook.headers) {
+              try {
+                const customHeaders = JSON.parse(webhook.headers);
+                Object.assign(headers, customHeaders);
+              } catch (e) {
+                // Ignorar headers inválidos
+              }
+            }
+
+            const response = await fetch(webhook.targetUrl, {
+              method: 'POST',
+              headers,
+              body: payloadString,
+              signal: AbortSignal.timeout(30000), // 30 segundos timeout
+            });
+
+            const responseText = await response.text().catch(() => '');
+
+            if (response.ok) {
+              await storage.updateWebhookDelivery(delivery.id, {
+                status: 'success',
+                attemptCount: 1,
+                lastAttemptAt: new Date(),
+                responseStatus: response.status,
+                responseBody: responseText.substring(0, 1000), // Limitar tamanho
+              });
+            } else {
+              await storage.updateWebhookDelivery(delivery.id, {
+                status: 'failed',
+                attemptCount: 1,
+                lastAttemptAt: new Date(),
+                responseStatus: response.status,
+                responseBody: responseText.substring(0, 1000),
+                errorMessage: `HTTP ${response.status}: ${response.statusText}`,
+              });
+            }
+          } catch (error: any) {
+            await storage.updateWebhookDelivery(delivery.id, {
+              status: 'failed',
+              attemptCount: 1,
+              lastAttemptAt: new Date(),
+              errorMessage: error.message || 'Erro ao enviar webhook',
+            });
+          }
+        })();
+      }
+    } catch (error) {
+      console.error('Error dispatching webhooks:', error);
+    }
+  }
+
+  // Exportar a função de dispatch para uso em outras rotas
+  (app as any).dispatchWebhook = dispatchWebhook;
+
+  // GET /api/webhooks/modules - Listar módulos disponíveis para webhook
+  app.get("/api/webhooks/modules", authenticateRequest, requireModule("webhooks"), async (req, res) => {
+    res.json({
+      modules: WEBHOOK_MODULES.map(m => ({ id: m, label: WEBHOOK_MODULE_LABELS[m] })),
+      events: WEBHOOK_EVENTS.map(e => ({ id: e, label: WEBHOOK_EVENT_LABELS[e] })),
+    });
+  });
+
+  // GET /api/webhooks - Listar webhooks do tenant
+  app.get("/api/webhooks", authenticateRequest, requireModule("webhooks"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const webhooks = await storage.getAllWebhooks(tenantId);
+      res.json(webhooks);
+    } catch (error: any) {
+      console.error("Error getting webhooks:", error);
+      res.status(500).json({ error: error.message || "Erro ao listar webhooks" });
+    }
+  });
+
+  // GET /api/webhooks/:id - Obter webhook específico
+  app.get("/api/webhooks/:id", authenticateRequest, requireModule("webhooks"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const webhook = await storage.getWebhook(req.params.id, tenantId);
+      if (!webhook) {
+        return res.status(404).json({ error: "Webhook não encontrado" });
+      }
+
+      res.json(webhook);
+    } catch (error: any) {
+      console.error("Error getting webhook:", error);
+      res.status(500).json({ error: error.message || "Erro ao obter webhook" });
+    }
+  });
+
+  // POST /api/webhooks - Criar webhook
+  app.post("/api/webhooks", authenticateRequest, requireModule("webhooks"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const { name, targetUrl, secret, modules, events, active, headers, retryCount } = req.body;
+
+      // Validar campos obrigatórios
+      if (!name || !targetUrl || !modules || !events) {
+        return res.status(400).json({ error: "Nome, URL, módulos e eventos são obrigatórios" });
+      }
+
+      // Validar URL
+      try {
+        new URL(targetUrl);
+      } catch {
+        return res.status(400).json({ error: "URL inválida" });
+      }
+
+      // Validar módulos
+      const validModules = modules.filter((m: string) => WEBHOOK_MODULES.includes(m as WebhookModule));
+      if (validModules.length === 0) {
+        return res.status(400).json({ error: "Pelo menos um módulo válido é obrigatório" });
+      }
+
+      // Validar eventos
+      const validEvents = events.filter((e: string) => WEBHOOK_EVENTS.includes(e as WebhookEvent));
+      if (validEvents.length === 0) {
+        return res.status(400).json({ error: "Pelo menos um evento válido é obrigatório" });
+      }
+
+      const webhook = await storage.createWebhook({
+        tenantId,
+        name,
+        targetUrl,
+        secret: secret || null,
+        modules: validModules,
+        events: validEvents,
+        active: active ?? true,
+        headers: headers ? JSON.stringify(headers) : null,
+        retryCount: retryCount ?? 3,
+      });
+
+      res.status(201).json(webhook);
+    } catch (error: any) {
+      console.error("Error creating webhook:", error);
+      res.status(500).json({ error: error.message || "Erro ao criar webhook" });
+    }
+  });
+
+  // PUT /api/webhooks/:id - Atualizar webhook
+  app.put("/api/webhooks/:id", authenticateRequest, requireModule("webhooks"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const { name, targetUrl, secret, modules, events, active, headers, retryCount } = req.body;
+
+      const updateData: any = {};
+
+      if (name !== undefined) updateData.name = name;
+      if (targetUrl !== undefined) {
+        try {
+          new URL(targetUrl);
+          updateData.targetUrl = targetUrl;
+        } catch {
+          return res.status(400).json({ error: "URL inválida" });
+        }
+      }
+      if (secret !== undefined) updateData.secret = secret || null;
+      if (modules !== undefined) {
+        const validModules = modules.filter((m: string) => WEBHOOK_MODULES.includes(m as WebhookModule));
+        if (validModules.length === 0) {
+          return res.status(400).json({ error: "Pelo menos um módulo válido é obrigatório" });
+        }
+        updateData.modules = validModules;
+      }
+      if (events !== undefined) {
+        const validEvents = events.filter((e: string) => WEBHOOK_EVENTS.includes(e as WebhookEvent));
+        if (validEvents.length === 0) {
+          return res.status(400).json({ error: "Pelo menos um evento válido é obrigatório" });
+        }
+        updateData.events = validEvents;
+      }
+      if (active !== undefined) updateData.active = active;
+      if (headers !== undefined) updateData.headers = headers ? JSON.stringify(headers) : null;
+      if (retryCount !== undefined) updateData.retryCount = retryCount;
+
+      const webhook = await storage.updateWebhook(req.params.id, tenantId, updateData);
+      if (!webhook) {
+        return res.status(404).json({ error: "Webhook não encontrado" });
+      }
+
+      res.json(webhook);
+    } catch (error: any) {
+      console.error("Error updating webhook:", error);
+      res.status(500).json({ error: error.message || "Erro ao atualizar webhook" });
+    }
+  });
+
+  // PATCH /api/webhooks/:id/toggle - Ativar/desativar webhook
+  app.patch("/api/webhooks/:id/toggle", authenticateRequest, requireModule("webhooks"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const { active } = req.body;
+      if (typeof active !== 'boolean') {
+        return res.status(400).json({ error: "Campo 'active' é obrigatório e deve ser booleano" });
+      }
+
+      const webhook = await storage.toggleWebhook(req.params.id, tenantId, active);
+      if (!webhook) {
+        return res.status(404).json({ error: "Webhook não encontrado" });
+      }
+
+      res.json(webhook);
+    } catch (error: any) {
+      console.error("Error toggling webhook:", error);
+      res.status(500).json({ error: error.message || "Erro ao alterar status do webhook" });
+    }
+  });
+
+  // DELETE /api/webhooks/:id - Excluir webhook
+  app.delete("/api/webhooks/:id", authenticateRequest, requireModule("webhooks"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const deleted = await storage.deleteWebhook(req.params.id, tenantId);
+      if (!deleted) {
+        return res.status(404).json({ error: "Webhook não encontrado" });
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting webhook:", error);
+      res.status(500).json({ error: error.message || "Erro ao excluir webhook" });
+    }
+  });
+
+  // POST /api/webhooks/:id/test - Testar webhook
+  app.post("/api/webhooks/:id/test", authenticateRequest, requireModule("webhooks"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const webhook = await storage.getWebhook(req.params.id, tenantId);
+      if (!webhook) {
+        return res.status(404).json({ error: "Webhook não encontrado" });
+      }
+
+      const testPayload: WebhookPayload = {
+        event: 'create',
+        module: webhook.modules[0] as WebhookModule || 'clients',
+        timestamp: new Date().toISOString(),
+        tenantId,
+        data: {
+          test: true,
+          message: 'Este é um teste de webhook do AgendaPro',
+          webhookId: webhook.id,
+          webhookName: webhook.name,
+        },
+      };
+
+      const payloadString = JSON.stringify(testPayload);
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-AgendaPro-Event': 'test',
+        'X-AgendaPro-Module': 'test',
+        'X-AgendaPro-Timestamp': testPayload.timestamp,
+      };
+
+      if (webhook.secret) {
+        headers['X-AgendaPro-Signature'] = generateWebhookSignature(payloadString, webhook.secret);
+      }
+
+      try {
+        const response = await fetch(webhook.targetUrl, {
+          method: 'POST',
+          headers,
+          body: payloadString,
+          signal: AbortSignal.timeout(30000),
+        });
+
+        const responseText = await response.text().catch(() => '');
+
+        res.json({
+          success: response.ok,
+          status: response.status,
+          statusText: response.statusText,
+          responseBody: responseText.substring(0, 1000),
+        });
+      } catch (error: any) {
+        res.json({
+          success: false,
+          error: error.message || 'Erro ao enviar teste',
+        });
+      }
+    } catch (error: any) {
+      console.error("Error testing webhook:", error);
+      res.status(500).json({ error: error.message || "Erro ao testar webhook" });
+    }
+  });
+
+  // GET /api/webhook-deliveries - Listar entregas de webhooks
+  app.get("/api/webhook-deliveries", authenticateRequest, requireModule("webhooks"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const webhookId = req.query.webhookId as string | undefined;
+      const limit = parseInt(req.query.limit as string) || 100;
+
+      const deliveries = await storage.getWebhookDeliveries(tenantId, webhookId, limit);
+      res.json(deliveries);
+    } catch (error: any) {
+      console.error("Error getting webhook deliveries:", error);
+      res.status(500).json({ error: error.message || "Erro ao listar entregas" });
+    }
+  });
+
+  // POST /api/webhook-deliveries/:id/retry - Reenviar webhook
+  app.post("/api/webhook-deliveries/:id/retry", authenticateRequest, requireModule("webhooks"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      const delivery = await storage.getWebhookDelivery(req.params.id, tenantId);
+      if (!delivery) {
+        return res.status(404).json({ error: "Entrega não encontrada" });
+      }
+
+      const webhook = await storage.getWebhook(delivery.webhookId, tenantId);
+      if (!webhook) {
+        return res.status(404).json({ error: "Webhook não encontrado" });
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-AgendaPro-Event': delivery.event,
+        'X-AgendaPro-Module': delivery.module,
+        'X-AgendaPro-Delivery-Id': delivery.id,
+        'X-AgendaPro-Retry': 'true',
+        'X-AgendaPro-Timestamp': new Date().toISOString(),
+      };
+
+      if (webhook.secret) {
+        headers['X-AgendaPro-Signature'] = generateWebhookSignature(delivery.payload, webhook.secret);
+      }
+
+      try {
+        const response = await fetch(webhook.targetUrl, {
+          method: 'POST',
+          headers,
+          body: delivery.payload,
+          signal: AbortSignal.timeout(30000),
+        });
+
+        const responseText = await response.text().catch(() => '');
+
+        await storage.updateWebhookDelivery(delivery.id, {
+          status: response.ok ? 'success' : 'failed',
+          attemptCount: delivery.attemptCount + 1,
+          lastAttemptAt: new Date(),
+          responseStatus: response.status,
+          responseBody: responseText.substring(0, 1000),
+          errorMessage: response.ok ? null : `HTTP ${response.status}: ${response.statusText}`,
+        });
+
+        res.json({
+          success: response.ok,
+          status: response.status,
+          statusText: response.statusText,
+        });
+      } catch (error: any) {
+        await storage.updateWebhookDelivery(delivery.id, {
+          status: 'failed',
+          attemptCount: delivery.attemptCount + 1,
+          lastAttemptAt: new Date(),
+          errorMessage: error.message || 'Erro ao reenviar webhook',
+        });
+
+        res.json({
+          success: false,
+          error: error.message || 'Erro ao reenviar',
+        });
+      }
+    } catch (error: any) {
+      console.error("Error retrying webhook delivery:", error);
+      res.status(500).json({ error: error.message || "Erro ao reenviar webhook" });
     }
   });
 
