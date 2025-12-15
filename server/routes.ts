@@ -1092,6 +1092,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const professional = await storage.createProfessional(validatedData, tenantId);
+      
+      // Disparar webhook de criação de profissional
+      dispatchWebhook(tenantId, 'professionals', 'create', professional as Record<string, unknown>);
+      
       res.status(201).json(professional);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1139,6 +1143,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Profissional não encontrado" });
       }
 
+      // Disparar webhook de atualização de profissional
+      dispatchWebhook(tenantId, 'professionals', 'update', professional as Record<string, unknown>);
+
       res.json(professional);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1157,9 +1164,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Não autenticado" });
       }
 
+      // Buscar profissional antes de excluir para enviar no webhook
+      const professionalToDelete = await storage.getProfessional(req.params.id, tenantId);
+
       const success = await storage.deleteProfessional(req.params.id, tenantId);
       if (!success) {
         return res.status(404).json({ error: "Profissional não encontrado" });
+      }
+
+      // Disparar webhook de exclusão de profissional
+      if (professionalToDelete) {
+        dispatchWebhook(tenantId, 'professionals', 'delete', professionalToDelete as Record<string, unknown>);
       }
 
       res.status(204).send();
@@ -1274,6 +1289,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const client = await storage.createClient(validatedData);
+      
+      // Disparar webhook de criação de cliente
+      dispatchWebhook(tenantId, 'clients', 'create', client as Record<string, unknown>);
+      
       res.status(201).json(client);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1304,6 +1323,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!client) {
         return res.status(404).json({ error: "Cliente não encontrado" });
       }
+      
+      // Disparar webhook de atualização de cliente
+      dispatchWebhook(tenantId, 'clients', 'update', client as Record<string, unknown>);
+      
       res.json(client);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1318,10 +1341,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/clients/:id", authenticateRequest, requireModule("clients"), async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
+      
+      // Buscar cliente antes de excluir para enviar no webhook
+      const clientToDelete = await storage.getClient(req.params.id, tenantId);
+      
       const success = await storage.deleteClient(req.params.id, tenantId);
       if (!success) {
         return res.status(404).json({ error: "Cliente não encontrado" });
       }
+      
+      // Disparar webhook de exclusão de cliente
+      if (clientToDelete) {
+        dispatchWebhook(tenantId, 'clients', 'delete', clientToDelete as Record<string, unknown>);
+      }
+      
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting client:", error);
@@ -1717,6 +1750,10 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         tenantId
       });
       const service = await storage.createService(validatedData);
+      
+      // Disparar webhook de criação de serviço
+      dispatchWebhook(tenantId, 'services', 'create', service as Record<string, unknown>);
+      
       res.status(201).json(service);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1771,6 +1808,10 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       if (!service) {
         return res.status(404).json({ error: "Serviço não encontrado" });
       }
+      
+      // Disparar webhook de atualização de serviço
+      dispatchWebhook(tenantId, 'services', 'update', service as Record<string, unknown>);
+      
       res.json(service);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1785,10 +1826,20 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   app.delete("/api/services/:id", authenticateRequest, requireModule("services"), async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
+      
+      // Buscar serviço antes de excluir para enviar no webhook
+      const serviceToDelete = await storage.getService(req.params.id, tenantId);
+      
       const success = await storage.deleteService(req.params.id, tenantId);
       if (!success) {
         return res.status(404).json({ error: "Serviço não encontrado" });
       }
+      
+      // Disparar webhook de exclusão de serviço
+      if (serviceToDelete) {
+        dispatchWebhook(tenantId, 'services', 'delete', serviceToDelete as Record<string, unknown>);
+      }
+      
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting service:", error);
@@ -2001,6 +2052,15 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
 
       const appointment = await storage.createAppointment(validatedData);
       const appointmentServices = await storage.getAppointmentServices(appointment.id);
+      
+      // Disparar webhook de criação de agendamento
+      const tenantIdForWebhook = validatedData.tenantId;
+      dispatchWebhook(tenantIdForWebhook, 'appointments', 'create', {
+        ...appointment,
+        serviceIds: appointmentServices.map(s => s.id),
+        services: appointmentServices,
+      } as Record<string, unknown>);
+      
       res.status(201).json({
         ...appointment,
         serviceIds: appointmentServices.map(s => s.id),
@@ -2116,6 +2176,14 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       }
       // Adicionar serviceIds
       const appointmentServices = await storage.getAppointmentServices(appointment.id);
+      
+      // Disparar webhook de atualização de agendamento
+      dispatchWebhook(tenantId, 'appointments', 'update', {
+        ...appointment,
+        serviceIds: appointmentServices.map(s => s.id),
+        services: appointmentServices,
+      } as Record<string, unknown>);
+      
       res.json({
         ...appointment,
         serviceIds: appointmentServices.map(s => s.id),
@@ -2249,10 +2317,20 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   app.delete("/api/appointments/:id", authenticateRequest, async (req, res) => {
     try {
       const tenantId = getTenantId(req)!;
+      
+      // Buscar agendamento antes de excluir para enviar no webhook
+      const appointmentToDelete = await storage.getAppointment(req.params.id, tenantId);
+      
       const success = await storage.deleteAppointment(req.params.id, tenantId);
       if (!success) {
         return res.status(404).json({ error: "Agendamento não encontrado" });
       }
+      
+      // Disparar webhook de exclusão de agendamento
+      if (appointmentToDelete) {
+        dispatchWebhook(tenantId, 'appointments', 'delete', appointmentToDelete as Record<string, unknown>);
+      }
+      
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting appointment:", error);
@@ -2986,6 +3064,9 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         tenantId,
       });
 
+      // Disparar webhook de criação de produto
+      dispatchWebhook(tenantId, 'products', 'create', product as Record<string, unknown>);
+
       res.status(201).json(product);
     } catch (error: any) {
       console.error("Error creating product:", error);
@@ -3013,6 +3094,9 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       if (!product) {
         return res.status(404).json({ error: "Produto não encontrado" });
       }
+
+      // Disparar webhook de atualização de produto
+      dispatchWebhook(tenantId, 'products', 'update', product as Record<string, unknown>);
 
       res.json(product);
     } catch (error: any) {
@@ -3054,9 +3138,17 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(401).json({ error: "Não autenticado" });
       }
 
+      // Buscar produto antes de excluir para enviar no webhook
+      const productToDelete = await storage.getProduct(req.params.id, tenantId);
+
       const deleted = await storage.deleteProduct(req.params.id, tenantId);
       if (!deleted) {
         return res.status(404).json({ error: "Produto não encontrado" });
+      }
+
+      // Disparar webhook de exclusão de produto
+      if (productToDelete) {
+        dispatchWebhook(tenantId, 'products', 'delete', productToDelete as Record<string, unknown>);
       }
 
       res.status(204).send();
@@ -3200,6 +3292,9 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       // Criar pedido com endereço de entrega e referência ao endereço salvo
       const order = await storage.createOrder(tenantId, existingClient.id, items, paymentMethod, notes, finalDeliveryAddress, clientAddressId);
 
+      // Disparar webhook de criação de pedido
+      dispatchWebhook(tenantId, 'orders', 'create', order as Record<string, unknown>);
+
       res.status(201).json(order);
     } catch (error: any) {
       console.error("Error creating order:", error);
@@ -3258,6 +3353,12 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
 
       // Retornar pedido completo com detalhes
       const orderWithDetails = await storage.getOrderWithDetails(order.id, tenantId);
+      
+      // Disparar webhook de atualização de pedido
+      if (orderWithDetails) {
+        dispatchWebhook(tenantId, 'orders', 'update', orderWithDetails as Record<string, unknown>);
+      }
+      
       res.json(orderWithDetails);
     } catch (error: any) {
       console.error("Error updating order status:", error);
@@ -3428,6 +3529,10 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       }
 
       const transaction = await storage.createExpense(tenantId, validation.data);
+      
+      // Disparar webhook de criação de transação financeira
+      dispatchWebhook(tenantId, 'finance', 'create', transaction as Record<string, unknown>);
+      
       res.status(201).json(transaction);
     } catch (error: any) {
       console.error("Error creating expense:", error);
@@ -3452,6 +3557,10 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       }
 
       const transaction = await storage.createIncome(tenantId, validation.data);
+      
+      // Disparar webhook de criação de transação financeira
+      dispatchWebhook(tenantId, 'finance', 'create', transaction as Record<string, unknown>);
+      
       res.status(201).json(transaction);
     } catch (error: any) {
       console.error("Error creating income:", error);
