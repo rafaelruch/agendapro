@@ -5389,7 +5389,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   // ==================== AI ANALYTICS MODULE ROUTES ====================
   
   // Get AI Analytics Summary Metrics
-  app.get("/api/analytics/ai/summary", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+  app.get("/api/analytics/ai/summary", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5427,7 +5427,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // Get Heatmap Data (hour x day)
-  app.get("/api/analytics/ai/heatmap/hourly", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+  app.get("/api/analytics/ai/heatmap/hourly", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5460,7 +5460,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // Get Intent x Hour Heatmap
-  app.get("/api/analytics/ai/heatmap/intents", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+  app.get("/api/analytics/ai/heatmap/intents", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5493,7 +5493,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // Get Trend Data
-  app.get("/api/analytics/ai/trends", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+  app.get("/api/analytics/ai/trends", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5526,7 +5526,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // Get Conversion Funnel
-  app.get("/api/analytics/ai/funnel", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+  app.get("/api/analytics/ai/funnel", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5559,7 +5559,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // Get Intent Distribution
-  app.get("/api/analytics/ai/intents-distribution", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+  app.get("/api/analytics/ai/intents-distribution", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5592,7 +5592,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // Get Quality Metrics
-  app.get("/api/analytics/ai/quality", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+  app.get("/api/analytics/ai/quality", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5629,7 +5629,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // Get Conversations List
-  app.get("/api/analytics/ai/conversations", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+  app.get("/api/analytics/ai/conversations", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5666,7 +5666,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // Get Alerts
-  app.get("/api/analytics/ai/alerts", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+  app.get("/api/analytics/ai/alerts", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5699,7 +5699,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // Get Month Comparison
-  app.get("/api/analytics/ai/comparison", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+  app.get("/api/analytics/ai/comparison", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5726,7 +5726,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // Get Filter Options (channels, intents, agents)
-  app.get("/api/analytics/ai/filters", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+  app.get("/api/analytics/ai/filters", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5759,7 +5759,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // Test Supabase Connection
-  app.post("/api/analytics/ai/test-connection", authenticateRequest, requireTenantAccess, async (req, res) => {
+  app.post("/api/analytics/ai/test-connection", authenticateRequest, requireAuth, async (req, res) => {
     try {
       const { supabaseUrl, supabaseDatabase, supabaseAnonKey } = req.body;
 
@@ -5782,7 +5782,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // Update Supabase Config for Tenant
-  app.put("/api/tenant/supabase-config", authenticateRequest, requireTenantAccess, async (req, res) => {
+  app.put("/api/tenant/supabase-config", authenticateRequest, requireAuth, async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5797,6 +5797,10 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         supabaseAnonKey: supabaseAnonKey || null,
       });
 
+      if (!updatedTenant) {
+        return res.status(404).json({ error: "Tenant não encontrado" });
+      }
+
       res.json({
         message: "Configuração do Supabase atualizada com sucesso",
         supabaseUrl: updatedTenant.supabaseUrl,
@@ -5810,7 +5814,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
   });
 
   // Get Supabase Config for Tenant
-  app.get("/api/tenant/supabase-config", authenticateRequest, requireTenantAccess, async (req, res) => {
+  app.get("/api/tenant/supabase-config", authenticateRequest, requireAuth, async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {

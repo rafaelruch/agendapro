@@ -1,4 +1,4 @@
-import { Calendar, LayoutDashboard, Users, Settings, Briefcase, UserCog, ChevronDown, UserCheck, Package, ShoppingCart, ChefHat, Wallet, ClipboardList, Tag, Store, Webhook } from "lucide-react";
+import { Calendar, LayoutDashboard, Users, Settings, Briefcase, UserCog, ChevronDown, UserCheck, Package, ShoppingCart, ChefHat, Wallet, ClipboardList, Tag, Store, Webhook, BrainCircuit } from "lucide-react";
 import { useLocation } from "wouter";
 import { useSidebar } from "@/context/SidebarContext";
 
@@ -124,6 +124,13 @@ export function AppSidebarNew({ userRole, allowedModules = [] }: AppSidebarProps
       path: "/webhooks",
       testId: "link-webhooks",
       moduleId: "webhooks"
+    },
+    {
+      name: "Analytics IA",
+      icon: <BrainCircuit className="h-5 w-5" />,
+      path: "/ai-analytics",
+      testId: "link-ai-analytics",
+      moduleId: "ai-analytics"
     },
   ].filter(item => item.moduleId === null || hasModule(item.moduleId)) : [];
 
