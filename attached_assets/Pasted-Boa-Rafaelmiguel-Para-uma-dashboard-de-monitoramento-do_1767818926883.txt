@@ -1,0 +1,91 @@
+Boa, Rafaelmiguel! Para uma dashboard de monitoramento do agente de IA, vou te dar uma estrutura bem completa:
+
+---
+
+## **Métricas Principais (Cards no Topo)**
+
+- Total de atendimentos (período selecionado)
+- Tempo médio de resposta
+- Taxa de resolução sem humano (%)
+- Atendimentos em andamento agora
+- NPS/Satisfação média
+- Taxa de handoff para humano
+
+---
+
+## **Mapas de Calor**
+
+**Por horário x dia da semana** — mostra quando tem mais demanda, tipo segunda às 10h é pico. Ajuda a entender padrões de comportamento do cliente.
+
+**Por tipo de intenção x horário** — quais assuntos são mais procurados em cada momento do dia.
+
+**Por tempo de resposta x volume** — identificar gargalos onde demora mais.
+
+---
+
+## **Filtros Essenciais**
+
+- Hoje / Ontem / Últimos 7 dias / Últimos 30 dias
+- Intervalo customizado (date range picker)
+- Por agente específico (se tiver múltiplos, tipo Life Estética, Clínica Jamous)
+- Por canal (WhatsApp, Instagram, etc)
+- Por status (resolvido, pendente, transferido)
+- Por tag/intenção (agendamento, dúvida, reclamação)
+
+---
+
+## **Gráficos de Tendência**
+
+**Linha temporal** — volume de atendimentos por hora/dia/semana
+
+**Funil de conversão** — entrada → qualificação → agendamento → confirmação
+
+**Pizza/Donut** — distribuição por tipo de atendimento ou intenção detectada
+
+**Barras comparativas** — este mês vs mês anterior
+
+---
+
+## **Análise de Qualidade**
+
+- Mensagens até resolução (média)
+- Taxa de fallback (quando o agente não entendeu)
+- Perguntas mais frequentes (word cloud ou ranking)
+- Sentimento das conversas (positivo/neutro/negativo)
+- Conversas que precisaram de intervenção humana (com motivo)
+
+---
+
+## **Tabela de Atendimentos**
+
+Lista detalhada com:
+- Número/contato (mascarado se precisar)
+- Data/hora início e fim
+- Duração
+- Intenção principal
+- Status final
+- Score de satisfação
+- Link para ver conversa completa
+
+---
+
+## **Alertas e Anomalias**
+
+- Picos incomuns de atendimento
+- Aumento de taxa de erro
+- Tempo de resposta acima do SLA
+- Conversas abandonadas
+
+---
+
+## **Fontes de Dados**
+
+Considerando tua stack, você pode puxar de:
+- **Chatwoot** — conversas, status, tags, timestamps
+- **Evolution API** — logs de mensagens enviadas/recebidas
+- **N8N** — executions log para ver automações disparadas
+- **Supabase/Postgres** — se estiver logando em tabela própria
+
+---
+
+Quer que eu monte um esquema de banco de dados para armazenar essas métricas ou um protótipo visual da dashboard?
