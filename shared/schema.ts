@@ -100,6 +100,13 @@ export const MODULE_DEFINITIONS: ModuleDefinition[] = [
     isCore: false,
     defaultEnabled: false,
   },
+  {
+    id: "ai-analytics",
+    label: "Analytics IA",
+    description: "Dashboard de métricas e análises de atendimento IA",
+    isCore: false,
+    defaultEnabled: false,
+  },
 ];
 
 // Helper para obter módulos habilitados por padrão
@@ -136,6 +143,10 @@ export const tenants = pgTable("tenants", {
   menuBannerUrl: text("menu_banner_url"),
   menuType: text("menu_type").default("delivery"), // 'delivery' ou 'services'
   minOrderValue: numeric("min_order_value", { precision: 10, scale: 2 }),
+  // Configurações do Supabase para Analytics de IA
+  supabaseUrl: text("supabase_url"), // URL do Supabase (ex: supabase.ruch.com.br)
+  supabaseDatabase: text("supabase_database"), // Nome do banco de dados específico do tenant
+  supabaseAnonKey: text("supabase_anon_key"), // Chave anon do Supabase
   createdAt: timestamp("created_at").defaultNow(),
 });
 

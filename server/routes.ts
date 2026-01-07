@@ -5386,6 +5386,454 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
+  // ==================== AI ANALYTICS MODULE ROUTES ====================
+  
+  // Get AI Analytics Summary Metrics
+  app.get("/api/analytics/ai/summary", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Tenant não identificado" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
+        return res.status(400).json({ error: "Configuração do Supabase não encontrada. Configure nas configurações do tenant." });
+      }
+
+      const { startDate, endDate, channel, status, intent, agentName } = req.query;
+      
+      const filters = {
+        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: endDate as string || new Date().toISOString(),
+        channel: channel as string,
+        status: status as string,
+        intent: intent as string,
+        agentName: agentName as string,
+      };
+
+      const supabaseService = await import('./supabaseService');
+      const summary = await supabaseService.getAiMetricsSummary({
+        supabaseUrl: tenant.supabaseUrl,
+        supabaseDatabase: tenant.supabaseDatabase,
+        supabaseAnonKey: tenant.supabaseAnonKey,
+      }, filters);
+
+      res.json(summary);
+    } catch (error: any) {
+      console.error("Error fetching AI analytics summary:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar métricas de IA" });
+    }
+  });
+
+  // Get Heatmap Data (hour x day)
+  app.get("/api/analytics/ai/heatmap/hourly", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Tenant não identificado" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
+        return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
+      }
+
+      const { startDate, endDate } = req.query;
+      const filters = {
+        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: endDate as string || new Date().toISOString(),
+      };
+
+      const supabaseService = await import('./supabaseService');
+      const heatmap = await supabaseService.getHourlyDayHeatmap({
+        supabaseUrl: tenant.supabaseUrl,
+        supabaseDatabase: tenant.supabaseDatabase,
+        supabaseAnonKey: tenant.supabaseAnonKey,
+      }, filters);
+
+      res.json(heatmap);
+    } catch (error: any) {
+      console.error("Error fetching heatmap data:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar mapa de calor" });
+    }
+  });
+
+  // Get Intent x Hour Heatmap
+  app.get("/api/analytics/ai/heatmap/intents", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Tenant não identificado" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
+        return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
+      }
+
+      const { startDate, endDate } = req.query;
+      const filters = {
+        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: endDate as string || new Date().toISOString(),
+      };
+
+      const supabaseService = await import('./supabaseService');
+      const heatmap = await supabaseService.getIntentHourHeatmap({
+        supabaseUrl: tenant.supabaseUrl,
+        supabaseDatabase: tenant.supabaseDatabase,
+        supabaseAnonKey: tenant.supabaseAnonKey,
+      }, filters);
+
+      res.json(heatmap);
+    } catch (error: any) {
+      console.error("Error fetching intent heatmap:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar mapa de intenções" });
+    }
+  });
+
+  // Get Trend Data
+  app.get("/api/analytics/ai/trends", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Tenant não identificado" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
+        return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
+      }
+
+      const { startDate, endDate, groupBy } = req.query;
+      const filters = {
+        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: endDate as string || new Date().toISOString(),
+      };
+
+      const supabaseService = await import('./supabaseService');
+      const trends = await supabaseService.getTrendData({
+        supabaseUrl: tenant.supabaseUrl,
+        supabaseDatabase: tenant.supabaseDatabase,
+        supabaseAnonKey: tenant.supabaseAnonKey,
+      }, filters, groupBy as 'hour' | 'day' | 'week' || 'day');
+
+      res.json(trends);
+    } catch (error: any) {
+      console.error("Error fetching trend data:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar dados de tendência" });
+    }
+  });
+
+  // Get Conversion Funnel
+  app.get("/api/analytics/ai/funnel", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Tenant não identificado" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
+        return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
+      }
+
+      const { startDate, endDate } = req.query;
+      const filters = {
+        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: endDate as string || new Date().toISOString(),
+      };
+
+      const supabaseService = await import('./supabaseService');
+      const funnel = await supabaseService.getConversionFunnel({
+        supabaseUrl: tenant.supabaseUrl,
+        supabaseDatabase: tenant.supabaseDatabase,
+        supabaseAnonKey: tenant.supabaseAnonKey,
+      }, filters);
+
+      res.json(funnel);
+    } catch (error: any) {
+      console.error("Error fetching funnel data:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar funil de conversão" });
+    }
+  });
+
+  // Get Intent Distribution
+  app.get("/api/analytics/ai/intents-distribution", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Tenant não identificado" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
+        return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
+      }
+
+      const { startDate, endDate } = req.query;
+      const filters = {
+        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: endDate as string || new Date().toISOString(),
+      };
+
+      const supabaseService = await import('./supabaseService');
+      const distribution = await supabaseService.getIntentDistribution({
+        supabaseUrl: tenant.supabaseUrl,
+        supabaseDatabase: tenant.supabaseDatabase,
+        supabaseAnonKey: tenant.supabaseAnonKey,
+      }, filters);
+
+      res.json(distribution);
+    } catch (error: any) {
+      console.error("Error fetching intent distribution:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar distribuição de intenções" });
+    }
+  });
+
+  // Get Quality Metrics
+  app.get("/api/analytics/ai/quality", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Tenant não identificado" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
+        return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
+      }
+
+      const { startDate, endDate, channel, status, intent, agentName } = req.query;
+      const filters = {
+        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: endDate as string || new Date().toISOString(),
+        channel: channel as string,
+        status: status as string,
+        intent: intent as string,
+        agentName: agentName as string,
+      };
+
+      const supabaseService = await import('./supabaseService');
+      const quality = await supabaseService.getQualityMetrics({
+        supabaseUrl: tenant.supabaseUrl,
+        supabaseDatabase: tenant.supabaseDatabase,
+        supabaseAnonKey: tenant.supabaseAnonKey,
+      }, filters);
+
+      res.json(quality);
+    } catch (error: any) {
+      console.error("Error fetching quality metrics:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar métricas de qualidade" });
+    }
+  });
+
+  // Get Conversations List
+  app.get("/api/analytics/ai/conversations", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Tenant não identificado" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
+        return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
+      }
+
+      const { startDate, endDate, channel, status, intent, agentName, page, limit } = req.query;
+      const filters = {
+        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: endDate as string || new Date().toISOString(),
+        channel: channel as string,
+        status: status as string,
+        intent: intent as string,
+        agentName: agentName as string,
+      };
+
+      const supabaseService = await import('./supabaseService');
+      const result = await supabaseService.getConversationsList({
+        supabaseUrl: tenant.supabaseUrl,
+        supabaseDatabase: tenant.supabaseDatabase,
+        supabaseAnonKey: tenant.supabaseAnonKey,
+      }, filters, parseInt(page as string) || 1, parseInt(limit as string) || 20);
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error fetching conversations list:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar lista de atendimentos" });
+    }
+  });
+
+  // Get Alerts
+  app.get("/api/analytics/ai/alerts", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Tenant não identificado" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
+        return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
+      }
+
+      const { startDate, endDate } = req.query;
+      const filters = {
+        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: endDate as string || new Date().toISOString(),
+      };
+
+      const supabaseService = await import('./supabaseService');
+      const alerts = await supabaseService.getAlerts({
+        supabaseUrl: tenant.supabaseUrl,
+        supabaseDatabase: tenant.supabaseDatabase,
+        supabaseAnonKey: tenant.supabaseAnonKey,
+      }, filters);
+
+      res.json(alerts);
+    } catch (error: any) {
+      console.error("Error fetching alerts:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar alertas" });
+    }
+  });
+
+  // Get Month Comparison
+  app.get("/api/analytics/ai/comparison", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Tenant não identificado" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
+        return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
+      }
+
+      const supabaseService = await import('./supabaseService');
+      const comparison = await supabaseService.getMonthComparison({
+        supabaseUrl: tenant.supabaseUrl,
+        supabaseDatabase: tenant.supabaseDatabase,
+        supabaseAnonKey: tenant.supabaseAnonKey,
+      });
+
+      res.json(comparison);
+    } catch (error: any) {
+      console.error("Error fetching month comparison:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar comparação mensal" });
+    }
+  });
+
+  // Get Filter Options (channels, intents, agents)
+  app.get("/api/analytics/ai/filters", authenticateRequest, requireTenantAccess, requireModuleAccess("ai-analytics"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Tenant não identificado" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
+        return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
+      }
+
+      const supabaseService = await import('./supabaseService');
+      const config = {
+        supabaseUrl: tenant.supabaseUrl,
+        supabaseDatabase: tenant.supabaseDatabase,
+        supabaseAnonKey: tenant.supabaseAnonKey,
+      };
+
+      const [channels, intents, agents] = await Promise.all([
+        supabaseService.getChannelsList(config),
+        supabaseService.getIntentsList(config),
+        supabaseService.getAgentsList(config),
+      ]);
+
+      res.json({ channels, intents, agents });
+    } catch (error: any) {
+      console.error("Error fetching filter options:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar opções de filtros" });
+    }
+  });
+
+  // Test Supabase Connection
+  app.post("/api/analytics/ai/test-connection", authenticateRequest, requireTenantAccess, async (req, res) => {
+    try {
+      const { supabaseUrl, supabaseDatabase, supabaseAnonKey } = req.body;
+
+      if (!supabaseUrl || !supabaseDatabase || !supabaseAnonKey) {
+        return res.status(400).json({ error: "URL, database e chave anon são obrigatórios" });
+      }
+
+      const supabaseService = await import('./supabaseService');
+      const result = await supabaseService.testSupabaseConnection({
+        supabaseUrl,
+        supabaseDatabase,
+        supabaseAnonKey,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error testing Supabase connection:", error);
+      res.status(500).json({ error: error.message || "Erro ao testar conexão" });
+    }
+  });
+
+  // Update Supabase Config for Tenant
+  app.put("/api/tenant/supabase-config", authenticateRequest, requireTenantAccess, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Tenant não identificado" });
+      }
+
+      const { supabaseUrl, supabaseDatabase, supabaseAnonKey } = req.body;
+
+      const updatedTenant = await storage.updateTenant(tenantId, {
+        supabaseUrl: supabaseUrl || null,
+        supabaseDatabase: supabaseDatabase || null,
+        supabaseAnonKey: supabaseAnonKey || null,
+      });
+
+      res.json({
+        message: "Configuração do Supabase atualizada com sucesso",
+        supabaseUrl: updatedTenant.supabaseUrl,
+        supabaseDatabase: updatedTenant.supabaseDatabase,
+        supabaseConfigured: !!(updatedTenant.supabaseUrl && updatedTenant.supabaseDatabase && updatedTenant.supabaseAnonKey),
+      });
+    } catch (error: any) {
+      console.error("Error updating Supabase config:", error);
+      res.status(500).json({ error: error.message || "Erro ao atualizar configuração" });
+    }
+  });
+
+  // Get Supabase Config for Tenant
+  app.get("/api/tenant/supabase-config", authenticateRequest, requireTenantAccess, async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Tenant não identificado" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant não encontrado" });
+      }
+
+      res.json({
+        supabaseUrl: tenant.supabaseUrl || "",
+        supabaseDatabase: tenant.supabaseDatabase || "",
+        supabaseAnonKey: tenant.supabaseAnonKey ? "***configurado***" : "",
+        supabaseConfigured: !!(tenant.supabaseUrl && tenant.supabaseDatabase && tenant.supabaseAnonKey),
+      });
+    } catch (error: any) {
+      console.error("Error getting Supabase config:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar configuração" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
