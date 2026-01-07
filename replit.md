@@ -84,6 +84,31 @@ All data tables throughout the system must adhere to a standardized structure fo
         - `GET /api/admin/tenants/:tenantId/webhooks/:id/deliveries` - Delivery history
         - `POST /api/admin/tenants/:tenantId/webhooks/deliveries/:deliveryId/retry` - Retry failed delivery
     - **Frontend Pages**: WebhooksPage.tsx (tenant admins), AdminPage.tsx Webhooks tab (master admin)
+- **AI Analytics Module**:
+    - **Features**: Dashboard for AI-powered customer service metrics, connected to per-tenant Supabase databases hosted on self-hosted infrastructure (supabase.ruch.com.br).
+    - **Tenant Configuration**: Each tenant configures their own Supabase connection (URL, database name, anon key) stored in `tenants` table.
+    - **Database Fields (tenants table)**: `supabase_url`, `supabase_database`, `supabase_anon_key`.
+    - **API Endpoints**:
+        - `GET /api/analytics/ai/summary` - Summary metrics (total conversations, average response time, satisfaction, etc.)
+        - `GET /api/analytics/ai/heatmap` - Conversation volume heatmap by hour/weekday
+        - `GET /api/analytics/ai/trends` - Daily/hourly trend data
+        - `GET /api/analytics/ai/funnel` - Conversation funnel metrics
+        - `GET /api/analytics/ai/quality` - Quality metrics (sentiment, fallback rate)
+        - `GET /api/analytics/ai/conversations` - Paginated conversation list with filters
+        - `GET /api/analytics/ai/alerts` - Recent anomaly alerts
+        - `GET /api/analytics/ai/filters` - Available filter options (channels, statuses, intents, agents)
+        - `GET /api/analytics/ai/comparison` - Month-over-month comparison
+        - `POST /api/analytics/ai/test-connection` - Test Supabase connection
+        - `GET /api/tenant/supabase-config` - Get current Supabase configuration
+        - `PUT /api/tenant/supabase-config` - Update Supabase configuration
+    - **Expected Supabase Tables**: The tenant's Supabase database must have these tables:
+        - `ai_conversations`: id (uuid), contact_phone (text), channel (text), primary_intent (text), status (text: completed/transferred/abandoned), satisfaction_score (integer 1-5), started_at (timestamp), ended_at (timestamp), messages_count (integer), avg_response_time_ms (integer), sentiment (text: positive/neutral/negative), agent_name (text), handoff_reason (text), tags (text[])
+        - `ai_alerts`: id (uuid), type (text), severity (text: high/medium/low), message (text), created_at (timestamp)
+        - `ai_frequent_questions`: question (text), count (integer), date (date)
+    - **Frontend**: AiAnalyticsPage.tsx with 5 tabs (Dashboard, Quality, Conversations, Alerts, Settings)
+    - **Dashboard Components**: Metrics cards, ApexCharts heatmaps, line/area charts for trends, funnel chart, intent distribution pie chart
+    - **Filters**: Date range presets, channel, status, intent, agent filters
+    - **Module Permission**: Requires `ai-analytics` module enabled for tenant
 - **Public Menu System**:
     - **Features**: Public catalog page accessible via unique URL (/menu/{slug}), customizable branding (logo and brand color), product categories with display order, mobile-first responsive design.
     - **Menu Types**: Supports two mutually exclusive modes - "delivery" (products/orders) and "services" (appointments).

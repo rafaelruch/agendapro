@@ -55,6 +55,16 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tenants' AND column_name = 'min_order_value') THEN
         ALTER TABLE tenants ADD COLUMN min_order_value NUMERIC(10, 2);
     END IF;
+    -- Colunas para integração com Supabase (Analytics IA)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tenants' AND column_name = 'supabase_url') THEN
+        ALTER TABLE tenants ADD COLUMN supabase_url TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tenants' AND column_name = 'supabase_database') THEN
+        ALTER TABLE tenants ADD COLUMN supabase_database TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tenants' AND column_name = 'supabase_anon_key') THEN
+        ALTER TABLE tenants ADD COLUMN supabase_anon_key TEXT;
+    END IF;
 END $$;
 
 -- ========== TABELA: users ==========

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -933,10 +933,23 @@ function SupabaseConfigForm() {
   const [supabaseAnonKey, setSupabaseAnonKey] = useState("");
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [keyChanged, setKeyChanged] = useState(false);
 
-  const { data: currentConfig, refetch } = useQuery<SupabaseConfig>({
+  const { data: currentConfig, refetch, isLoading: configLoading } = useQuery<SupabaseConfig>({
     queryKey: ["/api/tenant/supabase-config"],
   });
+
+  // Only load URL and database from config, never the key (it's masked on server)
+  useEffect(() => {
+    if (currentConfig) {
+      if (!supabaseUrl && currentConfig.supabaseUrl) {
+        setSupabaseUrl(currentConfig.supabaseUrl);
+      }
+      if (!supabaseDatabase && currentConfig.supabaseDatabase) {
+        setSupabaseDatabase(currentConfig.supabaseDatabase);
+      }
+    }
+  }, [currentConfig]);
 
   const handleTest = async () => {
     if (!supabaseUrl || !supabaseDatabase || !supabaseAnonKey) {
@@ -966,15 +979,36 @@ function SupabaseConfigForm() {
   };
 
   const handleSave = async () => {
+    // Validate: need URL and database always; key only if not already configured or being changed
+    if (!supabaseUrl || !supabaseDatabase) {
+      toast({ title: "URL e Database são obrigatórios", variant: "destructive" });
+      return;
+    }
+    
+    // If no key configured and none provided, require key
+    if (!currentConfig?.supabaseConfigured && !supabaseAnonKey) {
+      toast({ title: "Chave Anon é obrigatória para configuração inicial", variant: "destructive" });
+      return;
+    }
+
     setSaving(true);
     try {
-      await apiRequest("PUT", "/api/tenant/supabase-config", { 
+      // Only send key if it was actually changed/provided
+      const configData: any = { 
         supabaseUrl, 
-        supabaseDatabase, 
-        supabaseAnonKey 
-      });
+        supabaseDatabase 
+      };
+      
+      // Only include key if user typed a new one
+      if (supabaseAnonKey) {
+        configData.supabaseAnonKey = supabaseAnonKey;
+      }
+
+      await apiRequest("PUT", "/api/tenant/supabase-config", configData);
 
       toast({ title: "Configuração salva com sucesso!" });
+      setSupabaseAnonKey(""); // Clear key from state after saving
+      setKeyChanged(false);
       refetch();
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/ai"] });
     } catch (error: any) {
@@ -1034,17 +1068,24 @@ function SupabaseConfigForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="supabaseAnonKey">Chave Anon (anon key)</Label>
+          <Label htmlFor="supabaseAnonKey">
+            Chave Anon (anon key)
+            {currentConfig?.supabaseConfigured && (
+              <span className="text-xs text-muted-foreground ml-2">(deixe vazio para manter a atual)</span>
+            )}
+          </Label>
           <Input
             id="supabaseAnonKey"
             type="password"
-            placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            placeholder={currentConfig?.supabaseConfigured ? "••••••••••• (manter atual)" : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}
             value={supabaseAnonKey}
             onChange={e => setSupabaseAnonKey(e.target.value)}
             data-testid="input-supabase-key"
           />
           <p className="text-xs text-muted-foreground">
-            Chave pública de acesso ao Supabase
+            {currentConfig?.supabaseConfigured 
+              ? "Preencha apenas para alterar a chave atual" 
+              : "Chave pública de acesso ao Supabase"}
           </p>
         </div>
 

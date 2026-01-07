@@ -5758,14 +5758,21 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
-  // Test Supabase Connection
-  app.post("/api/analytics/ai/test-connection", authenticateRequest, requireAuth, async (req, res) => {
+  // Test Supabase Connection (admin only)
+  app.post("/api/analytics/ai/test-connection", authenticateRequest, requireAuth, requireTenantAdmin, async (req, res) => {
     try {
-      const { supabaseUrl, supabaseDatabase, supabaseAnonKey } = req.body;
+      const testConnectionSchema = z.object({
+        supabaseUrl: z.string().min(1, "URL é obrigatória"),
+        supabaseDatabase: z.string().min(1, "Database é obrigatório"),
+        supabaseAnonKey: z.string().min(1, "Chave anon é obrigatória"),
+      });
 
-      if (!supabaseUrl || !supabaseDatabase || !supabaseAnonKey) {
-        return res.status(400).json({ error: "URL, database e chave anon são obrigatórios" });
+      const validation = testConnectionSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: validation.error.errors[0].message });
       }
+
+      const { supabaseUrl, supabaseDatabase, supabaseAnonKey } = validation.data;
 
       const supabaseService = await import('./supabaseService');
       const result = await supabaseService.testSupabaseConnection({
@@ -5781,15 +5788,26 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
-  // Update Supabase Config for Tenant
-  app.put("/api/tenant/supabase-config", authenticateRequest, requireAuth, async (req, res) => {
+  // Update Supabase Config for Tenant (admin only)
+  app.put("/api/tenant/supabase-config", authenticateRequest, requireAuth, requireTenantAdmin, async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
         return res.status(401).json({ error: "Tenant não identificado" });
       }
 
-      const { supabaseUrl, supabaseDatabase, supabaseAnonKey } = req.body;
+      const updateConfigSchema = z.object({
+        supabaseUrl: z.string().optional().nullable(),
+        supabaseDatabase: z.string().optional().nullable(),
+        supabaseAnonKey: z.string().optional().nullable(),
+      });
+
+      const validation = updateConfigSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: validation.error.errors[0].message });
+      }
+
+      const { supabaseUrl, supabaseDatabase, supabaseAnonKey } = validation.data;
 
       const updatedTenant = await storage.updateTenant(tenantId, {
         supabaseUrl: supabaseUrl || null,
@@ -5813,8 +5831,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
-  // Get Supabase Config for Tenant
-  app.get("/api/tenant/supabase-config", authenticateRequest, requireAuth, async (req, res) => {
+  // Get Supabase Config for Tenant (admin only)
+  app.get("/api/tenant/supabase-config", authenticateRequest, requireAuth, requireTenantAdmin, async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
