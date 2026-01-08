@@ -1,0 +1,47 @@
+🔒 Trust proxy habilitado (Replit environment)
+11:13:18 AM [express] 🔒 SESSION_SECRET configurado (88 caracteres)
+11:13:18 AM [express] ⚠️  Usando MemoryStore para sessões (apenas desenvolvimento)
+11:13:19 AM [express] ℹ️  Master Admin já existe
+11:13:19 AM [express] serving on port 5000
+Browserslist: browsers data (caniuse-lite) is 15 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+11:13:28 AM [express] GET /api/setup/status 304 in 39ms :: {"installed":true}
+11:13:28 AM [express] GET /api/setup/status 200 in 35ms :: {"installed":true}
+11:13:28 AM [express] GET /api/auth/me 401 in 0ms :: {"error":"Não autenticado"}
+11:13:28 AM [express] GET /api/auth/me 401 in 2ms :: {"error":"Não autenticado"}
+11:14:24 AM [express] GET /api/setup/status 304 in 2259ms :: {"installed":true}
+11:14:25 AM [express] GET /api/auth/me 401 in 0ms :: {"error":"Não autenticado"}
+11:14:30 AM [express] GET /api/setup/status 304 in 34ms :: {"installed":true}
+11:14:30 AM [express] GET /api/auth/me 401 in 0ms :: {"error":"Não autenticado"}
+[LOGIN] User: teste, Role: admin, TenantId: tenant-1, SessionID: 2Nqz8nOwVwVbHXJVXmepq-3kIgh7GSiO
+11:14:52 AM [express] POST /api/auth/login 200 in 2372ms :: {"user":{"id":"64d2a3d7-dfff-4d0c-a552-9a…
+11:14:52 AM [express] GET /api/setup/status 304 in 33ms :: {"installed":true}
+11:14:52 AM [express] GET /api/auth/me 304 in 361ms :: {"user":{"id":"64d2a3d7-dfff-4d0c-a552-9a15ad0…
+11:14:52 AM [express] GET /api/clients 304 in 125ms :: [{"id":"0b171cf3-beb9-453a-8d4a-0898656bc16f",…
+11:14:53 AM [express] GET /api/services 304 in 363ms :: [{"id":"c8db5efd-23c9-4fb6-8f92-35e93b2c8c2d"…
+11:14:55 AM [express] GET /api/appointments 304 in 2475ms :: [{"id":"19b98bee-2815-469e-a2ef-44f88465…
+11:14:57 AM [express] GET /api/webhooks 200 in 67ms :: []
+11:14:57 AM [express] GET /api/tenant/supabase-config 304 in 31ms :: {"supabaseUrl":"https://supabase…
+11:14:57 AM [express] GET /api/analytics/ai/heatmap/hourly/2026-01-01T03:00:00.000Z/2026-01-09T02:59:…
+11:14:57 AM [express] GET /api/analytics/ai/summary/2026-01-01T03:00:00.000Z/2026-01-09T02:59:59.999Z…
+11:14:57 AM [express] GET /api/analytics/ai/funnel/2026-01-01T03:00:00.000Z/2026-01-09T02:59:59.999Z …
+11:14:57 AM [express] GET /api/analytics/ai/trends/2026-01-01T03:00:00.000Z/2026-01-09T02:59:59.999Z …
+Error fetching filter options: {
+  code: '42P01',
+  details: null,
+  hint: null,
+  message: 'relation "public.atendimentos" does not exist'
+}
+Error fetching filter options: Error: Erro ao buscar opções de filtro: relation "public.atendimentos" does not exist
+    at Module.getFilterOptions (/home/runner/workspace/server/supabaseService.ts:391:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:5644:29)
+11:14:58 AM [express] GET /api/analytics/ai/filters 500 in 748ms :: {"error":"Erro ao buscar opções d…
+11:15:01 AM [express] GET /api/analytics/ai/quality/2026-01-01T03:00:00.000Z/2026-01-09T02:59:59.999Z…
+11:15:10 AM [express] GET /api/analytics/ai/heatmap/hourly/2026-01-01T03:00:00.000Z/2026-01-09T02:59:…
+11:15:10 AM [express] GET /api/analytics/ai/funnel/2026-01-01T03:00:00.000Z/2026-01-09T02:59:59.999Z …
+11:15:10 AM [express] GET /api/analytics/ai/trends/2026-01-01T03:00:00.000Z/2026-01-09T02:59:59.999Z …
+11:15:15 AM [express] GET /api/analytics/ai/conversations/2026-01-01T03:00:00.000Z/2026-01-09T02:59:5…
