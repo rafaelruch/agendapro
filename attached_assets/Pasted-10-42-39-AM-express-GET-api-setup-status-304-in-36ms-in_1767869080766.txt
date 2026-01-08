@@ -1,0 +1,108 @@
+10:42:39 AM [express] GET /api/setup/status 304 in 36ms :: {"installed":true}
+10:42:40 AM [express] GET /api/auth/me 401 in 1ms :: {"error":"Não autenticado"}
+Error during login: error: column "supabase_url" does not exist
+    at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/node_modules/src/node-postgres/session.ts:104:19)
+    at async DbStorage.getTenant (/home/runner/workspace/server/storage.ts:351:20)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:286:18) {
+  length: 113,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '151',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3722',
+  routine: 'errorMissingColumn'
+}
+10:43:28 AM [express] POST /api/auth/login 500 in 388ms :: {"error":"Erro ao fazer login"}
+Error during login: error: column "supabase_url" does not exist
+    at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/node_modules/src/node-postgres/session.ts:104:19)
+    at async DbStorage.getTenant (/home/runner/workspace/server/storage.ts:351:20)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:286:18) {
+  length: 113,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '151',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3722',
+  routine: 'errorMissingColumn'
+}
+10:43:43 AM [express] POST /api/auth/login 500 in 346ms :: {"error":"Erro ao fazer login"}
+[LOGIN] User: admin, Role: master_admin, TenantId: null, SessionID: Pp0GQ2pNWjuV5me81eIwXX0v6b7g8lvp
+10:43:49 AM [express] POST /api/auth/login 200 in 295ms :: {"user":{"id":"a773d333-76d5-4fad-a64a-501…
+10:43:49 AM [express] GET /api/setup/status 304 in 31ms :: {"installed":true}
+10:43:49 AM [express] GET /api/auth/me 200 in 238ms :: {"user":{"id":"a773d333-76d5-4fad-a64a-501fc75…
+10:43:50 AM [express] GET /api/clients 200 in 1ms :: []
+Error fetching tenants: error: column "supabase_url" does not exist
+    at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/node_modules/src/node-postgres/session.ts:104:19)
+    at async DbStorage.getAllTenants (/home/runner/workspace/server/storage.ts:364:12)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:399:23) {
+  length: 113,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '151',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3722',
+  routine: 'errorMissingColumn'
+}
+10:43:50 AM [express] GET /api/admin/tenants 500 in 32ms :: {"error":"Erro ao buscar tenants"}
+10:43:50 AM [express] GET /api/admin/appointments 304 in 76ms :: [{"id":"19b98bee-2815-469e-a2ef-44f8…
+Error creating tenant: error: column "supabase_url" of relation "tenants" does not exist
+    at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/node_modules/src/node-postgres/session.ts:104:19)
+    at async DbStorage.createTenant (/home/runner/workspace/server/storage.ts:368:20)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:411:22) {
+  length: 133,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '167',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '1066',
+  routine: 'checkInsertTargets'
+}
+10:44:11 AM [express] POST /api/admin/tenants 500 in 234ms :: {"error":"Erro ao criar tenant"}
