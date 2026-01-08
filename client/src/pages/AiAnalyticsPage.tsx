@@ -506,21 +506,19 @@ function DashboardTab({
         <FollowUpCard label="Follow-up 4" value={summary?.follow_ups?.follow_up_04 || 0} color="purple" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {heatmapData && heatmapData.length > 0 && (
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Volume por Hora/Dia</h3>
-            <HeatmapChart data={heatmapData} />
-          </div>
-        )}
+      {heatmapData && heatmapData.length > 0 && (
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Volume por Hora/Dia</h3>
+          <HeatmapChart data={heatmapData} />
+        </div>
+      )}
 
-        {trendsData && trendsData.daily && trendsData.daily.length > 0 && (
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Tendência Diária</h3>
-            <TrendChart data={trendsData.daily} />
-          </div>
-        )}
-      </div>
+      {trendsData && trendsData.daily && trendsData.daily.length > 0 && (
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Tendência Diária</h3>
+          <TrendChart data={trendsData.daily} />
+        </div>
+      )}
 
       {funnelData && funnelData.length > 0 && (
         <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
@@ -767,7 +765,7 @@ function HeatmapChart({ data }: { data: HeatmapCell[] }) {
     theme: { mode: "light" },
   };
 
-  return <ApexCharts type="heatmap" series={series} options={options} height={250} />;
+  return <ApexCharts type="heatmap" series={series} options={options} height={350} />;
 }
 
 function TrendChart({ data }: { data: TrendDataPoint[] }) {
@@ -788,7 +786,7 @@ function TrendChart({ data }: { data: TrendDataPoint[] }) {
 
   const series = [{ name: "Atendimentos", data: data.map(d => d.value) }];
 
-  return <ApexCharts type="area" series={series} options={options} height={250} />;
+  return <ApexCharts type="area" series={series} options={options} height={350} />;
 }
 
 function FunnelChart({ data }: { data: FunnelStep[] }) {
