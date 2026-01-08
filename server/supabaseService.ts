@@ -6,7 +6,7 @@ interface TenantSupabaseConfig {
   supabaseAnonKey: string;
 }
 
-// Estrutura real da tabela do tenant
+// Estrutura real das tabelas do tenant
 interface AtendimentoRecord {
   id: string;
   remotejid: string;       // número de telefone
@@ -15,6 +15,14 @@ interface AtendimentoRecord {
   agente_atual: string;    // agente em atendimento
   atendimento_finalizado: boolean;  // se já agendou
   follow_up: string;       // follow_up_01, follow_up_02, follow_up_03, follow_up_04
+}
+
+// Tabela de mensagens (histórico de conversas)
+interface MensagemRecord {
+  id: string;
+  remotejid: string;           // número de telefone (relaciona com atendimentos)
+  conversation_history: string; // histórico da conversa em JSON ou texto
+  timestamp: string;           // data/hora da mensagem
 }
 
 interface AiMetricsSummary {
@@ -431,22 +439,35 @@ export async function testSupabaseConnection(config: TenantSupabaseConfig): Prom
   try {
     const client = getSupabaseClient(config);
     
-    // Testar conexão buscando 1 registro
-    const { data, error } = await client
+    // Testar conexão buscando 1 registro da tabela de atendimentos
+    const { data: atendData, error: atendError } = await client
       .from(TABLE_NAME)
       .select('id')
       .limit(1);
     
-    if (error) {
+    if (atendError) {
       return { 
         success: false, 
-        message: `Erro de conexão: ${error.message}` 
+        message: `Erro na tabela '${TABLE_NAME}': ${atendError.message}` 
+      };
+    }
+    
+    // Testar conexão com a tabela de mensagens
+    const { data: msgData, error: msgError } = await client
+      .from(MENSAGENS_TABLE_NAME)
+      .select('id')
+      .limit(1);
+    
+    if (msgError) {
+      return { 
+        success: true, 
+        message: `Tabela '${TABLE_NAME}' OK. Tabela '${MENSAGENS_TABLE_NAME}' não encontrada (opcional).` 
       };
     }
     
     return { 
       success: true, 
-      message: `Conexão estabelecida! Tabela '${TABLE_NAME}' acessível.` 
+      message: `Conexão OK! Tabelas '${TABLE_NAME}' e '${MENSAGENS_TABLE_NAME}' acessíveis.` 
     };
   } catch (error: any) {
     return { 
@@ -454,4 +475,90 @@ export async function testSupabaseConnection(config: TenantSupabaseConfig): Prom
       message: `Erro: ${error.message}` 
     };
   }
+}
+
+// ==================== TABELA MENSAGENS ====================
+
+const MENSAGENS_TABLE_NAME = 'mensagens';
+
+// Buscar histórico de conversa por remotejid
+export async function getConversationHistory(
+  config: TenantSupabaseConfig,
+  remotejid: string
+): Promise<MensagemRecord[]> {
+  const client = getSupabaseClient(config);
+  
+  const { data, error } = await client
+    .from(MENSAGENS_TABLE_NAME)
+    .select('*')
+    .eq('remotejid', remotejid)
+    .order('timestamp', { ascending: true });
+  
+  if (error) {
+    console.error('Error fetching conversation history:', error);
+    throw new Error(`Erro ao buscar histórico: ${error.message}`);
+  }
+  
+  return (data as MensagemRecord[]) || [];
+}
+
+// Buscar estatísticas de mensagens
+export async function getMessageStats(
+  config: TenantSupabaseConfig,
+  filters: AnalyticsFilters
+): Promise<{ total_messages: number; unique_contacts: number; avg_messages_per_contact: number }> {
+  const client = getSupabaseClient(config);
+  
+  const { data, error, count } = await client
+    .from(MENSAGENS_TABLE_NAME)
+    .select('remotejid', { count: 'exact' })
+    .gte('timestamp', filters.startDate)
+    .lte('timestamp', filters.endDate);
+  
+  if (error) {
+    console.error('Error fetching message stats:', error);
+    return { total_messages: 0, unique_contacts: 0, avg_messages_per_contact: 0 };
+  }
+  
+  const messages = data || [];
+  const totalMessages = count || 0;
+  const uniqueContacts = new Set(messages.map((m: any) => m.remotejid)).size;
+  const avgMessagesPerContact = uniqueContacts > 0 ? totalMessages / uniqueContacts : 0;
+  
+  return {
+    total_messages: totalMessages,
+    unique_contacts: uniqueContacts,
+    avg_messages_per_contact: Math.round(avgMessagesPerContact * 10) / 10,
+  };
+}
+
+// Listar mensagens recentes
+export async function getRecentMessages(
+  config: TenantSupabaseConfig,
+  filters: AnalyticsFilters,
+  page: number = 1,
+  pageSize: number = 20
+): Promise<{ data: MensagemRecord[]; total: number; page: number; pageSize: number }> {
+  const client = getSupabaseClient(config);
+  const offset = (page - 1) * pageSize;
+  
+  const { data, count, error } = await client
+    .from(MENSAGENS_TABLE_NAME)
+    .select('*', { count: 'exact' })
+    .gte('timestamp', filters.startDate)
+    .lte('timestamp', filters.endDate)
+    .order('timestamp', { ascending: false })
+    .range(offset, offset + pageSize - 1);
+  
+  if (error) {
+    console.error('Error fetching recent messages:', error);
+    throw new Error(`Erro ao buscar mensagens: ${error.message}`);
+  }
+  
+  return {
+    data: (data as MensagemRecord[]) || [],
+    total: count || 0,
+    page,
+    pageSize,
+  };
 }

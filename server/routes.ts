@@ -5752,6 +5752,106 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
+  // ==================== MENSAGENS (HISTÓRICO DE CONVERSAS) ====================
+
+  // Get Message Stats
+  app.get("/api/analytics/ai/messages/stats", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Tenant não identificado" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
+        return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
+      }
+
+      const { startDate, endDate } = req.query;
+      const filters = {
+        startDate: (startDate as string) || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: (endDate as string) || new Date().toISOString(),
+      };
+
+      const supabaseService = await import('./supabaseService');
+      const stats = await supabaseService.getMessageStats({
+        supabaseUrl: tenant.supabaseUrl,
+        supabaseDatabase: tenant.supabaseDatabase,
+        supabaseAnonKey: tenant.supabaseAnonKey,
+      }, filters);
+
+      res.json(stats);
+    } catch (error: any) {
+      console.error("Error fetching message stats:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar estatísticas de mensagens" });
+    }
+  });
+
+  // Get Conversation History by remotejid
+  app.get("/api/analytics/ai/messages/:remotejid", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Tenant não identificado" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
+        return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
+      }
+
+      const { remotejid } = req.params;
+      if (!remotejid) {
+        return res.status(400).json({ error: "remotejid é obrigatório" });
+      }
+
+      const supabaseService = await import('./supabaseService');
+      const history = await supabaseService.getConversationHistory({
+        supabaseUrl: tenant.supabaseUrl,
+        supabaseDatabase: tenant.supabaseDatabase,
+        supabaseAnonKey: tenant.supabaseAnonKey,
+      }, remotejid);
+
+      res.json(history);
+    } catch (error: any) {
+      console.error("Error fetching conversation history:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar histórico de conversa" });
+    }
+  });
+
+  // Get Recent Messages
+  app.get("/api/analytics/ai/messages", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Tenant não identificado" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
+        return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
+      }
+
+      const { startDate, endDate, page = "1", pageSize = "20" } = req.query;
+      const filters = {
+        startDate: (startDate as string) || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: (endDate as string) || new Date().toISOString(),
+      };
+
+      const supabaseService = await import('./supabaseService');
+      const messages = await supabaseService.getRecentMessages({
+        supabaseUrl: tenant.supabaseUrl,
+        supabaseDatabase: tenant.supabaseDatabase,
+        supabaseAnonKey: tenant.supabaseAnonKey,
+      }, filters, parseInt(page as string), parseInt(pageSize as string));
+
+      res.json(messages);
+    } catch (error: any) {
+      console.error("Error fetching recent messages:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar mensagens recentes" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

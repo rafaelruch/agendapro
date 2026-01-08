@@ -1,7 +1,7 @@
 # AgendaPro - Sistema SaaS Multi-Tenant de Gerenciamento de Agendas
 
 ## Overview
-AgendaPro is a multi-tenant SaaS appointment management system for businesses, offering tools for managing clients, services, professionals, and appointments with complete data isolation. It features a robust REST API for integration with automation tools like N8N, aiming to be a scalable and secure scheduling solution for the service industry. The platform includes a comprehensive financial module for managing income and expenses, supporting various payment methods and automatic transaction generation from orders and appointments.
+AgendaPro is a multi-tenant SaaS appointment management system designed for businesses. It provides comprehensive tools for managing clients, services, professionals, and appointments, ensuring complete data isolation between tenants. The platform includes a robust REST API for integration with automation tools like N8N, a full-featured financial module, and advanced scheduling capabilities. Its primary goal is to offer a scalable, secure, and versatile scheduling and business management solution for the service industry. The project aims to be a leading platform for businesses to streamline operations and enhance customer interaction.
 
 ## User Preferences
 I prefer simple language and clear explanations. I want iterative development with frequent, small updates. Please ask for my approval before making any major architectural changes or significant feature implementations. Ensure all code is well-documented and follows best practices.
@@ -14,154 +14,43 @@ Whenever ANY new feature or implementation is added to the system, it MUST be do
 
 Always update the API documentation immediately after implementing new features, endpoints, or modifying existing functionality.
 
-### API Documentation Guidelines (N8N-First Approach)
-The API documentation is structured with N8N integration as the primary focus. When adding new endpoints or modules:
-
-1. **Add endpoint to `getEndpoints()` function** in `ApiDocumentation.tsx`:
-   - Include all fields with explicit markers: `(OBRIGATÓRIO)` for required fields, `(opcional)` for optional
-   - Provide complete cURL examples ready to copy/paste
-   - Include realistic response examples
-
-2. **Add section to `sections` array** if it's a new module:
-   - Follow the format: `{ id: 'module-name', label: '📦 Module Label' }`
-   - Use appropriate emoji for visual identification
-
-3. **Document required fields clearly**:
-   - Clients: name, phone (OBRIGATÓRIO)
-   - Services: name, category, value, duration (OBRIGATÓRIO)
-   - Appointments: clientId, serviceIds, date, time (OBRIGATÓRIO)
-   - Orders: client.name, client.phone, items array (OBRIGATÓRIO)
-   - Finance: description, amount, date, paymentMethod (OBRIGATÓRIO)
-   - Webhooks: name, targetUrl, modules, events (OBRIGATÓRIO)
-
-4. **Include N8N-specific guidance** where helpful:
-   - Expression examples: `{{ $json.fieldName }}`
-   - Error handling tips (Continue On Fail pattern)
-   - Common workflow patterns
-
 ## System Architecture
 
 ### UI/UX Decisions
-All UI components are exclusively sourced from `attached_assets/free-react-tailwind-admin-dashboard-main/` and utilize TailAdmin color schemes. A custom React Portal-based modal system is implemented. The login page replicates TailAdmin SignInForm, and the calendar page uses FullCalendar with TailAdmin styling, supporting CRUD operations for appointments, conflict detection, and multi-service duration calculation. Date picking is handled by `react-day-picker` with `ptBR` locale, supporting single/multiple/range/time modes with invalid date validation.
-
-All data tables throughout the system must adhere to a standardized structure for containers, headers, bodies, cells, empty states, pagination, search bars, and action buttons, mirroring the patterns found in `ServicesPage`/`ClientsPage`.
+The UI exclusively uses components from `attached_assets/free-react-tailwind-admin-dashboard-main/` and adheres to TailAdmin color schemes. A custom React Portal-based modal system is implemented. The login page mirrors TailAdmin's SignInForm, and the calendar utilizes FullCalendar with TailAdmin styling, supporting CRUD operations for appointments, conflict detection, and multi-service duration calculation. Date picking is managed by `react-day-picker` with `ptBR` locale, supporting various selection modes and invalid date validation. All data tables maintain a standardized structure consistent with `ServicesPage`/`ClientsPage`.
 
 ### Technical Implementations
-- **Multi-Tenant Architecture**: Data isolation enforced via `tenantId` and middleware.
-- **Authentication**: `express-session` and `bcrypt` for web sessions; token-based for API.
-- **User Management**: `master_admin`, `admin`, and `user` roles with access levels.
-- **API Design**: RESTful API for CRUD, filtering, and N8N compatibility.
-- **Data Validation**: Zod for schema validation.
-- **Core Features**: Multi-tenant, secure auth, master admin panel, user/service/professional management, appointment scheduling/editing, business hours, availability, full REST API.
-- **Advanced Features**: Appointment conflict detection, flexible business hours, availability API, secure API token system, role-based access control, dynamic API documentation, bulk service import, detailed calendar views, client phone uniqueness, multi-service appointments (total duration calculation), promotional pricing, professional management with flexible multi-interval schedules and assignment.
-- **Multi-Address System**: Clients can have multiple saved addresses. Orders reference `clientAddressId` and store address snapshots for immutability.
-- **Tenant Module Permissions**: A system enabling/disabling specific functionalities (modules) per tenant, defined in `shared/schema.ts` and enforced by backend middleware and UI components. New modules must be registered in `MODULE_DEFINITIONS`, have protected backend routes, and be reflected in the Sidebar.
-- **Financial Module**:
-    - **Functionalities**: Dashboard, automatic transactions from orders/appointments, manual expense/income registration, customizable categories, multiple payment methods, discounts, filtering.
-    - **API Endpoints**: CRUD for categories and manual transactions, transaction listing with filters, financial summary, appointment payment registration.
-    - **Integration**: Automatic revenue transactions created upon order delivery or appointment payment registration.
-- **Webhook System**:
-    - **Features**: Tenant-scoped webhook configuration for N8N and automation tool integration, HMAC-SHA256 signature authentication, delivery tracking with retry mechanism.
-    - **Database**: Tables `webhooks` (config) and `webhook_deliveries` (log) with full tenant isolation.
-    - **Modules Supported**: clients, services, products, appointments, orders, professionals, finance.
-    - **Events**: create, update, delete.
-    - **Payload Structure**: `{ event, module, timestamp, tenantId, data: {...} }` with custom headers X-AgendaPro-Event, X-AgendaPro-Module, X-AgendaPro-Signature.
-    - **Dual-Location Webhook Management**: Webhooks can be managed from two locations:
-        1. **Master Admin Panel** (AdminPage.tsx → Webhooks tab): Master Admin can manage webhooks for any tenant
-        2. **Tenant Configuration** (WebhooksPage.tsx): Tenant admins can manage their own webhooks
-    - **API Endpoints (Tenant Admin)**:
-        - `GET /api/webhooks` - List all webhooks
-        - `POST /api/webhooks` - Create webhook
-        - `PUT /api/webhooks/:id` - Update webhook
-        - `DELETE /api/webhooks/:id` - Delete webhook
-        - `GET /api/webhooks/:id/deliveries` - Delivery history
-        - `POST /api/webhooks/deliveries/:deliveryId/retry` - Retry failed delivery
-    - **API Endpoints (Master Admin)**:
-        - `GET /api/admin/tenants/:tenantId/webhooks` - List tenant webhooks
-        - `POST /api/admin/tenants/:tenantId/webhooks` - Create tenant webhook
-        - `PUT /api/admin/tenants/:tenantId/webhooks/:id` - Update tenant webhook
-        - `DELETE /api/admin/tenants/:tenantId/webhooks/:id` - Delete tenant webhook
-        - `GET /api/admin/tenants/:tenantId/webhooks/:id/deliveries` - Delivery history
-        - `POST /api/admin/tenants/:tenantId/webhooks/deliveries/:deliveryId/retry` - Retry failed delivery
-    - **Frontend Pages**: WebhooksPage.tsx (tenant admins), AdminPage.tsx Webhooks tab (master admin)
-- **AI Analytics Module**:
-    - **Features**: Dashboard for AI-powered customer service metrics, connected to per-tenant Supabase databases hosted on self-hosted infrastructure (supabase.ruch.com.br).
-    - **Tenant Configuration**: Each tenant configures their own Supabase connection (URL, database name, anon key) stored in `tenants` table.
-    - **Database Fields (tenants table)**: `supabase_url`, `supabase_database`, `supabase_anon_key`.
-    - **API Endpoints**:
-        - `GET /api/analytics/ai/summary` - Summary metrics (total conversations, average response time, satisfaction, etc.)
-        - `GET /api/analytics/ai/heatmap` - Conversation volume heatmap by hour/weekday
-        - `GET /api/analytics/ai/trends` - Daily/hourly trend data
-        - `GET /api/analytics/ai/funnel` - Conversation funnel metrics
-        - `GET /api/analytics/ai/quality` - Quality metrics (sentiment, fallback rate)
-        - `GET /api/analytics/ai/conversations` - Paginated conversation list with filters
-        - `GET /api/analytics/ai/alerts` - Recent anomaly alerts
-        - `GET /api/analytics/ai/filters` - Available filter options (channels, statuses, intents, agents)
-        - `GET /api/analytics/ai/comparison` - Month-over-month comparison
-        - `POST /api/analytics/ai/test-connection` - Test Supabase connection
-        - `GET /api/tenant/supabase-config` - Get current Supabase configuration
-        - `PUT /api/tenant/supabase-config` - Update Supabase configuration
-    - **Expected Supabase Tables**: The tenant's Supabase database must have these tables:
-        - `ai_conversations`: id (uuid), contact_phone (text), channel (text), primary_intent (text), status (text: completed/transferred/abandoned), satisfaction_score (integer 1-5), started_at (timestamp), ended_at (timestamp), messages_count (integer), avg_response_time_ms (integer), sentiment (text: positive/neutral/negative), agent_name (text), handoff_reason (text), tags (text[])
-        - `ai_alerts`: id (uuid), type (text), severity (text: high/medium/low), message (text), created_at (timestamp)
-        - `ai_frequent_questions`: question (text), count (integer), date (date)
-    - **Frontend**: AiAnalyticsPage.tsx with 5 tabs (Dashboard, Quality, Conversations, Alerts, Settings)
-    - **Dashboard Components**: Metrics cards, ApexCharts heatmaps, line/area charts for trends, funnel chart, intent distribution pie chart
-    - **Filters**: Date range presets, channel, status, intent, agent filters
-    - **Module Permission**: Requires `ai-analytics` module enabled for tenant
-- **Public Menu System**:
-    - **Features**: Public catalog page accessible via unique URL (/menu/{slug}), customizable branding (logo and brand color), product categories with display order, mobile-first responsive design.
-    - **Menu Types**: Supports two mutually exclusive modes - "delivery" (products/orders) and "services" (appointments).
-    - **Database**: New table `product_categories` (id, tenant_id, name, display_order, is_active, created_at). New fields in `tenants` (menu_slug, menu_logo_url, menu_brand_color, menu_type). New fields in `products` (image_url, category_id). New fields in `services` (image_url, description, is_featured, is_active).
-    - **API Endpoints**: 
-        - `GET/POST/PUT/DELETE /api/product-categories` - Category CRUD (authenticated)
-        - `GET/PUT /api/menu-settings` - Menu configuration (authenticated)
-        - `GET /api/menu/:slug` - Public menu data (no authentication required)
-        - `GET /api/menu/:slug/availability?date=YYYY-MM-DD&serviceIds=id1,id2` - Public availability slots
-        - `GET /api/menu/:slug/client/:phone` - Public client lookup
-        - `GET /api/menu/:slug/client/:phone/orders` - Public client orders
-        - `GET /api/menu/:slug/client/:phone/appointments` - Public client appointments
-        - `POST /api/menu/:slug/orders` - Public order creation
-        - `POST /api/menu/:slug/appointments` - Public appointment creation with conflict detection
-        - `POST /api/upload/product-image` - Product image upload
-        - `POST /api/upload/menu-logo` - Menu logo upload
-        - `POST /api/upload/service-image` - Service image upload
-    - **Appointment Booking Flow**: 4-step modal (services confirmation → date selection → time slot selection → client data), real-time availability check, duration-based slot generation, conflict prevention, business hours enforcement.
-    - **Frontend Pages**: ProductCategoriesPage.tsx, MenuSettingsPage.tsx, PublicMenuPage.tsx
-    - **Migration**: migrations/020_public_menu_system.sql, migrations/025_services_public_menu.sql
-
-### Production Deployment & Migrations
-The application is deployed on Easypanel, not Replit. Production database migrations are managed via the Master Admin SQL Migration panel. Any new tables or schema modifications require generating a corresponding SQL script to be executed in production. This includes updates to `shared/schema.ts`, SQL script generation, and documentation for the Master Admin panel.
-
-**IMPORTANTE**: O arquivo `migrations/production_safe_migration.sql` contém o script completo e seguro para migração de produção. Este script:
-- Verifica se tabelas/colunas existem antes de criar (idempotente)
-- Pode ser executado múltiplas vezes sem problemas
-- Inclui todas as tabelas e colunas do sistema
-- Deve ser atualizado sempre que houver alterações no schema (`shared/schema.ts`)
-
-Sempre que adicionar novas tabelas, colunas ou modificações no banco de dados:
-1. Atualizar `shared/schema.ts`
-2. Atualizar `migrations/production_safe_migration.sql` com as novas estruturas
-3. Fornecer o script atualizado ao usuário para execução em produção
+- **Multi-Tenancy**: Data isolation is enforced via `tenantId` and middleware.
+- **Authentication & Authorization**: `express-session` and `bcrypt` for web sessions; token-based for API. Role-based access control (`master_admin`, `admin`, `user`) defines access levels.
+- **API Design**: A RESTful API supports CRUD operations, filtering, and N8N compatibility. Zod is used for data validation.
+- **Core Features**: Secure authentication, Master Admin panel, user/service/professional management, appointment scheduling with conflict detection, flexible business hours, availability API, and dynamic API documentation.
+- **Advanced Features**: Multi-service appointments with total duration calculation, promotional pricing, professional management with multi-interval schedules, and a multi-address system for clients.
+- **Tenant Module Permissions**: A system for enabling/disabling specific functionalities per tenant, defined in `shared/schema.ts` and enforced by backend middleware and UI.
+- **Financial Module**: Manages income/expenses, supports automatic transactions from orders/appointments, manual entries, customizable categories, and multiple payment methods.
+- **Webhook System**: Provides tenant-scoped webhook configuration for automation tools like N8N. Features HMAC-SHA256 signature authentication, delivery tracking with retry mechanisms, and supports various modules and events (create, update, delete). Webhooks can be managed by both tenant admins and the Master Admin.
+- **AI Analytics Module**: Offers AI-powered customer service metrics via a dashboard connected to per-tenant Supabase databases. Tenants configure their Supabase connection, which stores conversation and message data for analysis, trends, and quality metrics. Requires `ai-analytics` module permission.
+- **Public Menu System**: Enables tenants to create a public catalog page (`/menu/{slug}`) for either "delivery" (products/orders) or "services" (appointments). Features customizable branding, product categories, and a multi-step appointment booking flow with real-time availability and conflict prevention.
+- **Production Deployment**: Managed on Easypanel. Database migrations are handled via a Master Admin SQL Migration panel, using idempotent scripts (`migrations/production_safe_migration.sql`) to ensure schema consistency.
 
 ### System Design Choices
 - **Backend**: Express.js.
 - **Database**: PostgreSQL with Drizzle ORM.
-- **Frontend State Management**: TanStack Query.
+- **Frontend**: React.
+- **State Management**: TanStack Query.
 - **Schema Management**: Shared schemas (`shared/schema.ts`) using Drizzle and Zod.
 - **Deployment**: Easypanel.
 
 ## External Dependencies
-- **Database**: PostgreSQL.
-- **ORM**: Drizzle ORM.
-- **Backend Framework**: Express.js.
-- **Frontend Framework**: React.
-- **Styling**: Tailwind CSS, TailAdmin UI.
-- **State Management**: TanStack Query.
-- **Routing**: Wouter.
-- **Password Hashing**: Bcrypt.
-- **Session Management**: Express-session.
-- **Data Validation**: Zod.
-- **Integration**: N8N.
-- **Calendar**: FullCalendar.
-- **Date Picker**: `react-day-picker`.
+- **Database**: PostgreSQL
+- **ORM**: Drizzle ORM
+- **Backend Framework**: Express.js
+- **Frontend Framework**: React
+- **Styling**: Tailwind CSS, TailAdmin UI
+- **State Management**: TanStack Query
+- **Routing**: Wouter
+- **Password Hashing**: Bcrypt
+- **Session Management**: Express-session
+- **Data Validation**: Zod
+- **Integration**: N8N
+- **Calendar**: FullCalendar
+- **Date Picker**: `react-day-picker`
