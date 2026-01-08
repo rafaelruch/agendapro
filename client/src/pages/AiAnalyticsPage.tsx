@@ -23,7 +23,8 @@ import {
   Target,
   Repeat,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Clock
 } from "lucide-react";
 import { format, subDays, startOfDay, endOfDay, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -77,6 +78,12 @@ interface Atendimento {
 interface FilterOptions {
   agentes: string[];
   followUps: string[];
+}
+
+interface ResponseTimeData {
+  avg_response_time_seconds: number;
+  avg_response_time_formatted: string;
+  total_responses: number;
 }
 
 interface SupabaseConfig {
@@ -335,6 +342,11 @@ export default function AiAnalyticsPage() {
     enabled: !!supabaseConfig?.supabaseConfigured,
   });
 
+  const { data: responseTimeData } = useQuery<ResponseTimeData>({
+    queryKey: ["/api/analytics/ai/messages/response-time", startDate, endDate],
+    enabled: !!supabaseConfig?.supabaseConfigured && activeTab === "dashboard",
+  });
+
   const tabs: TabItem[] = [
     { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
     { id: "quality", label: "Por Agente", icon: <Target className="w-4 h-4" /> },
@@ -420,6 +432,7 @@ export default function AiAnalyticsPage() {
           heatmapData={heatmapData}
           trendsData={trendsData}
           funnelData={funnelData}
+          responseTimeData={responseTimeData}
         />
       )}
 
@@ -452,13 +465,15 @@ function DashboardTab({
   loadingSummary,
   heatmapData,
   trendsData,
-  funnelData
+  funnelData,
+  responseTimeData
 }: { 
   summary?: MetricsSummary;
   loadingSummary: boolean;
   heatmapData?: HeatmapCell[];
   trendsData?: { daily: TrendDataPoint[]; hourly: TrendDataPoint[] };
   funnelData?: FunnelStep[];
+  responseTimeData?: ResponseTimeData;
 }) {
   if (loadingSummary) {
     return (
@@ -469,10 +484,11 @@ function DashboardTab({
   }
 
   const conversionTrend = (summary?.taxa_conversao || 0) >= 50 ? "up" : (summary?.taxa_conversao || 0) >= 30 ? "neutral" : "down";
+  const responseTimeTrend = (responseTimeData?.avg_response_time_seconds || 0) <= 10 ? "up" : (responseTimeData?.avg_response_time_seconds || 0) <= 30 ? "neutral" : "down";
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
         <MetricCard 
           title="Total Atendimentos"
           value={summary?.total_conversations || 0}
@@ -496,6 +512,13 @@ function DashboardTab({
           icon={<TrendingUp className="w-6 h-6" />}
           trend={conversionTrend}
           trendValue={conversionTrend === "up" ? "Ótimo" : conversionTrend === "neutral" ? "Regular" : "Baixo"}
+        />
+        <MetricCard 
+          title="Tempo Médio Resposta"
+          value={responseTimeData?.avg_response_time_formatted || "0s"}
+          icon={<Clock className="w-6 h-6" />}
+          trend={responseTimeTrend}
+          trendValue={responseTimeTrend === "up" ? "Rápido" : responseTimeTrend === "neutral" ? "Normal" : "Lento"}
         />
       </div>
 

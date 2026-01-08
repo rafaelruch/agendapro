@@ -5788,6 +5788,36 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
+  // Get Average Response Time - supports path params: /response-time/:startDate/:endDate
+  app.get("/api/analytics/ai/messages/response-time/:startDate?/:endDate?", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
+    try {
+      const tenantId = getTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Tenant não identificado" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
+        return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
+      }
+
+      const startDate = req.params.startDate || req.query.startDate as string;
+      const endDate = req.params.endDate || req.query.endDate as string;
+      const filters = {
+        startDate: startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: endDate || new Date().toISOString(),
+      };
+
+      const supabaseService = await import('./supabaseService');
+      const responseTime = await supabaseService.getAverageResponseTime(buildSupabaseConfig(tenant), filters);
+
+      res.json(responseTime);
+    } catch (error: any) {
+      console.error("Error fetching average response time:", error);
+      res.status(500).json({ error: error.message || "Erro ao buscar tempo médio de resposta" });
+    }
+  });
+
   // Get Conversation History by remotejid
   app.get("/api/analytics/ai/messages/:remotejid", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {

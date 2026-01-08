@@ -27,6 +27,12 @@ interface MensagemRecord {
   timestamp: string;           // data/hora da mensagem
 }
 
+// Estrutura do conversation_history após parse
+interface ConversationHistoryEntry {
+  role: 'user' | 'model' | 'assistant';  // 'model' = resposta da IA (Gemini)
+  parts: { text: string }[];
+}
+
 interface AiMetricsSummary {
   total_conversations: number;
   finalizados: number;
@@ -578,5 +584,104 @@ export async function getRecentMessages(
     total: count || 0,
     page,
     pageSize,
+  };
+}
+
+// Calcular tempo médio de resposta da IA
+export async function getAverageResponseTime(
+  config: TenantSupabaseConfig,
+  filters: AnalyticsFilters
+): Promise<{ avg_response_time_seconds: number; avg_response_time_formatted: string; total_responses: number }> {
+  const client = getSupabaseClient(config);
+  const tableName = getMensagensTableName(config);
+  
+  // Buscar todas as mensagens no período, ordenadas por remotejid e timestamp
+  const { data, error } = await client
+    .from(tableName)
+    .select('remotejid, conversation_history, timestamp')
+    .gte('timestamp', filters.startDate)
+    .lte('timestamp', filters.endDate)
+    .order('remotejid', { ascending: true })
+    .order('timestamp', { ascending: true });
+  
+  if (error) {
+    console.error('Error fetching messages for response time:', error);
+    return { avg_response_time_seconds: 0, avg_response_time_formatted: '0s', total_responses: 0 };
+  }
+  
+  const messages = data || [];
+  
+  if (messages.length === 0) {
+    return { avg_response_time_seconds: 0, avg_response_time_formatted: '0s', total_responses: 0 };
+  }
+  
+  // Agrupar mensagens por remotejid
+  const groupedByContact = new Map<string, { role: string; timestamp: Date }[]>();
+  
+  messages.forEach((msg: any) => {
+    const remotejid = msg.remotejid;
+    let role = 'unknown';
+    
+    try {
+      const history: ConversationHistoryEntry = JSON.parse(msg.conversation_history);
+      role = history.role === 'model' ? 'assistant' : history.role;
+    } catch {
+      // Se não conseguir parsear, tenta identificar pelo conteúdo
+      role = 'unknown';
+    }
+    
+    if (!groupedByContact.has(remotejid)) {
+      groupedByContact.set(remotejid, []);
+    }
+    
+    groupedByContact.get(remotejid)!.push({
+      role,
+      timestamp: new Date(msg.timestamp)
+    });
+  });
+  
+  // Calcular tempos de resposta
+  const responseTimes: number[] = [];
+  
+  groupedByContact.forEach((messages) => {
+    for (let i = 1; i < messages.length; i++) {
+      const prev = messages[i - 1];
+      const curr = messages[i];
+      
+      // Se a mensagem anterior é do usuário e a atual é do assistant/model
+      if (prev.role === 'user' && (curr.role === 'assistant' || curr.role === 'model')) {
+        const diffMs = curr.timestamp.getTime() - prev.timestamp.getTime();
+        // Considerar apenas respostas em até 1 hora (evita outliers)
+        if (diffMs > 0 && diffMs < 3600000) {
+          responseTimes.push(diffMs / 1000); // Converter para segundos
+        }
+      }
+    }
+  });
+  
+  if (responseTimes.length === 0) {
+    return { avg_response_time_seconds: 0, avg_response_time_formatted: '0s', total_responses: 0 };
+  }
+  
+  const avgSeconds = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+  
+  // Formatar tempo
+  let formatted: string;
+  if (avgSeconds < 60) {
+    formatted = `${Math.round(avgSeconds)}s`;
+  } else if (avgSeconds < 3600) {
+    const minutes = Math.floor(avgSeconds / 60);
+    const seconds = Math.round(avgSeconds % 60);
+    formatted = seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+  } else {
+    const hours = Math.floor(avgSeconds / 3600);
+    const minutes = Math.round((avgSeconds % 3600) / 60);
+    formatted = minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  }
+  
+  return {
+    avg_response_time_seconds: Math.round(avgSeconds * 100) / 100,
+    avg_response_time_formatted: formatted,
+    total_responses: responseTimes.length
   };
 }
