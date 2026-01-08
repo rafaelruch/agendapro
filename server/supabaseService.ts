@@ -623,10 +623,20 @@ export async function getAverageResponseTime(
     let role = 'unknown';
     
     try {
-      const history: ConversationHistoryEntry = JSON.parse(msg.conversation_history);
+      // O Supabase pode retornar conversation_history como objeto JSON ou string
+      let history: ConversationHistoryEntry;
+      if (typeof msg.conversation_history === 'string') {
+        history = JSON.parse(msg.conversation_history);
+      } else if (typeof msg.conversation_history === 'object' && msg.conversation_history !== null) {
+        history = msg.conversation_history as ConversationHistoryEntry;
+      } else {
+        history = { role: 'unknown', parts: [] } as any;
+      }
+      
+      // Normalizar role: 'model' (Gemini) = 'assistant'
       role = history.role === 'model' ? 'assistant' : history.role;
     } catch {
-      // Se não conseguir parsear, tenta identificar pelo conteúdo
+      // Se não conseguir parsear, mantém como unknown
       role = 'unknown';
     }
     
