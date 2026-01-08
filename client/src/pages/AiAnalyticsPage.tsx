@@ -488,7 +488,7 @@ function DashboardTab({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <MetricCard 
           title="Total Atendimentos"
           value={summary?.total_conversations || 0}
@@ -500,11 +500,6 @@ function DashboardTab({
           icon={<CheckCircle className="w-6 h-6" />}
           trend="up"
           trendValue={`${summary?.total_conversations ? ((summary?.finalizados || 0) / summary.total_conversations * 100).toFixed(1) : 0}%`}
-        />
-        <MetricCard 
-          title="Em Andamento"
-          value={summary?.em_andamento || 0}
-          icon={<Users className="w-6 h-6" />}
         />
         <MetricCard 
           title="Taxa de Conversão"
