@@ -516,6 +516,55 @@ CREATE TABLE IF NOT EXISTS webhook_deliveries (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
+-- =============================================================================
+-- TABELAS ESPERADAS NO SUPABASE DO TENANT (AI ANALYTICS)
+-- Estas tabelas devem existir no Supabase self-hosted de cada tenant
+-- para que o módulo AI Analytics funcione corretamente
+-- =============================================================================
+
+-- NOTA: As tabelas abaixo são criadas no Supabase do tenant (supabase.ruch.com.br),
+-- NÃO no PostgreSQL do AgendaPro. Este script serve como documentação da estrutura esperada.
+
+-- Estrutura esperada da tabela ai_conversations no Supabase do tenant:
+-- CREATE TABLE IF NOT EXISTS ai_conversations (
+--     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--     contact_phone TEXT NOT NULL,
+--     contact_name TEXT,
+--     channel TEXT NOT NULL DEFAULT 'whatsapp',
+--     primary_intent TEXT,
+--     status TEXT NOT NULL DEFAULT 'active',
+--     satisfaction_score INTEGER CHECK (satisfaction_score >= 1 AND satisfaction_score <= 5),
+--     started_at TIMESTAMP NOT NULL DEFAULT NOW(),
+--     ended_at TIMESTAMP,
+--     messages_count INTEGER NOT NULL DEFAULT 0,
+--     avg_response_time_ms INTEGER,
+--     sentiment TEXT CHECK (sentiment IN ('positive', 'neutral', 'negative')),
+--     agent_name TEXT,
+--     handoff_reason TEXT,
+--     tags TEXT[],
+--     created_at TIMESTAMP DEFAULT NOW()
+-- );
+
+-- Estrutura esperada da tabela ai_alerts no Supabase do tenant:
+-- CREATE TABLE IF NOT EXISTS ai_alerts (
+--     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--     type TEXT NOT NULL,
+--     severity TEXT NOT NULL CHECK (severity IN ('high', 'medium', 'low')),
+--     message TEXT NOT NULL,
+--     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+--     resolved_at TIMESTAMP
+-- );
+
+-- Estrutura esperada da tabela ai_frequent_questions no Supabase do tenant:
+-- CREATE TABLE IF NOT EXISTS ai_frequent_questions (
+--     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--     question TEXT NOT NULL,
+--     count INTEGER NOT NULL DEFAULT 1,
+--     date DATE NOT NULL DEFAULT CURRENT_DATE
+-- );
+
+-- =============================================================================
+
 -- ========== INDICES PARA PERFORMANCE ==========
 CREATE INDEX IF NOT EXISTS idx_clients_tenant_id ON clients(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_clients_phone ON clients(phone);
