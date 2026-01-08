@@ -6,37 +6,33 @@ interface TenantSupabaseConfig {
   supabaseAnonKey: string;
 }
 
-interface AiConversation {
+// Estrutura real da tabela do tenant
+interface AtendimentoRecord {
   id: string;
-  tenant_id?: string;
-  contact_phone: string;
-  contact_name?: string;
-  channel: string;
-  primary_intent?: string;
-  status: string;
-  satisfaction_score?: number;
-  handoff_reason?: string;
-  started_at: string;
-  ended_at?: string;
-  messages_count?: number;
-  avg_response_time_ms?: number;
-  sentiment?: string;
-  agent_name?: string;
-  tags?: string[];
+  remotejid: string;       // número de telefone
+  nome: string;            // nome do cliente
+  timestamp: string;       // data/hora
+  agente_atual: string;    // agente em atendimento
+  atendimento_finalizado: boolean;  // se já agendou
+  follow_up: string;       // follow_up_01, follow_up_02, follow_up_03, follow_up_04
 }
 
 interface AiMetricsSummary {
   total_conversations: number;
-  avg_response_time_ms: number;
-  resolution_rate: number;
-  active_conversations: number;
-  avg_satisfaction: number;
-  handoff_rate: number;
+  finalizados: number;
+  em_andamento: number;
+  taxa_conversao: number;
+  follow_ups: {
+    follow_up_01: number;
+    follow_up_02: number;
+    follow_up_03: number;
+    follow_up_04: number;
+  };
 }
 
 interface HeatmapCell {
-  x: number;
-  y: number;
+  x: number;  // hora (0-23)
+  y: number;  // dia da semana (0-6)
   value: number;
 }
 
@@ -52,29 +48,16 @@ interface FunnelStep {
 }
 
 interface QualityMetrics {
-  avg_messages_to_resolve: number;
-  fallback_rate: number;
-  top_questions: { question: string; count: number }[];
-  sentiment_distribution: { sentiment: string; count: number; percentage: number }[];
-  human_interventions: { reason: string; count: number }[];
-}
-
-interface AiAlert {
-  id: string;
-  type: string;
-  severity: 'info' | 'warning' | 'critical';
-  message: string;
-  created_at: string;
-  resolved_at?: string;
+  por_agente: { agente: string; total: number; finalizados: number; taxa: number }[];
+  por_follow_up: { follow_up: string; count: number; percentage: number }[];
 }
 
 interface AnalyticsFilters {
   startDate: string;
   endDate: string;
-  channel?: string;
-  status?: string;
-  intent?: string;
-  agentName?: string;
+  agente?: string;
+  status?: string;  // 'finalizado' | 'em_andamento' | 'all'
+  followUp?: string;
 }
 
 const supabaseClients: Map<string, SupabaseClient> = new Map();
@@ -100,6 +83,9 @@ function getSupabaseClient(config: TenantSupabaseConfig): SupabaseClient {
   return client;
 }
 
+// Nome da tabela no Supabase do tenant
+const TABLE_NAME = 'atendimentos';
+
 export async function getAiMetricsSummary(
   config: TenantSupabaseConfig,
   filters: AnalyticsFilters
@@ -107,61 +93,41 @@ export async function getAiMetricsSummary(
   const client = getSupabaseClient(config);
   
   let query = client
-    .from('ai_conversations')
-    .select('*', { count: 'exact' })
-    .gte('started_at', filters.startDate)
-    .lte('started_at', filters.endDate);
+    .from(TABLE_NAME)
+    .select('*')
+    .gte('timestamp', filters.startDate)
+    .lte('timestamp', filters.endDate);
   
-  if (filters.channel) {
-    query = query.eq('channel', filters.channel);
-  }
-  if (filters.status) {
-    query = query.eq('status', filters.status);
-  }
-  if (filters.intent) {
-    query = query.eq('primary_intent', filters.intent);
-  }
-  if (filters.agentName) {
-    query = query.eq('agent_name', filters.agentName);
+  if (filters.agente) {
+    query = query.eq('agente_atual', filters.agente);
   }
   
-  const { data: conversations, count, error } = await query;
+  const { data: records, error } = await query;
   
   if (error) {
     console.error('Error fetching AI metrics:', error);
     throw new Error(`Erro ao buscar métricas: ${error.message}`);
   }
   
-  const total = count || 0;
-  const convs = conversations || [];
+  const atendimentos = records as AtendimentoRecord[] || [];
+  const total = atendimentos.length;
   
-  const activeQuery = await client
-    .from('ai_conversations')
-    .select('id', { count: 'exact' })
-    .eq('status', 'active')
-    .is('ended_at', null);
+  const finalizados = atendimentos.filter(a => a.atendimento_finalizado === true).length;
+  const emAndamento = atendimentos.filter(a => a.atendimento_finalizado === false).length;
   
-  const activeCount = activeQuery.count || 0;
-  
-  const resolvedWithoutHandoff = convs.filter(c => c.status === 'resolved' && !c.handoff_reason).length;
-  const handoffCount = convs.filter(c => c.handoff_reason).length;
-  
-  const avgResponseTime = convs.length > 0
-    ? convs.reduce((sum, c) => sum + (c.avg_response_time_ms || 0), 0) / convs.length
-    : 0;
-  
-  const satisfactionScores = convs.filter(c => c.satisfaction_score != null);
-  const avgSatisfaction = satisfactionScores.length > 0
-    ? satisfactionScores.reduce((sum, c) => sum + c.satisfaction_score, 0) / satisfactionScores.length
-    : 0;
+  const followUpCounts = {
+    follow_up_01: atendimentos.filter(a => a.follow_up === 'follow_up_01').length,
+    follow_up_02: atendimentos.filter(a => a.follow_up === 'follow_up_02').length,
+    follow_up_03: atendimentos.filter(a => a.follow_up === 'follow_up_03').length,
+    follow_up_04: atendimentos.filter(a => a.follow_up === 'follow_up_04').length,
+  };
   
   return {
     total_conversations: total,
-    avg_response_time_ms: Math.round(avgResponseTime),
-    resolution_rate: total > 0 ? (resolvedWithoutHandoff / total) * 100 : 0,
-    active_conversations: activeCount,
-    avg_satisfaction: Number(avgSatisfaction.toFixed(1)),
-    handoff_rate: total > 0 ? (handoffCount / total) * 100 : 0,
+    finalizados,
+    em_andamento: emAndamento,
+    taxa_conversao: total > 0 ? (finalizados / total) * 100 : 0,
+    follow_ups: followUpCounts,
   };
 }
 
@@ -171,125 +137,85 @@ export async function getHourlyDayHeatmap(
 ): Promise<HeatmapCell[]> {
   const client = getSupabaseClient(config);
   
-  const { data: conversations, error } = await client
-    .from('ai_conversations')
-    .select('started_at')
-    .gte('started_at', filters.startDate)
-    .lte('started_at', filters.endDate);
+  const { data: records, error } = await client
+    .from(TABLE_NAME)
+    .select('timestamp')
+    .gte('timestamp', filters.startDate)
+    .lte('timestamp', filters.endDate);
   
   if (error) {
     console.error('Error fetching heatmap data:', error);
-    throw new Error(`Erro ao buscar dados do mapa de calor: ${error.message}`);
+    throw new Error(`Erro ao buscar heatmap: ${error.message}`);
   }
   
-  const heatmap: Record<string, number> = {};
+  const atendimentos = records as { timestamp: string }[] || [];
   
+  // Matriz 24h x 7 dias
+  const heatmap: number[][] = Array(7).fill(null).map(() => Array(24).fill(0));
+  
+  atendimentos.forEach(record => {
+    const date = new Date(record.timestamp);
+    const hour = date.getHours();
+    const dayOfWeek = date.getDay();
+    heatmap[dayOfWeek][hour]++;
+  });
+  
+  // Converter para formato de células
+  const cells: HeatmapCell[] = [];
   for (let day = 0; day < 7; day++) {
     for (let hour = 0; hour < 24; hour++) {
-      heatmap[`${day}-${hour}`] = 0;
+      if (heatmap[day][hour] > 0) {
+        cells.push({ x: hour, y: day, value: heatmap[day][hour] });
+      }
     }
   }
   
-  (conversations || []).forEach(conv => {
-    const date = new Date(conv.started_at);
-    const day = date.getDay();
-    const hour = date.getHours();
-    heatmap[`${day}-${hour}`]++;
-  });
-  
-  return Object.entries(heatmap).map(([key, value]) => {
-    const [day, hour] = key.split('-').map(Number);
-    return { x: hour, y: day, value };
-  });
+  return cells;
 }
 
-export async function getIntentHourHeatmap(
+export async function getDailyTrends(
   config: TenantSupabaseConfig,
   filters: AnalyticsFilters
-): Promise<{ intents: string[]; data: HeatmapCell[] }> {
+): Promise<{ daily: TrendDataPoint[]; hourly: TrendDataPoint[] }> {
   const client = getSupabaseClient(config);
   
-  const { data: conversations, error } = await client
-    .from('ai_conversations')
-    .select('started_at, primary_intent')
-    .gte('started_at', filters.startDate)
-    .lte('started_at', filters.endDate)
-    .not('primary_intent', 'is', null);
+  const { data: records, error } = await client
+    .from(TABLE_NAME)
+    .select('timestamp, atendimento_finalizado')
+    .gte('timestamp', filters.startDate)
+    .lte('timestamp', filters.endDate)
+    .order('timestamp', { ascending: true });
   
   if (error) {
-    console.error('Error fetching intent heatmap:', error);
-    throw new Error(`Erro ao buscar mapa de intenções: ${error.message}`);
+    console.error('Error fetching trends:', error);
+    throw new Error(`Erro ao buscar tendências: ${error.message}`);
   }
   
-  const intentsSet = new Set<string>();
-  const heatmap: Record<string, number> = {};
+  const atendimentos = records as { timestamp: string; atendimento_finalizado: boolean }[] || [];
   
-  (conversations || []).forEach(conv => {
-    if (conv.primary_intent) {
-      intentsSet.add(conv.primary_intent);
-      const date = new Date(conv.started_at);
-      const hour = date.getHours();
-      const key = `${conv.primary_intent}-${hour}`;
-      heatmap[key] = (heatmap[key] || 0) + 1;
-    }
-  });
+  // Agrupar por dia
+  const dailyMap = new Map<string, number>();
+  const hourlyMap = new Map<number, number>();
   
-  const intents = Array.from(intentsSet).sort();
-  
-  const data: HeatmapCell[] = [];
-  intents.forEach((intent, intentIndex) => {
-    for (let hour = 0; hour < 24; hour++) {
-      const key = `${intent}-${hour}`;
-      data.push({
-        x: hour,
-        y: intentIndex,
-        value: heatmap[key] || 0,
-      });
-    }
-  });
-  
-  return { intents, data };
-}
-
-export async function getTrendData(
-  config: TenantSupabaseConfig,
-  filters: AnalyticsFilters,
-  groupBy: 'hour' | 'day' | 'week' = 'day'
-): Promise<TrendDataPoint[]> {
-  const client = getSupabaseClient(config);
-  
-  const { data: conversations, error } = await client
-    .from('ai_conversations')
-    .select('started_at')
-    .gte('started_at', filters.startDate)
-    .lte('started_at', filters.endDate)
-    .order('started_at', { ascending: true });
-  
-  if (error) {
-    console.error('Error fetching trend data:', error);
-    throw new Error(`Erro ao buscar dados de tendência: ${error.message}`);
-  }
-  
-  const groupedData: Record<string, number> = {};
-  
-  (conversations || []).forEach(conv => {
-    const date = new Date(conv.started_at);
-    let label: string;
+  atendimentos.forEach(record => {
+    const date = new Date(record.timestamp);
+    const dayKey = date.toISOString().split('T')[0];
+    const hour = date.getHours();
     
-    if (groupBy === 'hour') {
-      label = `${date.toLocaleDateString('pt-BR')} ${String(date.getHours()).padStart(2, '0')}h`;
-    } else if (groupBy === 'week') {
-      const weekStart = new Date(date);
-      weekStart.setDate(date.getDate() - date.getDay());
-      label = `Sem. ${weekStart.toLocaleDateString('pt-BR')}`;
-    } else {
-      label = date.toLocaleDateString('pt-BR');
-    }
-    
-    groupedData[label] = (groupedData[label] || 0) + 1;
+    dailyMap.set(dayKey, (dailyMap.get(dayKey) || 0) + 1);
+    hourlyMap.set(hour, (hourlyMap.get(hour) || 0) + 1);
   });
   
-  return Object.entries(groupedData).map(([label, value]) => ({ label, value }));
+  const daily: TrendDataPoint[] = Array.from(dailyMap.entries())
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  
+  const hourly: TrendDataPoint[] = Array.from({ length: 24 }, (_, i) => ({
+    label: `${i}h`,
+    value: hourlyMap.get(i) || 0,
+  }));
+  
+  return { daily, hourly };
 }
 
 export async function getConversionFunnel(
@@ -298,66 +224,51 @@ export async function getConversionFunnel(
 ): Promise<FunnelStep[]> {
   const client = getSupabaseClient(config);
   
-  const { data: conversations, error } = await client
-    .from('ai_conversations')
-    .select('status, primary_intent')
-    .gte('started_at', filters.startDate)
-    .lte('started_at', filters.endDate);
+  const { data: records, error } = await client
+    .from(TABLE_NAME)
+    .select('atendimento_finalizado, follow_up')
+    .gte('timestamp', filters.startDate)
+    .lte('timestamp', filters.endDate);
   
   if (error) {
-    console.error('Error fetching funnel data:', error);
-    throw new Error(`Erro ao buscar dados do funil: ${error.message}`);
+    console.error('Error fetching funnel:', error);
+    throw new Error(`Erro ao buscar funil: ${error.message}`);
   }
   
-  const convs = conversations || [];
-  const total = convs.length;
+  const atendimentos = records as { atendimento_finalizado: boolean; follow_up: string }[] || [];
+  const total = atendimentos.length;
   
-  const entrada = total;
-  const qualificados = convs.filter(c => c.primary_intent).length;
-  const agendamentos = convs.filter(c => c.primary_intent === 'agendamento').length;
-  const confirmados = convs.filter(c => c.primary_intent === 'agendamento' && c.status === 'resolved').length;
+  if (total === 0) {
+    return [
+      { name: 'Atendimentos Iniciados', value: 0, percentage: 0 },
+      { name: 'Follow-up 1', value: 0, percentage: 0 },
+      { name: 'Follow-up 2', value: 0, percentage: 0 },
+      { name: 'Follow-up 3', value: 0, percentage: 0 },
+      { name: 'Follow-up 4', value: 0, percentage: 0 },
+      { name: 'Finalizados (Agendados)', value: 0, percentage: 0 },
+    ];
+  }
+  
+  const followUp1 = atendimentos.filter(a => 
+    ['follow_up_01', 'follow_up_02', 'follow_up_03', 'follow_up_04'].includes(a.follow_up)
+  ).length;
+  const followUp2 = atendimentos.filter(a => 
+    ['follow_up_02', 'follow_up_03', 'follow_up_04'].includes(a.follow_up)
+  ).length;
+  const followUp3 = atendimentos.filter(a => 
+    ['follow_up_03', 'follow_up_04'].includes(a.follow_up)
+  ).length;
+  const followUp4 = atendimentos.filter(a => a.follow_up === 'follow_up_04').length;
+  const finalizados = atendimentos.filter(a => a.atendimento_finalizado === true).length;
   
   return [
-    { name: 'Entrada', value: entrada, percentage: 100 },
-    { name: 'Qualificação', value: qualificados, percentage: total > 0 ? (qualificados / total) * 100 : 0 },
-    { name: 'Agendamento', value: agendamentos, percentage: total > 0 ? (agendamentos / total) * 100 : 0 },
-    { name: 'Confirmação', value: confirmados, percentage: total > 0 ? (confirmados / total) * 100 : 0 },
+    { name: 'Atendimentos Iniciados', value: total, percentage: 100 },
+    { name: 'Follow-up 1', value: followUp1, percentage: (followUp1 / total) * 100 },
+    { name: 'Follow-up 2', value: followUp2, percentage: (followUp2 / total) * 100 },
+    { name: 'Follow-up 3', value: followUp3, percentage: (followUp3 / total) * 100 },
+    { name: 'Follow-up 4', value: followUp4, percentage: (followUp4 / total) * 100 },
+    { name: 'Finalizados (Agendados)', value: finalizados, percentage: (finalizados / total) * 100 },
   ];
-}
-
-export async function getIntentDistribution(
-  config: TenantSupabaseConfig,
-  filters: AnalyticsFilters
-): Promise<{ name: string; value: number; percentage: number }[]> {
-  const client = getSupabaseClient(config);
-  
-  const { data: conversations, error } = await client
-    .from('ai_conversations')
-    .select('primary_intent')
-    .gte('started_at', filters.startDate)
-    .lte('started_at', filters.endDate);
-  
-  if (error) {
-    console.error('Error fetching intent distribution:', error);
-    throw new Error(`Erro ao buscar distribuição de intenções: ${error.message}`);
-  }
-  
-  const convs = conversations || [];
-  const total = convs.length;
-  const intentCounts: Record<string, number> = {};
-  
-  convs.forEach(conv => {
-    const intent = conv.primary_intent || 'Não identificado';
-    intentCounts[intent] = (intentCounts[intent] || 0) + 1;
-  });
-  
-  return Object.entries(intentCounts)
-    .map(([name, value]) => ({
-      name,
-      value,
-      percentage: total > 0 ? (value / total) * 100 : 0,
-    }))
-    .sort((a, b) => b.value - a.value);
 }
 
 export async function getQualityMetrics(
@@ -366,228 +277,181 @@ export async function getQualityMetrics(
 ): Promise<QualityMetrics> {
   const client = getSupabaseClient(config);
   
-  const { data: conversations, error } = await client
-    .from('ai_conversations')
-    .select('*')
-    .gte('started_at', filters.startDate)
-    .lte('started_at', filters.endDate);
+  const { data: records, error } = await client
+    .from(TABLE_NAME)
+    .select('agente_atual, atendimento_finalizado, follow_up')
+    .gte('timestamp', filters.startDate)
+    .lte('timestamp', filters.endDate);
   
   if (error) {
     console.error('Error fetching quality metrics:', error);
     throw new Error(`Erro ao buscar métricas de qualidade: ${error.message}`);
   }
   
-  const convs = conversations || [];
-  const total = convs.length;
+  const atendimentos = records as AtendimentoRecord[] || [];
+  const total = atendimentos.length;
   
-  const resolvedConvs = convs.filter(c => c.status === 'resolved' && c.messages_count);
-  const avgMessages = resolvedConvs.length > 0
-    ? resolvedConvs.reduce((sum, c) => sum + (c.messages_count || 0), 0) / resolvedConvs.length
-    : 0;
-  
-  const fallbackCount = convs.filter(c => c.tags?.includes('fallback')).length;
-  const fallbackRate = total > 0 ? (fallbackCount / total) * 100 : 0;
-  
-  const sentimentCounts: Record<string, number> = { positive: 0, neutral: 0, negative: 0 };
-  convs.forEach(conv => {
-    const sentiment = conv.sentiment || 'neutral';
-    sentimentCounts[sentiment] = (sentimentCounts[sentiment] || 0) + 1;
+  // Métricas por agente
+  const agenteMap = new Map<string, { total: number; finalizados: number }>();
+  atendimentos.forEach(a => {
+    const agente = a.agente_atual || 'Não definido';
+    const current = agenteMap.get(agente) || { total: 0, finalizados: 0 };
+    current.total++;
+    if (a.atendimento_finalizado) current.finalizados++;
+    agenteMap.set(agente, current);
   });
   
-  const sentimentDistribution = Object.entries(sentimentCounts).map(([sentiment, count]) => ({
-    sentiment,
+  const porAgente = Array.from(agenteMap.entries()).map(([agente, stats]) => ({
+    agente,
+    total: stats.total,
+    finalizados: stats.finalizados,
+    taxa: stats.total > 0 ? (stats.finalizados / stats.total) * 100 : 0,
+  })).sort((a, b) => b.total - a.total);
+  
+  // Distribuição por follow-up
+  const followUpMap = new Map<string, number>();
+  atendimentos.forEach(a => {
+    const fu = a.follow_up || 'Sem follow-up';
+    followUpMap.set(fu, (followUpMap.get(fu) || 0) + 1);
+  });
+  
+  const porFollowUp = Array.from(followUpMap.entries()).map(([follow_up, count]) => ({
+    follow_up,
     count,
     percentage: total > 0 ? (count / total) * 100 : 0,
-  }));
+  })).sort((a, b) => b.count - a.count);
   
-  const handoffReasons: Record<string, number> = {};
-  convs.filter(c => c.handoff_reason).forEach(conv => {
-    const reason = conv.handoff_reason!;
-    handoffReasons[reason] = (handoffReasons[reason] || 0) + 1;
-  });
-  
-  const humanInterventions = Object.entries(handoffReasons)
-    .map(([reason, count]) => ({ reason, count }))
-    .sort((a, b) => b.count - a.count);
-  
-  const { data: topQuestions } = await client
-    .from('ai_frequent_questions')
-    .select('question, count')
-    .gte('date', filters.startDate)
-    .lte('date', filters.endDate)
-    .order('count', { ascending: false })
-    .limit(10);
-  
-  return {
-    avg_messages_to_resolve: Number(avgMessages.toFixed(1)),
-    fallback_rate: Number(fallbackRate.toFixed(1)),
-    top_questions: topQuestions || [],
-    sentiment_distribution: sentimentDistribution,
-    human_interventions: humanInterventions,
-  };
+  return { por_agente: porAgente, por_follow_up: porFollowUp };
 }
 
-export async function getConversationsList(
+export async function getAtendimentosList(
   config: TenantSupabaseConfig,
   filters: AnalyticsFilters,
   page: number = 1,
-  limit: number = 20
-): Promise<{ conversations: AiConversation[]; total: number }> {
+  pageSize: number = 20
+): Promise<{ data: AtendimentoRecord[]; total: number; page: number; pageSize: number }> {
   const client = getSupabaseClient(config);
   
-  const offset = (page - 1) * limit;
+  const offset = (page - 1) * pageSize;
   
   let query = client
-    .from('ai_conversations')
+    .from(TABLE_NAME)
     .select('*', { count: 'exact' })
-    .gte('started_at', filters.startDate)
-    .lte('started_at', filters.endDate)
-    .order('started_at', { ascending: false })
-    .range(offset, offset + limit - 1);
+    .gte('timestamp', filters.startDate)
+    .lte('timestamp', filters.endDate)
+    .order('timestamp', { ascending: false })
+    .range(offset, offset + pageSize - 1);
   
-  if (filters.channel) {
-    query = query.eq('channel', filters.channel);
+  if (filters.agente) {
+    query = query.eq('agente_atual', filters.agente);
   }
-  if (filters.status) {
-    query = query.eq('status', filters.status);
+  if (filters.status === 'finalizado') {
+    query = query.eq('atendimento_finalizado', true);
+  } else if (filters.status === 'em_andamento') {
+    query = query.eq('atendimento_finalizado', false);
   }
-  if (filters.intent) {
-    query = query.eq('primary_intent', filters.intent);
-  }
-  if (filters.agentName) {
-    query = query.eq('agent_name', filters.agentName);
+  if (filters.followUp) {
+    query = query.eq('follow_up', filters.followUp);
   }
   
-  const { data: conversations, count, error } = await query;
+  const { data, count, error } = await query;
   
   if (error) {
-    console.error('Error fetching conversations list:', error);
-    throw new Error(`Erro ao buscar lista de atendimentos: ${error.message}`);
+    console.error('Error fetching atendimentos list:', error);
+    throw new Error(`Erro ao buscar atendimentos: ${error.message}`);
   }
   
   return {
-    conversations: conversations || [],
+    data: (data as AtendimentoRecord[]) || [],
     total: count || 0,
+    page,
+    pageSize,
   };
 }
 
-export async function getAlerts(
+export async function getFilterOptions(
+  config: TenantSupabaseConfig
+): Promise<{ agentes: string[]; followUps: string[] }> {
+  const client = getSupabaseClient(config);
+  
+  const { data: records, error } = await client
+    .from(TABLE_NAME)
+    .select('agente_atual, follow_up');
+  
+  if (error) {
+    console.error('Error fetching filter options:', error);
+    throw new Error(`Erro ao buscar opções de filtro: ${error.message}`);
+  }
+  
+  const atendimentos = records as { agente_atual: string; follow_up: string }[] || [];
+  
+  const agentes = Array.from(new Set(atendimentos.map(a => a.agente_atual).filter(Boolean))).sort();
+  const followUps = Array.from(new Set(atendimentos.map(a => a.follow_up).filter(Boolean))).sort();
+  
+  return { agentes, followUps };
+}
+
+export async function getMonthComparison(
   config: TenantSupabaseConfig,
-  filters: AnalyticsFilters
-): Promise<AiAlert[]> {
-  const client = getSupabaseClient(config);
+  currentMonth: string,
+  previousMonth: string
+): Promise<{ current: AiMetricsSummary; previous: AiMetricsSummary; variation: Record<string, number> }> {
+  const currentFilters: AnalyticsFilters = {
+    startDate: `${currentMonth}-01`,
+    endDate: `${currentMonth}-31`,
+  };
   
-  const { data: alerts, error } = await client
-    .from('ai_alerts')
-    .select('*')
-    .gte('created_at', filters.startDate)
-    .lte('created_at', filters.endDate)
-    .order('created_at', { ascending: false })
-    .limit(50);
+  const previousFilters: AnalyticsFilters = {
+    startDate: `${previousMonth}-01`,
+    endDate: `${previousMonth}-31`,
+  };
   
-  if (error) {
-    console.error('Error fetching alerts:', error);
-    return [];
-  }
+  const [current, previous] = await Promise.all([
+    getAiMetricsSummary(config, currentFilters),
+    getAiMetricsSummary(config, previousFilters),
+  ]);
   
-  return alerts || [];
-}
-
-export async function getChannelsList(config: TenantSupabaseConfig): Promise<string[]> {
-  const client = getSupabaseClient(config);
+  const calcVariation = (curr: number, prev: number) => {
+    if (prev === 0) return curr > 0 ? 100 : 0;
+    return ((curr - prev) / prev) * 100;
+  };
   
-  const { data, error } = await client
-    .from('ai_conversations')
-    .select('channel')
-    .not('channel', 'is', null);
-  
-  if (error) {
-    console.error('Error fetching channels:', error);
-    return [];
-  }
-  
-  const channels = (data || []).map((d: { channel: string }) => d.channel);
-  return Array.from(new Set(channels)).filter(Boolean) as string[];
-}
-
-export async function getIntentsList(config: TenantSupabaseConfig): Promise<string[]> {
-  const client = getSupabaseClient(config);
-  
-  const { data, error } = await client
-    .from('ai_conversations')
-    .select('primary_intent')
-    .not('primary_intent', 'is', null);
-  
-  if (error) {
-    console.error('Error fetching intents:', error);
-    return [];
-  }
-  
-  const intents = (data || []).map((d: { primary_intent: string }) => d.primary_intent);
-  return Array.from(new Set(intents)).filter(Boolean) as string[];
-}
-
-export async function getAgentsList(config: TenantSupabaseConfig): Promise<string[]> {
-  const client = getSupabaseClient(config);
-  
-  const { data, error } = await client
-    .from('ai_conversations')
-    .select('agent_name')
-    .not('agent_name', 'is', null);
-  
-  if (error) {
-    console.error('Error fetching agents:', error);
-    return [];
-  }
-  
-  const agents = (data || []).map((d: { agent_name: string }) => d.agent_name);
-  return Array.from(new Set(agents)).filter(Boolean) as string[];
+  return {
+    current,
+    previous,
+    variation: {
+      total_conversations: calcVariation(current.total_conversations, previous.total_conversations),
+      finalizados: calcVariation(current.finalizados, previous.finalizados),
+      taxa_conversao: calcVariation(current.taxa_conversao, previous.taxa_conversao),
+    },
+  };
 }
 
 export async function testSupabaseConnection(config: TenantSupabaseConfig): Promise<{ success: boolean; message: string }> {
   try {
     const client = getSupabaseClient(config);
     
-    const { error } = await client
-      .from('ai_conversations')
+    // Testar conexão buscando 1 registro
+    const { data, error } = await client
+      .from(TABLE_NAME)
       .select('id')
       .limit(1);
     
     if (error) {
-      return { success: false, message: `Erro na conexão: ${error.message}` };
+      return { 
+        success: false, 
+        message: `Erro de conexão: ${error.message}` 
+      };
     }
     
-    return { success: true, message: 'Conexão estabelecida com sucesso!' };
-  } catch (err: any) {
-    return { success: false, message: `Erro: ${err.message}` };
+    return { 
+      success: true, 
+      message: `Conexão estabelecida! Tabela '${TABLE_NAME}' acessível.` 
+    };
+  } catch (error: any) {
+    return { 
+      success: false, 
+      message: `Erro: ${error.message}` 
+    };
   }
-}
-
-export async function getMonthComparison(
-  config: TenantSupabaseConfig
-): Promise<{ current: number; previous: number; percentChange: number }> {
-  const client = getSupabaseClient(config);
-  
-  const now = new Date();
-  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-  
-  const { count: currentCount } = await client
-    .from('ai_conversations')
-    .select('id', { count: 'exact', head: true })
-    .gte('started_at', currentMonthStart.toISOString())
-    .lte('started_at', now.toISOString());
-  
-  const { count: previousCount } = await client
-    .from('ai_conversations')
-    .select('id', { count: 'exact', head: true })
-    .gte('started_at', previousMonthStart.toISOString())
-    .lte('started_at', previousMonthEnd.toISOString());
-  
-  const current = currentCount || 0;
-  const previous = previousCount || 0;
-  const percentChange = previous > 0 ? ((current - previous) / previous) * 100 : 0;
-  
-  return { current, previous, percentChange };
 }

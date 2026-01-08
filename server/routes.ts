@@ -5459,8 +5459,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
-  // Get Intent x Hour Heatmap
-  app.get("/api/analytics/ai/heatmap/intents", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
+  // Get Trend Data
+  app.get("/api/analytics/ai/trends", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5479,44 +5479,11 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       };
 
       const supabaseService = await import('./supabaseService');
-      const heatmap = await supabaseService.getIntentHourHeatmap({
+      const trends = await supabaseService.getDailyTrends({
         supabaseUrl: tenant.supabaseUrl,
         supabaseDatabase: tenant.supabaseDatabase,
         supabaseAnonKey: tenant.supabaseAnonKey,
       }, filters);
-
-      res.json(heatmap);
-    } catch (error: any) {
-      console.error("Error fetching intent heatmap:", error);
-      res.status(500).json({ error: error.message || "Erro ao buscar mapa de intenções" });
-    }
-  });
-
-  // Get Trend Data
-  app.get("/api/analytics/ai/trends", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
-    try {
-      const tenantId = getTenantId(req);
-      if (!tenantId) {
-        return res.status(401).json({ error: "Tenant não identificado" });
-      }
-
-      const tenant = await storage.getTenant(tenantId);
-      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
-        return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
-      }
-
-      const { startDate, endDate, groupBy } = req.query;
-      const filters = {
-        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        endDate: endDate as string || new Date().toISOString(),
-      };
-
-      const supabaseService = await import('./supabaseService');
-      const trends = await supabaseService.getTrendData({
-        supabaseUrl: tenant.supabaseUrl,
-        supabaseDatabase: tenant.supabaseDatabase,
-        supabaseAnonKey: tenant.supabaseAnonKey,
-      }, filters, groupBy as 'hour' | 'day' | 'week' || 'day');
 
       res.json(trends);
     } catch (error: any) {
@@ -5558,40 +5525,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
-  // Get Intent Distribution
-  app.get("/api/analytics/ai/intents-distribution", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
-    try {
-      const tenantId = getTenantId(req);
-      if (!tenantId) {
-        return res.status(401).json({ error: "Tenant não identificado" });
-      }
-
-      const tenant = await storage.getTenant(tenantId);
-      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
-        return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
-      }
-
-      const { startDate, endDate } = req.query;
-      const filters = {
-        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        endDate: endDate as string || new Date().toISOString(),
-      };
-
-      const supabaseService = await import('./supabaseService');
-      const distribution = await supabaseService.getIntentDistribution({
-        supabaseUrl: tenant.supabaseUrl,
-        supabaseDatabase: tenant.supabaseDatabase,
-        supabaseAnonKey: tenant.supabaseAnonKey,
-      }, filters);
-
-      res.json(distribution);
-    } catch (error: any) {
-      console.error("Error fetching intent distribution:", error);
-      res.status(500).json({ error: error.message || "Erro ao buscar distribuição de intenções" });
-    }
-  });
-
-  // Get Quality Metrics
+  // Get Quality Metrics (por agente e por follow-up)
   app.get("/api/analytics/ai/quality", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
@@ -5604,14 +5538,11 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
       }
 
-      const { startDate, endDate, channel, status, intent, agentName } = req.query;
+      const { startDate, endDate, agente } = req.query;
       const filters = {
         startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
         endDate: endDate as string || new Date().toISOString(),
-        channel: channel as string,
-        status: status as string,
-        intent: intent as string,
-        agentName: agentName as string,
+        agente: agente as string,
       };
 
       const supabaseService = await import('./supabaseService');
@@ -5628,7 +5559,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
-  // Get Conversations List
+  // Get Atendimentos List
   app.get("/api/analytics/ai/conversations", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
@@ -5641,18 +5572,17 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
       }
 
-      const { startDate, endDate, channel, status, intent, agentName, page, limit } = req.query;
+      const { startDate, endDate, status, agente, followUp, page, limit } = req.query;
       const filters = {
         startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
         endDate: endDate as string || new Date().toISOString(),
-        channel: channel as string,
         status: status as string,
-        intent: intent as string,
-        agentName: agentName as string,
+        agente: agente as string,
+        followUp: followUp as string,
       };
 
       const supabaseService = await import('./supabaseService');
-      const result = await supabaseService.getConversationsList({
+      const result = await supabaseService.getAtendimentosList({
         supabaseUrl: tenant.supabaseUrl,
         supabaseDatabase: tenant.supabaseDatabase,
         supabaseAnonKey: tenant.supabaseAnonKey,
@@ -5660,41 +5590,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
 
       res.json(result);
     } catch (error: any) {
-      console.error("Error fetching conversations list:", error);
+      console.error("Error fetching atendimentos list:", error);
       res.status(500).json({ error: error.message || "Erro ao buscar lista de atendimentos" });
-    }
-  });
-
-  // Get Alerts
-  app.get("/api/analytics/ai/alerts", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
-    try {
-      const tenantId = getTenantId(req);
-      if (!tenantId) {
-        return res.status(401).json({ error: "Tenant não identificado" });
-      }
-
-      const tenant = await storage.getTenant(tenantId);
-      if (!tenant || !tenant.supabaseUrl || !tenant.supabaseDatabase || !tenant.supabaseAnonKey) {
-        return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
-      }
-
-      const { startDate, endDate } = req.query;
-      const filters = {
-        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        endDate: endDate as string || new Date().toISOString(),
-      };
-
-      const supabaseService = await import('./supabaseService');
-      const alerts = await supabaseService.getAlerts({
-        supabaseUrl: tenant.supabaseUrl,
-        supabaseDatabase: tenant.supabaseDatabase,
-        supabaseAnonKey: tenant.supabaseAnonKey,
-      }, filters);
-
-      res.json(alerts);
-    } catch (error: any) {
-      console.error("Error fetching alerts:", error);
-      res.status(500).json({ error: error.message || "Erro ao buscar alertas" });
     }
   });
 
@@ -5711,12 +5608,17 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
       }
 
+      const { currentMonth, previousMonth } = req.query;
+      const now = new Date();
+      const currMonth = currentMonth as string || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const prevMonth = previousMonth as string || `${now.getFullYear()}-${String(now.getMonth()).padStart(2, '0')}`;
+
       const supabaseService = await import('./supabaseService');
       const comparison = await supabaseService.getMonthComparison({
         supabaseUrl: tenant.supabaseUrl,
         supabaseDatabase: tenant.supabaseDatabase,
         supabaseAnonKey: tenant.supabaseAnonKey,
-      });
+      }, currMonth, prevMonth);
 
       res.json(comparison);
     } catch (error: any) {
@@ -5725,7 +5627,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
-  // Get Filter Options (channels, intents, agents)
+  // Get Filter Options (agentes e follow-ups)
   app.get("/api/analytics/ai/filters", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
@@ -5739,19 +5641,13 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       }
 
       const supabaseService = await import('./supabaseService');
-      const config = {
+      const filterOptions = await supabaseService.getFilterOptions({
         supabaseUrl: tenant.supabaseUrl,
         supabaseDatabase: tenant.supabaseDatabase,
         supabaseAnonKey: tenant.supabaseAnonKey,
-      };
+      });
 
-      const [channels, intents, agents] = await Promise.all([
-        supabaseService.getChannelsList(config),
-        supabaseService.getIntentsList(config),
-        supabaseService.getAgentsList(config),
-      ]);
-
-      res.json({ channels, intents, agents });
+      res.json(filterOptions);
     } catch (error: any) {
       console.error("Error fetching filter options:", error);
       res.status(500).json({ error: error.message || "Erro ao buscar opções de filtros" });

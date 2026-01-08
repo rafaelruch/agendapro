@@ -517,51 +517,30 @@ CREATE TABLE IF NOT EXISTS webhook_deliveries (
 );
 
 -- =============================================================================
--- TABELAS ESPERADAS NO SUPABASE DO TENANT (AI ANALYTICS)
--- Estas tabelas devem existir no Supabase self-hosted de cada tenant
+-- TABELA ESPERADA NO SUPABASE DO TENANT (AI ANALYTICS)
+-- Esta tabela deve existir no Supabase self-hosted de cada tenant
 -- para que o módulo AI Analytics funcione corretamente
 -- =============================================================================
 
--- NOTA: As tabelas abaixo são criadas no Supabase do tenant (supabase.ruch.com.br),
+-- NOTA: A tabela abaixo é criada no Supabase do tenant (supabase.ruch.com.br),
 -- NÃO no PostgreSQL do AgendaPro. Este script serve como documentação da estrutura esperada.
 
--- Estrutura esperada da tabela ai_conversations no Supabase do tenant:
--- CREATE TABLE IF NOT EXISTS ai_conversations (
+-- Estrutura da tabela 'atendimentos' no Supabase do tenant:
+-- CREATE TABLE IF NOT EXISTS atendimentos (
 --     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
---     contact_phone TEXT NOT NULL,
---     contact_name TEXT,
---     channel TEXT NOT NULL DEFAULT 'whatsapp',
---     primary_intent TEXT,
---     status TEXT NOT NULL DEFAULT 'active',
---     satisfaction_score INTEGER CHECK (satisfaction_score >= 1 AND satisfaction_score <= 5),
---     started_at TIMESTAMP NOT NULL DEFAULT NOW(),
---     ended_at TIMESTAMP,
---     messages_count INTEGER NOT NULL DEFAULT 0,
---     avg_response_time_ms INTEGER,
---     sentiment TEXT CHECK (sentiment IN ('positive', 'neutral', 'negative')),
---     agent_name TEXT,
---     handoff_reason TEXT,
---     tags TEXT[],
---     created_at TIMESTAMP DEFAULT NOW()
+--     remotejid TEXT NOT NULL,                     -- número de telefone do cliente
+--     nome TEXT,                                   -- nome do cliente
+--     timestamp TIMESTAMP NOT NULL DEFAULT NOW(), -- data/hora do atendimento
+--     agente_atual TEXT,                          -- agente em atendimento
+--     atendimento_finalizado BOOLEAN DEFAULT false, -- se já agendou
+--     follow_up TEXT                              -- follow_up_01, follow_up_02, follow_up_03, follow_up_04
 -- );
 
--- Estrutura esperada da tabela ai_alerts no Supabase do tenant:
--- CREATE TABLE IF NOT EXISTS ai_alerts (
---     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
---     type TEXT NOT NULL,
---     severity TEXT NOT NULL CHECK (severity IN ('high', 'medium', 'low')),
---     message TEXT NOT NULL,
---     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
---     resolved_at TIMESTAMP
--- );
-
--- Estrutura esperada da tabela ai_frequent_questions no Supabase do tenant:
--- CREATE TABLE IF NOT EXISTS ai_frequent_questions (
---     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
---     question TEXT NOT NULL,
---     count INTEGER NOT NULL DEFAULT 1,
---     date DATE NOT NULL DEFAULT CURRENT_DATE
--- );
+-- Índices recomendados para performance:
+-- CREATE INDEX IF NOT EXISTS idx_atendimentos_timestamp ON atendimentos(timestamp);
+-- CREATE INDEX IF NOT EXISTS idx_atendimentos_agente ON atendimentos(agente_atual);
+-- CREATE INDEX IF NOT EXISTS idx_atendimentos_finalizado ON atendimentos(atendimento_finalizado);
+-- CREATE INDEX IF NOT EXISTS idx_atendimentos_follow_up ON atendimentos(follow_up);
 
 -- =============================================================================
 

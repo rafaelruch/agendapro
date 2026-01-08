@@ -11,23 +11,19 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   MessageSquare, 
-  Clock, 
   CheckCircle, 
   Users, 
-  Star, 
-  ArrowRightLeft,
   TrendingUp,
   TrendingDown,
-  AlertTriangle,
   Settings,
   RefreshCw,
   Calendar,
   Filter,
   BarChart3,
-  Activity,
-  MessageCircle,
   Phone,
-  ExternalLink
+  UserCheck,
+  Target,
+  Repeat
 } from "lucide-react";
 import { format, subDays, startOfDay, endOfDay, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -35,11 +31,15 @@ import ApexCharts from "react-apexcharts";
 
 interface MetricsSummary {
   total_conversations: number;
-  avg_response_time_ms: number;
-  resolution_rate: number;
-  active_conversations: number;
-  avg_satisfaction: number;
-  handoff_rate: number;
+  finalizados: number;
+  em_andamento: number;
+  taxa_conversao: number;
+  follow_ups: {
+    follow_up_01: number;
+    follow_up_02: number;
+    follow_up_03: number;
+    follow_up_04: number;
+  };
 }
 
 interface HeatmapCell {
@@ -59,46 +59,24 @@ interface FunnelStep {
   percentage: number;
 }
 
-interface IntentDistribution {
-  name: string;
-  value: number;
-  percentage: number;
-}
-
 interface QualityMetrics {
-  avg_messages_to_resolve: number;
-  fallback_rate: number;
-  top_questions: { question: string; count: number }[];
-  sentiment_distribution: { sentiment: string; count: number; percentage: number }[];
-  human_interventions: { reason: string; count: number }[];
+  por_agente: { agente: string; total: number; finalizados: number; taxa: number }[];
+  por_follow_up: { follow_up: string; count: number; percentage: number }[];
 }
 
-interface Conversation {
+interface Atendimento {
   id: string;
-  contact_phone: string;
-  contact_name?: string;
-  channel: string;
-  primary_intent?: string;
-  status: string;
-  satisfaction_score?: number;
-  started_at: string;
-  ended_at?: string;
-  messages_count?: number;
-  agent_name?: string;
-}
-
-interface Alert {
-  id: string;
-  type: string;
-  severity: 'info' | 'warning' | 'critical';
-  message: string;
-  created_at: string;
+  remotejid: string;
+  nome: string;
+  timestamp: string;
+  agente_atual: string;
+  atendimento_finalizado: boolean;
+  follow_up: string;
 }
 
 interface FilterOptions {
-  channels: string[];
-  intents: string[];
-  agents: string[];
+  agentes: string[];
+  followUps: string[];
 }
 
 interface SupabaseConfig {
@@ -115,7 +93,6 @@ const DATE_PRESETS = [
   { label: "Últimos 30 dias", value: "30days" },
   { label: "Este mês", value: "thisMonth" },
   { label: "Mês anterior", value: "lastMonth" },
-  { label: "Personalizado", value: "custom" },
 ];
 
 const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -163,57 +140,61 @@ function getDateRange(preset: string): { startDate: string; endDate: string } {
   }
 }
 
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}min`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ${minutes % 60}min`;
-}
-
-function maskPhone(phone: string): string {
-  if (!phone) return "";
-  if (phone.length <= 4) return phone;
-  return phone.slice(0, 4) + "****" + phone.slice(-2);
-}
-
 export default function AiAnalyticsPage() {
   const { toast } = useToast();
-  const [datePreset, setDatePreset] = useState("7days");
-  const [customStartDate, setCustomStartDate] = useState("");
-  const [customEndDate, setCustomEndDate] = useState("");
-  const [selectedChannel, setSelectedChannel] = useState<string>("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
-  const [selectedIntent, setSelectedIntent] = useState<string>("");
-  const [selectedAgent, setSelectedAgent] = useState<string>("");
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [conversationsPage, setConversationsPage] = useState(1);
+  const [datePreset, setDatePreset] = useState("7days");
+  const [selectedAgente, setSelectedAgente] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [selectedFollowUp, setSelectedFollowUp] = useState<string>("all");
+  const [page, setPage] = useState(1);
 
-  const dateRange = useMemo(() => {
-    if (datePreset === "custom" && customStartDate && customEndDate) {
-      return {
-        startDate: new Date(customStartDate).toISOString(),
-        endDate: new Date(customEndDate).toISOString(),
-      };
-    }
-    return getDateRange(datePreset);
-  }, [datePreset, customStartDate, customEndDate]);
+  const { startDate, endDate } = useMemo(() => getDateRange(datePreset), [datePreset]);
 
-  const filterParams = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set("startDate", dateRange.startDate);
-    params.set("endDate", dateRange.endDate);
-    if (selectedChannel) params.set("channel", selectedChannel);
-    if (selectedStatus) params.set("status", selectedStatus);
-    if (selectedIntent) params.set("intent", selectedIntent);
-    if (selectedAgent) params.set("agentName", selectedAgent);
+  const buildQueryString = (extra: Record<string, string> = {}) => {
+    const params = new URLSearchParams({
+      startDate,
+      endDate,
+      ...extra,
+    });
+    if (selectedAgente && selectedAgente !== "all") params.set("agente", selectedAgente);
+    if (selectedStatus && selectedStatus !== "all") params.set("status", selectedStatus);
+    if (selectedFollowUp && selectedFollowUp !== "all") params.set("followUp", selectedFollowUp);
     return params.toString();
-  }, [dateRange, selectedChannel, selectedStatus, selectedIntent, selectedAgent]);
+  };
 
-  const { data: supabaseConfig, isLoading: isLoadingConfig } = useQuery<SupabaseConfig>({
+  const { data: supabaseConfig, isLoading: loadingConfig } = useQuery<SupabaseConfig>({
     queryKey: ["/api/tenant/supabase-config"],
+  });
+
+  const { data: summary, isLoading: loadingSummary, refetch: refetchSummary } = useQuery<MetricsSummary>({
+    queryKey: ["/api/analytics/ai/summary", startDate, endDate, selectedAgente],
+    enabled: !!supabaseConfig?.supabaseConfigured,
+  });
+
+  const { data: heatmapData } = useQuery<HeatmapCell[]>({
+    queryKey: ["/api/analytics/ai/heatmap/hourly", startDate, endDate],
+    enabled: !!supabaseConfig?.supabaseConfigured && activeTab === "dashboard",
+  });
+
+  const { data: trendsData } = useQuery<{ daily: TrendDataPoint[]; hourly: TrendDataPoint[] }>({
+    queryKey: ["/api/analytics/ai/trends", startDate, endDate],
+    enabled: !!supabaseConfig?.supabaseConfigured && activeTab === "dashboard",
+  });
+
+  const { data: funnelData } = useQuery<FunnelStep[]>({
+    queryKey: ["/api/analytics/ai/funnel", startDate, endDate],
+    enabled: !!supabaseConfig?.supabaseConfigured && activeTab === "dashboard",
+  });
+
+  const { data: qualityData } = useQuery<QualityMetrics>({
+    queryKey: ["/api/analytics/ai/quality", startDate, endDate, selectedAgente],
+    enabled: !!supabaseConfig?.supabaseConfigured && activeTab === "quality",
+  });
+
+  const { data: atendimentosData } = useQuery<{ data: Atendimento[]; total: number; page: number; pageSize: number }>({
+    queryKey: ["/api/analytics/ai/conversations", startDate, endDate, selectedAgente, selectedStatus, selectedFollowUp, page],
+    enabled: !!supabaseConfig?.supabaseConfigured && activeTab === "conversations",
   });
 
   const { data: filterOptions } = useQuery<FilterOptions>({
@@ -221,242 +202,79 @@ export default function AiAnalyticsPage() {
     enabled: !!supabaseConfig?.supabaseConfigured,
   });
 
-  const { data: summary, isLoading: isLoadingSummary, refetch: refetchSummary } = useQuery<MetricsSummary>({
-    queryKey: ["/api/analytics/ai/summary", filterParams],
-    enabled: !!supabaseConfig?.supabaseConfigured,
-  });
-
-  const { data: hourlyHeatmap } = useQuery<HeatmapCell[]>({
-    queryKey: ["/api/analytics/ai/heatmap/hourly", filterParams],
-    enabled: !!supabaseConfig?.supabaseConfigured && activeTab === "dashboard",
-  });
-
-  const { data: trends } = useQuery<TrendDataPoint[]>({
-    queryKey: ["/api/analytics/ai/trends", filterParams],
-    enabled: !!supabaseConfig?.supabaseConfigured && activeTab === "dashboard",
-  });
-
-  const { data: funnel } = useQuery<FunnelStep[]>({
-    queryKey: ["/api/analytics/ai/funnel", filterParams],
-    enabled: !!supabaseConfig?.supabaseConfigured && activeTab === "dashboard",
-  });
-
-  const { data: intentDistribution } = useQuery<IntentDistribution[]>({
-    queryKey: ["/api/analytics/ai/intents-distribution", filterParams],
-    enabled: !!supabaseConfig?.supabaseConfigured && activeTab === "dashboard",
-  });
-
-  const { data: quality } = useQuery<QualityMetrics>({
-    queryKey: ["/api/analytics/ai/quality", filterParams],
-    enabled: !!supabaseConfig?.supabaseConfigured && activeTab === "quality",
-  });
-
-  const { data: conversationsData } = useQuery<{ conversations: Conversation[]; total: number }>({
-    queryKey: ["/api/analytics/ai/conversations", filterParams, conversationsPage],
-    enabled: !!supabaseConfig?.supabaseConfigured && activeTab === "conversations",
-  });
-
-  const { data: alerts } = useQuery<Alert[]>({
-    queryKey: ["/api/analytics/ai/alerts", filterParams],
-    enabled: !!supabaseConfig?.supabaseConfigured && activeTab === "alerts",
-  });
-
-  const { data: comparison } = useQuery<{ current: number; previous: number; percentChange: number }>({
-    queryKey: ["/api/analytics/ai/comparison"],
-    enabled: !!supabaseConfig?.supabaseConfigured,
-  });
-
-  const handleRefresh = () => {
-    refetchSummary();
-    queryClient.invalidateQueries({ queryKey: ["/api/analytics/ai"] });
-    toast({ title: "Dados atualizados" });
-  };
-
-  const heatmapData = useMemo(() => {
-    if (!hourlyHeatmap) return [];
-    
-    const series: { name: string; data: { x: string; y: number }[] }[] = [];
-    
-    for (let day = 0; day < 7; day++) {
-      const dayData: { x: string; y: number }[] = [];
-      for (let hour = 0; hour < 24; hour++) {
-        const cell = hourlyHeatmap.find(c => c.x === hour && c.y === day);
-        dayData.push({
-          x: `${String(hour).padStart(2, "0")}h`,
-          y: cell?.value || 0,
-        });
-      }
-      series.push({
-        name: DAY_NAMES[day],
-        data: dayData,
-      });
-    }
-    
-    return series;
-  }, [hourlyHeatmap]);
-
-  if (isLoadingConfig) {
+  if (loadingConfig) {
     return (
-      <div className="p-6 flex items-center justify-center h-64">
+      <div className="flex items-center justify-center h-64">
         <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   if (!supabaseConfig?.supabaseConfigured) {
-    return <SupabaseConfigForm />;
+    return (
+      <div className="p-6">
+        <SupabaseConfigForm />
+      </div>
+    );
   }
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold" data-testid="text-page-title">Analytics de IA</h1>
-          <p className="text-muted-foreground">Métricas e análises de atendimento da IA</p>
+          <h1 className="text-2xl font-bold" data-testid="text-page-title">Analytics IA</h1>
+          <p className="text-muted-foreground">Métricas de atendimento automatizado</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} data-testid="button-refresh">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Atualizar
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setActiveTab("settings")} data-testid="button-settings">
-            <Settings className="w-4 h-4 mr-2" />
-            Configurações
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Select value={datePreset} onValueChange={setDatePreset}>
+            <SelectTrigger className="w-[180px]" data-testid="select-date-preset">
+              <Calendar className="w-4 h-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DATE_PRESETS.map(preset => (
+                <SelectItem key={preset.value} value={preset.value}>
+                  {preset.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {filterOptions && (
+            <Select value={selectedAgente} onValueChange={setSelectedAgente}>
+              <SelectTrigger className="w-[150px]" data-testid="select-agente">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Agente" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os agentes</SelectItem>
+                {filterOptions.agentes.map(agente => (
+                  <SelectItem key={agente} value={agente}>{agente}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          <Button variant="outline" size="icon" onClick={() => refetchSummary()} data-testid="button-refresh">
+            <RefreshCw className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-4 items-end">
-            <div className="space-y-1">
-              <Label>Período</Label>
-              <Select value={datePreset} onValueChange={setDatePreset}>
-                <SelectTrigger className="w-40" data-testid="select-date-preset">
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DATE_PRESETS.map(preset => (
-                    <SelectItem key={preset.value} value={preset.value}>
-                      {preset.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {datePreset === "custom" && (
-              <>
-                <div className="space-y-1">
-                  <Label>Data Início</Label>
-                  <Input
-                    type="date"
-                    value={customStartDate}
-                    onChange={e => setCustomStartDate(e.target.value)}
-                    data-testid="input-start-date"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label>Data Fim</Label>
-                  <Input
-                    type="date"
-                    value={customEndDate}
-                    onChange={e => setCustomEndDate(e.target.value)}
-                    data-testid="input-end-date"
-                  />
-                </div>
-              </>
-            )}
-
-            {filterOptions && (
-              <>
-                <div className="space-y-1">
-                  <Label>Canal</Label>
-                  <Select value={selectedChannel} onValueChange={setSelectedChannel}>
-                    <SelectTrigger className="w-32" data-testid="select-channel">
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Todos</SelectItem>
-                      {filterOptions.channels.map(ch => (
-                        <SelectItem key={ch} value={ch}>{ch}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1">
-                  <Label>Status</Label>
-                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                    <SelectTrigger className="w-32" data-testid="select-status">
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Todos</SelectItem>
-                      <SelectItem value="active">Ativo</SelectItem>
-                      <SelectItem value="resolved">Resolvido</SelectItem>
-                      <SelectItem value="pending">Pendente</SelectItem>
-                      <SelectItem value="transferred">Transferido</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {filterOptions.intents.length > 0 && (
-                  <div className="space-y-1">
-                    <Label>Intenção</Label>
-                    <Select value={selectedIntent} onValueChange={setSelectedIntent}>
-                      <SelectTrigger className="w-36" data-testid="select-intent">
-                        <SelectValue placeholder="Todas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Todas</SelectItem>
-                        {filterOptions.intents.map(intent => (
-                          <SelectItem key={intent} value={intent}>{intent}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {filterOptions.agents.length > 0 && (
-                  <div className="space-y-1">
-                    <Label>Agente</Label>
-                    <Select value={selectedAgent} onValueChange={setSelectedAgent}>
-                      <SelectTrigger className="w-40" data-testid="select-agent">
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Todos</SelectItem>
-                        {filterOptions.agents.map(agent => (
-                          <SelectItem key={agent} value={agent}>{agent}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-4" data-testid="tabs-list">
           <TabsTrigger value="dashboard" data-testid="tab-dashboard">
             <BarChart3 className="w-4 h-4 mr-2" />
             Dashboard
           </TabsTrigger>
           <TabsTrigger value="quality" data-testid="tab-quality">
-            <Activity className="w-4 h-4 mr-2" />
-            Qualidade
+            <Target className="w-4 h-4 mr-2" />
+            Por Agente
           </TabsTrigger>
           <TabsTrigger value="conversations" data-testid="tab-conversations">
-            <MessageCircle className="w-4 h-4 mr-2" />
+            <MessageSquare className="w-4 h-4 mr-2" />
             Atendimentos
-          </TabsTrigger>
-          <TabsTrigger value="alerts" data-testid="tab-alerts">
-            <AlertTriangle className="w-4 h-4 mr-2" />
-            Alertas
           </TabsTrigger>
           <TabsTrigger value="settings" data-testid="tab-settings">
             <Settings className="w-4 h-4 mr-2" />
@@ -465,491 +283,485 @@ export default function AiAnalyticsPage() {
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            <MetricCard
-              title="Total Atendimentos"
-              value={summary?.total_conversations?.toLocaleString("pt-BR") || "0"}
-              icon={MessageSquare}
-              trend={comparison?.percentChange}
-              loading={isLoadingSummary}
-            />
-            <MetricCard
-              title="Tempo Médio Resposta"
-              value={formatDuration(summary?.avg_response_time_ms || 0)}
-              icon={Clock}
-              loading={isLoadingSummary}
-            />
-            <MetricCard
-              title="Taxa Resolução IA"
-              value={`${(summary?.resolution_rate || 0).toFixed(1)}%`}
-              icon={CheckCircle}
-              loading={isLoadingSummary}
-            />
-            <MetricCard
-              title="Ativos Agora"
-              value={summary?.active_conversations?.toString() || "0"}
-              icon={Users}
-              loading={isLoadingSummary}
-              highlight={true}
-            />
-            <MetricCard
-              title="NPS Médio"
-              value={summary?.avg_satisfaction?.toFixed(1) || "0"}
-              icon={Star}
-              loading={isLoadingSummary}
-            />
-            <MetricCard
-              title="Taxa Handoff"
-              value={`${(summary?.handoff_rate || 0).toFixed(1)}%`}
-              icon={ArrowRightLeft}
-              loading={isLoadingSummary}
-            />
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Volume por Dia/Hora</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {heatmapData.length > 0 ? (
-                  <ApexCharts
-                    options={{
-                      chart: { type: "heatmap", toolbar: { show: false } },
-                      dataLabels: { enabled: false },
-                      colors: ["#0e766e"],
-                      xaxis: { type: "category" },
-                      tooltip: {
-                        y: { formatter: (val: number) => `${val} atendimentos` },
-                      },
-                    }}
-                    series={heatmapData}
-                    type="heatmap"
-                    height={250}
-                  />
-                ) : (
-                  <div className="h-64 flex items-center justify-center text-muted-foreground">
-                    Sem dados disponíveis
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Tendência de Volume</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {trends && trends.length > 0 ? (
-                  <ApexCharts
-                    options={{
-                      chart: { type: "area", toolbar: { show: false }, sparkline: { enabled: false } },
-                      stroke: { curve: "smooth", width: 2 },
-                      fill: { type: "gradient", gradient: { opacityFrom: 0.5, opacityTo: 0 } },
-                      colors: ["#0e766e"],
-                      xaxis: { categories: trends.map(t => t.label), labels: { show: true } },
-                      yaxis: { labels: { formatter: (val: number) => val.toFixed(0) } },
-                      tooltip: { y: { formatter: (val: number) => `${val} atendimentos` } },
-                    }}
-                    series={[{ name: "Atendimentos", data: trends.map(t => t.value) }]}
-                    type="area"
-                    height={250}
-                  />
-                ) : (
-                  <div className="h-64 flex items-center justify-center text-muted-foreground">
-                    Sem dados disponíveis
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Funil de Conversão</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {funnel && funnel.length > 0 ? (
-                  <div className="space-y-3">
-                    {funnel.map((step, idx) => (
-                      <div key={step.name} className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span>{step.name}</span>
-                          <span className="font-medium">{step.value} ({step.percentage.toFixed(1)}%)</span>
-                        </div>
-                        <div className="h-6 bg-muted rounded overflow-hidden">
-                          <div
-                            className="h-full bg-primary transition-all"
-                            style={{ width: `${step.percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="h-64 flex items-center justify-center text-muted-foreground">
-                    Sem dados disponíveis
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Distribuição por Intenção</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {intentDistribution && intentDistribution.length > 0 ? (
-                  <ApexCharts
-                    options={{
-                      chart: { type: "donut" },
-                      labels: intentDistribution.map(i => i.name),
-                      colors: ["#0e766e", "#14b8a6", "#5eead4", "#99f6e4", "#ccfbf1", "#f0fdfa"],
-                      legend: { position: "bottom" },
-                      tooltip: {
-                        y: { formatter: (val: number) => `${val} atendimentos` },
-                      },
-                    }}
-                    series={intentDistribution.map(i => i.value)}
-                    type="donut"
-                    height={250}
-                  />
-                ) : (
-                  <div className="h-64 flex items-center justify-center text-muted-foreground">
-                    Sem dados disponíveis
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          <DashboardTab 
+            summary={summary} 
+            loadingSummary={loadingSummary}
+            heatmapData={heatmapData}
+            trendsData={trendsData}
+            funnelData={funnelData}
+          />
         </TabsContent>
 
         <TabsContent value="quality" className="space-y-6">
-          {quality ? (
-            <>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <MetricCard
-                  title="Mensagens até Resolução"
-                  value={quality.avg_messages_to_resolve.toFixed(1)}
-                  icon={MessageSquare}
-                />
-                <MetricCard
-                  title="Taxa de Fallback"
-                  value={`${quality.fallback_rate.toFixed(1)}%`}
-                  icon={AlertTriangle}
-                />
-                <MetricCard
-                  title="Intervenções Humanas"
-                  value={quality.human_interventions.reduce((s, h) => s + h.count, 0).toString()}
-                  icon={Users}
-                />
-              </div>
-
-              <div className="grid gap-6 lg:grid-cols-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Distribuição de Sentimento</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ApexCharts
-                      options={{
-                        chart: { type: "pie" },
-                        labels: quality.sentiment_distribution.map(s => {
-                          const labels: Record<string, string> = { positive: "Positivo", neutral: "Neutro", negative: "Negativo" };
-                          return labels[s.sentiment] || s.sentiment;
-                        }),
-                        colors: ["#22c55e", "#94a3b8", "#ef4444"],
-                        legend: { position: "bottom" },
-                      }}
-                      series={quality.sentiment_distribution.map(s => s.count)}
-                      type="pie"
-                      height={250}
-                    />
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Motivos de Handoff</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {quality.human_interventions.length > 0 ? (
-                      <div className="space-y-2">
-                        {quality.human_interventions.map(h => (
-                          <div key={h.reason} className="flex justify-between items-center p-2 bg-muted rounded">
-                            <span className="text-sm">{h.reason}</span>
-                            <Badge variant="secondary">{h.count}</Badge>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="h-48 flex items-center justify-center text-muted-foreground">
-                        Nenhum handoff registrado
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Perguntas Mais Frequentes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {quality.top_questions.length > 0 ? (
-                    <div className="space-y-2">
-                      {quality.top_questions.map((q, idx) => (
-                        <div key={idx} className="flex justify-between items-center p-3 bg-muted rounded">
-                          <span>{q.question}</span>
-                          <Badge>{q.count}</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="h-32 flex items-center justify-center text-muted-foreground">
-                      Sem dados disponíveis
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <div className="flex items-center justify-center h-64">
-              <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
-            </div>
-          )}
+          <QualityTab qualityData={qualityData} />
         </TabsContent>
 
-        <TabsContent value="conversations" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">
-                Lista de Atendimentos
-                {conversationsData && (
-                  <span className="text-sm font-normal text-muted-foreground ml-2">
-                    ({conversationsData.total} total)
-                  </span>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {conversationsData?.conversations && conversationsData.conversations.length > 0 ? (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left p-2">Contato</th>
-                          <th className="text-left p-2">Canal</th>
-                          <th className="text-left p-2">Intenção</th>
-                          <th className="text-left p-2">Status</th>
-                          <th className="text-left p-2">Início</th>
-                          <th className="text-left p-2">Msgs</th>
-                          <th className="text-left p-2">NPS</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {conversationsData.conversations.map(conv => (
-                          <tr key={conv.id} className="border-b hover:bg-muted/50">
-                            <td className="p-2">
-                              <div className="flex items-center gap-2">
-                                <Phone className="w-4 h-4 text-muted-foreground" />
-                                <span>{maskPhone(conv.contact_phone)}</span>
-                              </div>
-                            </td>
-                            <td className="p-2">
-                              <Badge variant="outline">{conv.channel}</Badge>
-                            </td>
-                            <td className="p-2">{conv.primary_intent || "-"}</td>
-                            <td className="p-2">
-                              <Badge variant={
-                                conv.status === "resolved" ? "default" :
-                                conv.status === "active" ? "secondary" :
-                                "outline"
-                              }>
-                                {conv.status}
-                              </Badge>
-                            </td>
-                            <td className="p-2 text-muted-foreground">
-                              {format(new Date(conv.started_at), "dd/MM HH:mm", { locale: ptBR })}
-                            </td>
-                            <td className="p-2">{conv.messages_count || "-"}</td>
-                            <td className="p-2">
-                              {conv.satisfaction_score ? (
-                                <div className="flex items-center gap-1">
-                                  <Star className="w-3 h-3 text-yellow-500" />
-                                  {conv.satisfaction_score}
-                                </div>
-                              ) : "-"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  
-                  <div className="flex justify-between items-center mt-4">
-                    <span className="text-sm text-muted-foreground">
-                      Página {conversationsPage} de {Math.ceil(conversationsData.total / 20)}
-                    </span>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={conversationsPage === 1}
-                        onClick={() => setConversationsPage(p => p - 1)}
-                        data-testid="button-prev-page"
-                      >
-                        Anterior
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={conversationsPage >= Math.ceil(conversationsData.total / 20)}
-                        onClick={() => setConversationsPage(p => p + 1)}
-                        data-testid="button-next-page"
-                      >
-                        Próxima
-                      </Button>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="h-48 flex items-center justify-center text-muted-foreground">
-                  Nenhum atendimento encontrado
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        <TabsContent value="conversations" className="space-y-6">
+          <AtendimentosTab 
+            atendimentosData={atendimentosData}
+            filterOptions={filterOptions}
+            selectedStatus={selectedStatus}
+            setSelectedStatus={setSelectedStatus}
+            selectedFollowUp={selectedFollowUp}
+            setSelectedFollowUp={setSelectedFollowUp}
+            page={page}
+            setPage={setPage}
+          />
         </TabsContent>
 
-        <TabsContent value="alerts" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Alertas e Anomalias</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {alerts && alerts.length > 0 ? (
-                <div className="space-y-3">
-                  {alerts.map(alert => (
-                    <div
-                      key={alert.id}
-                      className={`p-4 rounded-lg border ${
-                        alert.severity === "critical" ? "border-red-500 bg-red-50 dark:bg-red-950" :
-                        alert.severity === "warning" ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-950" :
-                        "border-blue-500 bg-blue-50 dark:bg-blue-950"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <AlertTriangle className={`w-5 h-5 mt-0.5 ${
-                          alert.severity === "critical" ? "text-red-500" :
-                          alert.severity === "warning" ? "text-yellow-500" :
-                          "text-blue-500"
-                        }`} />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{alert.type}</span>
-                            <Badge variant={
-                              alert.severity === "critical" ? "destructive" :
-                              alert.severity === "warning" ? "default" :
-                              "secondary"
-                            }>
-                              {alert.severity}
-                            </Badge>
-                          </div>
-                          <p className="text-sm mt-1">{alert.message}</p>
-                          <span className="text-xs text-muted-foreground">
-                            {format(new Date(alert.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="h-48 flex items-center justify-center text-muted-foreground">
-                  Nenhum alerta encontrado
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="settings">
-          <SupabaseConfigForm />
+        <TabsContent value="settings" className="space-y-6">
+          <SupabaseConfigForm currentConfig={supabaseConfig} />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function MetricCard({
-  title,
-  value,
-  icon: Icon,
-  trend,
-  loading,
-  highlight,
+function DashboardTab({ 
+  summary, 
+  loadingSummary,
+  heatmapData,
+  trendsData,
+  funnelData
+}: { 
+  summary?: MetricsSummary;
+  loadingSummary: boolean;
+  heatmapData?: HeatmapCell[];
+  trendsData?: { daily: TrendDataPoint[]; hourly: TrendDataPoint[] };
+  funnelData?: FunnelStep[];
+}) {
+  if (loadingSummary) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard 
+          title="Total Atendimentos"
+          value={summary?.total_conversations || 0}
+          icon={<MessageSquare className="w-5 h-5" />}
+          color="blue"
+        />
+        <MetricCard 
+          title="Finalizados (Agendados)"
+          value={summary?.finalizados || 0}
+          icon={<CheckCircle className="w-5 h-5" />}
+          color="green"
+        />
+        <MetricCard 
+          title="Em Andamento"
+          value={summary?.em_andamento || 0}
+          icon={<Users className="w-5 h-5" />}
+          color="orange"
+        />
+        <MetricCard 
+          title="Taxa de Conversão"
+          value={`${(summary?.taxa_conversao || 0).toFixed(1)}%`}
+          icon={<TrendingUp className="w-5 h-5" />}
+          color="purple"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{summary?.follow_ups?.follow_up_01 || 0}</div>
+              <div className="text-sm text-muted-foreground">Follow-up 1</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{summary?.follow_ups?.follow_up_02 || 0}</div>
+              <div className="text-sm text-muted-foreground">Follow-up 2</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600">{summary?.follow_ups?.follow_up_03 || 0}</div>
+              <div className="text-sm text-muted-foreground">Follow-up 3</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">{summary?.follow_ups?.follow_up_04 || 0}</div>
+              <div className="text-sm text-muted-foreground">Follow-up 4</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {heatmapData && heatmapData.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Volume por Hora/Dia</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <HeatmapChart data={heatmapData} />
+            </CardContent>
+          </Card>
+        )}
+
+        {trendsData && trendsData.daily && trendsData.daily.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Tendência Diária</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TrendChart data={trendsData.daily} />
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {funnelData && funnelData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Funil de Conversão</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FunnelChart data={funnelData} />
+          </CardContent>
+        </Card>
+      )}
+    </>
+  );
+}
+
+function QualityTab({ qualityData }: { qualityData?: QualityMetrics }) {
+  if (!qualityData) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Desempenho por Agente</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {qualityData.por_agente.map((item, idx) => (
+              <div key={idx} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <UserCheck className="w-5 h-5 text-blue-500" />
+                  <div>
+                    <div className="font-medium">{item.agente}</div>
+                    <div className="text-sm text-muted-foreground">{item.total} atendimentos</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-green-600">{item.finalizados} finalizados</div>
+                  <div className="text-sm text-muted-foreground">{item.taxa.toFixed(1)}% taxa</div>
+                </div>
+              </div>
+            ))}
+            {qualityData.por_agente.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">Nenhum dado disponível</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Distribuição por Follow-up</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {qualityData.por_follow_up.map((item, idx) => (
+              <div key={idx} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Repeat className="w-5 h-5 text-orange-500" />
+                  <span className="font-medium">{item.follow_up}</span>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold">{item.count}</div>
+                  <div className="text-sm text-muted-foreground">{item.percentage.toFixed(1)}%</div>
+                </div>
+              </div>
+            ))}
+            {qualityData.por_follow_up.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">Nenhum dado disponível</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function AtendimentosTab({
+  atendimentosData,
+  filterOptions,
+  selectedStatus,
+  setSelectedStatus,
+  selectedFollowUp,
+  setSelectedFollowUp,
+  page,
+  setPage
 }: {
-  title: string;
-  value: string;
-  icon: any;
-  trend?: number;
-  loading?: boolean;
-  highlight?: boolean;
+  atendimentosData?: { data: Atendimento[]; total: number; page: number; pageSize: number };
+  filterOptions?: FilterOptions;
+  selectedStatus: string;
+  setSelectedStatus: (v: string) => void;
+  selectedFollowUp: string;
+  setSelectedFollowUp: (v: string) => void;
+  page: number;
+  setPage: (p: number) => void;
 }) {
   return (
-    <Card className={highlight ? "border-primary" : ""}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Icon className="w-5 h-5 text-primary" />
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <CardTitle className="text-lg">Lista de Atendimentos</CardTitle>
+          <div className="flex gap-2">
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="finalizado">Finalizados</SelectItem>
+                <SelectItem value="em_andamento">Em andamento</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {filterOptions && (
+              <Select value={selectedFollowUp} onValueChange={setSelectedFollowUp}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Follow-up" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {filterOptions.followUps.map(fu => (
+                    <SelectItem key={fu} value={fu}>{fu}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
-          {trend !== undefined && (
-            <div className={`flex items-center gap-1 text-sm ${trend >= 0 ? "text-green-600" : "text-red-600"}`}>
-              {trend >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-              {Math.abs(trend).toFixed(1)}%
-            </div>
-          )}
         </div>
-        <div className="mt-3">
-          {loading ? (
-            <div className="h-8 bg-muted animate-pulse rounded" />
-          ) : (
-            <p className="text-2xl font-bold">{value}</p>
-          )}
-          <p className="text-sm text-muted-foreground">{title}</p>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left p-3 font-medium">Telefone</th>
+                <th className="text-left p-3 font-medium">Nome</th>
+                <th className="text-left p-3 font-medium">Data/Hora</th>
+                <th className="text-left p-3 font-medium">Agente</th>
+                <th className="text-left p-3 font-medium">Follow-up</th>
+                <th className="text-left p-3 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {atendimentosData?.data.map(atendimento => (
+                <tr key={atendimento.id} className="border-b hover:bg-muted/50">
+                  <td className="p-3">
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-muted-foreground" />
+                      {atendimento.remotejid}
+                    </div>
+                  </td>
+                  <td className="p-3">{atendimento.nome || "-"}</td>
+                  <td className="p-3">
+                    {format(new Date(atendimento.timestamp), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                  </td>
+                  <td className="p-3">{atendimento.agente_atual || "-"}</td>
+                  <td className="p-3">
+                    {atendimento.follow_up && (
+                      <Badge variant="outline">{atendimento.follow_up}</Badge>
+                    )}
+                  </td>
+                  <td className="p-3">
+                    <Badge variant={atendimento.atendimento_finalizado ? "default" : "secondary"}>
+                      {atendimento.atendimento_finalizado ? "Finalizado" : "Em andamento"}
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
+              {(!atendimentosData?.data || atendimentosData.data.length === 0) && (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                    Nenhum atendimento encontrado
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {atendimentosData && atendimentosData.total > atendimentosData.pageSize && (
+          <div className="flex items-center justify-between mt-4">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {((page - 1) * atendimentosData.pageSize) + 1} - {Math.min(page * atendimentosData.pageSize, atendimentosData.total)} de {atendimentosData.total}
+            </p>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setPage(page - 1)}
+                disabled={page === 1}
+              >
+                Anterior
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setPage(page + 1)}
+                disabled={page * atendimentosData.pageSize >= atendimentosData.total}
+              >
+                Próximo
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function MetricCard({ title, value, icon, color }: { title: string; value: string | number; icon: React.ReactNode; color: string }) {
+  const colorClasses: Record<string, string> = {
+    blue: "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
+    green: "bg-green-50 text-green-600 dark:bg-green-950 dark:text-green-400",
+    orange: "bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-400",
+    purple: "bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
+    red: "bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400",
+  };
+
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">{title}</p>
+            <p className="text-2xl font-bold mt-1">{value}</p>
+          </div>
+          <div className={`p-3 rounded-full ${colorClasses[color]}`}>
+            {icon}
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-function SupabaseConfigForm() {
+function HeatmapChart({ data }: { data: HeatmapCell[] }) {
+  const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  
+  const series = DAY_NAMES.map((name, dayIndex) => ({
+    name,
+    data: Array.from({ length: 24 }, (_, hour) => {
+      const cell = data.find(c => c.x === hour && c.y === dayIndex);
+      return cell?.value || 0;
+    }),
+  }));
+
+  const options: ApexCharts.ApexOptions = {
+    chart: { type: "heatmap", toolbar: { show: false } },
+    dataLabels: { enabled: false },
+    colors: ["#3b82f6"],
+    xaxis: {
+      categories: Array.from({ length: 24 }, (_, i) => `${i}h`),
+      labels: { style: { fontSize: "10px" } },
+    },
+    yaxis: { labels: { style: { fontSize: "12px" } } },
+    plotOptions: {
+      heatmap: {
+        shadeIntensity: 0.5,
+        colorScale: {
+          ranges: [
+            { from: 0, to: 0, color: "#e5e7eb" },
+            { from: 1, to: 10, color: "#93c5fd" },
+            { from: 11, to: 30, color: "#3b82f6" },
+            { from: 31, to: 100, color: "#1d4ed8" },
+          ],
+        },
+      },
+    },
+  };
+
+  return <ApexCharts type="heatmap" series={series} options={options} height={250} />;
+}
+
+function TrendChart({ data }: { data: TrendDataPoint[] }) {
+  const options: ApexCharts.ApexOptions = {
+    chart: { type: "area", toolbar: { show: false }, sparkline: { enabled: false } },
+    stroke: { curve: "smooth", width: 2 },
+    fill: { type: "gradient", gradient: { opacityFrom: 0.4, opacityTo: 0.1 } },
+    xaxis: { categories: data.map(d => d.label), labels: { rotate: -45, style: { fontSize: "10px" } } },
+    yaxis: { labels: { style: { fontSize: "12px" } } },
+    colors: ["#3b82f6"],
+    dataLabels: { enabled: false },
+  };
+
+  const series = [{ name: "Atendimentos", data: data.map(d => d.value) }];
+
+  return <ApexCharts type="area" series={series} options={options} height={250} />;
+}
+
+function FunnelChart({ data }: { data: FunnelStep[] }) {
+  return (
+    <div className="space-y-3">
+      {data.map((step, idx) => (
+        <div key={idx} className="relative">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm font-medium">{step.name}</span>
+            <span className="text-sm text-muted-foreground">{step.value} ({step.percentage.toFixed(1)}%)</span>
+          </div>
+          <div className="w-full bg-muted rounded-full h-6">
+            <div
+              className="bg-blue-500 h-6 rounded-full transition-all"
+              style={{ width: `${step.percentage}%` }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SupabaseConfigForm({ currentConfig }: { currentConfig?: SupabaseConfig }) {
   const { toast } = useToast();
-  const [supabaseUrl, setSupabaseUrl] = useState("");
-  const [supabaseDatabase, setSupabaseDatabase] = useState("");
+  const [supabaseUrl, setSupabaseUrl] = useState(currentConfig?.supabaseUrl || "");
+  const [supabaseDatabase, setSupabaseDatabase] = useState(currentConfig?.supabaseDatabase || "");
   const [supabaseAnonKey, setSupabaseAnonKey] = useState("");
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [keyChanged, setKeyChanged] = useState(false);
 
-  const { data: currentConfig, refetch, isLoading: configLoading } = useQuery<SupabaseConfig>({
+  const { data: configData, refetch } = useQuery<SupabaseConfig>({
     queryKey: ["/api/tenant/supabase-config"],
   });
 
-  // Only load URL and database from config, never the key (it's masked on server)
   useEffect(() => {
-    if (currentConfig) {
-      if (!supabaseUrl && currentConfig.supabaseUrl) {
-        setSupabaseUrl(currentConfig.supabaseUrl);
+    if (configData) {
+      if (!supabaseUrl && configData.supabaseUrl) {
+        setSupabaseUrl(configData.supabaseUrl);
       }
-      if (!supabaseDatabase && currentConfig.supabaseDatabase) {
-        setSupabaseDatabase(currentConfig.supabaseDatabase);
+      if (!supabaseDatabase && configData.supabaseDatabase) {
+        setSupabaseDatabase(configData.supabaseDatabase);
       }
     }
-  }, [currentConfig]);
+  }, [configData]);
 
   const handleTest = async () => {
     if (!supabaseUrl || !supabaseDatabase || !supabaseAnonKey) {
@@ -979,36 +791,31 @@ function SupabaseConfigForm() {
   };
 
   const handleSave = async () => {
-    // Validate: need URL and database always; key only if not already configured or being changed
     if (!supabaseUrl || !supabaseDatabase) {
       toast({ title: "URL e Database são obrigatórios", variant: "destructive" });
       return;
     }
     
-    // If no key configured and none provided, require key
-    if (!currentConfig?.supabaseConfigured && !supabaseAnonKey) {
+    if (!configData?.supabaseConfigured && !supabaseAnonKey) {
       toast({ title: "Chave Anon é obrigatória para configuração inicial", variant: "destructive" });
       return;
     }
 
     setSaving(true);
     try {
-      // Only send key if it was actually changed/provided
-      const configData: any = { 
+      const configPayload: any = { 
         supabaseUrl, 
         supabaseDatabase 
       };
       
-      // Only include key if user typed a new one
       if (supabaseAnonKey) {
-        configData.supabaseAnonKey = supabaseAnonKey;
+        configPayload.supabaseAnonKey = supabaseAnonKey;
       }
 
-      await apiRequest("PUT", "/api/tenant/supabase-config", configData);
+      await apiRequest("PUT", "/api/tenant/supabase-config", configPayload);
 
       toast({ title: "Configuração salva com sucesso!" });
-      setSupabaseAnonKey(""); // Clear key from state after saving
-      setKeyChanged(false);
+      setSupabaseAnonKey("");
       refetch();
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/ai"] });
     } catch (error: any) {
@@ -1027,14 +834,14 @@ function SupabaseConfigForm() {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {currentConfig?.supabaseConfigured && (
+        {configData?.supabaseConfigured && (
           <div className="p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
             <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle className="w-5 h-5" />
               <span>Supabase configurado e conectado</span>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              URL: {currentConfig.supabaseUrl} | Database: {currentConfig.supabaseDatabase}
+              URL: {configData.supabaseUrl} | Database: {configData.supabaseDatabase}
             </p>
           </div>
         )}
@@ -1070,20 +877,20 @@ function SupabaseConfigForm() {
         <div className="space-y-2">
           <Label htmlFor="supabaseAnonKey">
             Chave Anon (anon key)
-            {currentConfig?.supabaseConfigured && (
+            {configData?.supabaseConfigured && (
               <span className="text-xs text-muted-foreground ml-2">(deixe vazio para manter a atual)</span>
             )}
           </Label>
           <Input
             id="supabaseAnonKey"
             type="password"
-            placeholder={currentConfig?.supabaseConfigured ? "••••••••••• (manter atual)" : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}
+            placeholder={configData?.supabaseConfigured ? "••••••••••• (manter atual)" : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}
             value={supabaseAnonKey}
             onChange={e => setSupabaseAnonKey(e.target.value)}
             data-testid="input-supabase-key"
           />
           <p className="text-xs text-muted-foreground">
-            {currentConfig?.supabaseConfigured 
+            {configData?.supabaseConfigured 
               ? "Preencha apenas para alterar a chave atual" 
               : "Chave pública de acesso ao Supabase"}
           </p>
@@ -1101,17 +908,18 @@ function SupabaseConfigForm() {
         </div>
 
         <div className="mt-6 p-4 bg-muted rounded-lg">
-          <h4 className="font-medium mb-2">Estrutura Esperada das Tabelas</h4>
+          <h4 className="font-medium mb-2">Estrutura Esperada da Tabela</h4>
           <p className="text-sm text-muted-foreground mb-3">
-            O Supabase deve conter as seguintes tabelas para funcionar corretamente:
+            O Supabase deve conter a tabela <code className="bg-background px-1 rounded">atendimentos</code> com os campos:
           </p>
           <div className="text-xs font-mono bg-background p-3 rounded border space-y-1">
-            <p><strong>ai_conversations</strong> - Dados dos atendimentos</p>
-            <p className="text-muted-foreground pl-4">id, contact_phone, contact_name, channel, primary_intent, status, satisfaction_score, started_at, ended_at, messages_count, avg_response_time_ms, sentiment, agent_name, handoff_reason, tags</p>
-            <p className="mt-2"><strong>ai_alerts</strong> - Alertas e anomalias</p>
-            <p className="text-muted-foreground pl-4">id, type, severity, message, created_at, resolved_at</p>
-            <p className="mt-2"><strong>ai_frequent_questions</strong> - Perguntas frequentes (opcional)</p>
-            <p className="text-muted-foreground pl-4">id, question, count, date</p>
+            <p><strong>id</strong> - UUID do registro</p>
+            <p><strong>remotejid</strong> - Número de telefone do cliente</p>
+            <p><strong>nome</strong> - Nome do cliente</p>
+            <p><strong>timestamp</strong> - Data/hora do atendimento</p>
+            <p><strong>agente_atual</strong> - Agente em atendimento</p>
+            <p><strong>atendimento_finalizado</strong> - Boolean (true quando agendou)</p>
+            <p><strong>follow_up</strong> - follow_up_01, follow_up_02, follow_up_03 ou follow_up_04</p>
           </div>
         </div>
       </CardContent>
