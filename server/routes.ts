@@ -5574,9 +5574,10 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       const followUp = req.params.followUp || req.query.followUp as string;
       const { agente, page, limit } = req.query;
       
+      // Use intervalo de 2 anos como padrão para capturar dados históricos
       const filters = {
-        startDate: startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        endDate: endDate || new Date().toISOString(),
+        startDate: startDate || new Date(Date.now() - 730 * 24 * 60 * 60 * 1000).toISOString(), // 2 anos atrás
+        endDate: endDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 ano à frente
         status: status && status !== 'all' ? status : undefined,
         agente: agente as string,
         followUp: followUp && followUp !== 'all' ? followUp : undefined,

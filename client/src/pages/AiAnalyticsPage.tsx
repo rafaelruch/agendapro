@@ -89,6 +89,7 @@ interface SupabaseConfig {
 }
 
 const DATE_PRESETS = [
+  { label: "Todos os dados", value: "all" },
   { label: "Hoje", value: "today" },
   { label: "Ontem", value: "yesterday" },
   { label: "Últimos 7 dias", value: "7days" },
@@ -102,6 +103,12 @@ const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 function getDateRange(preset: string): { startDate: string; endDate: string } {
   const now = new Date();
   switch (preset) {
+    case "all":
+      // Intervalo de 3 anos para trás e 1 ano para frente para capturar todos os dados
+      return {
+        startDate: new Date(now.getFullYear() - 3, 0, 1).toISOString(),
+        endDate: new Date(now.getFullYear() + 1, 11, 31).toISOString(),
+      };
     case "today":
       return {
         startDate: startOfDay(now).toISOString(),
@@ -145,7 +152,7 @@ function getDateRange(preset: string): { startDate: string; endDate: string } {
 export default function AiAnalyticsPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [datePreset, setDatePreset] = useState("7days");
+  const [datePreset, setDatePreset] = useState("all");
   const [selectedAgente, setSelectedAgente] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedFollowUp, setSelectedFollowUp] = useState<string>("all");
