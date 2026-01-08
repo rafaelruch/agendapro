@@ -5555,8 +5555,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
-  // Get Atendimentos List - supports path params: /conversations/:startDate/:endDate/:status?/:followUp?
-  app.get("/api/analytics/ai/conversations/:startDate?/:endDate?/:status?/:followUp?", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
+  // Get Atendimentos List - supports path params: /conversations/:startDate/:endDate/:agente?/:status?/:followUp?/:page?
+  app.get("/api/analytics/ai/conversations/:startDate?/:endDate?/:agente?/:status?/:followUp?/:page?", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5568,23 +5568,26 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
       }
 
+      // Path params seguem a ordem do queryKey do frontend: startDate, endDate, agente, status, followUp, page
       const startDate = req.params.startDate || req.query.startDate as string;
       const endDate = req.params.endDate || req.query.endDate as string;
+      const agente = req.params.agente || req.query.agente as string;
       const status = req.params.status || req.query.status as string;
       const followUp = req.params.followUp || req.query.followUp as string;
-      const { agente, page, limit } = req.query;
+      const pageParam = req.params.page || req.query.page as string;
+      const { limit } = req.query;
       
-      // Use intervalo de 2 anos como padrão para capturar dados históricos
+      // Use intervalo de 3 anos como padrão para capturar dados históricos
       const filters = {
-        startDate: startDate || new Date(Date.now() - 730 * 24 * 60 * 60 * 1000).toISOString(), // 2 anos atrás
+        startDate: startDate || new Date(Date.now() - 1095 * 24 * 60 * 60 * 1000).toISOString(), // 3 anos atrás
         endDate: endDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 ano à frente
         status: status && status !== 'all' ? status : undefined,
-        agente: agente as string,
+        agente: agente && agente !== 'all' ? agente : undefined,
         followUp: followUp && followUp !== 'all' ? followUp : undefined,
       };
 
       const supabaseService = await import('./supabaseService');
-      const result = await supabaseService.getAtendimentosList(buildSupabaseConfig(tenant), filters, parseInt(page as string) || 1, parseInt(limit as string) || 20);
+      const result = await supabaseService.getAtendimentosList(buildSupabaseConfig(tenant), filters, parseInt(pageParam) || 1, parseInt(limit as string) || 20);
 
       res.json(result);
     } catch (error: any) {
