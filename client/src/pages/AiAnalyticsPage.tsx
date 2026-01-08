@@ -368,13 +368,13 @@ export default function AiAnalyticsPage() {
           <p className="text-gray-500 dark:text-gray-400">Métricas de atendimento automatizado</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 dark:bg-gray-900">
             {DATE_PRESETS.slice(0, 5).map((preset) => (
               <button
                 key={preset.value}
                 onClick={() => setDatePreset(preset.value)}
-                className={`px-3 py-2 font-medium rounded-md text-sm transition-all whitespace-nowrap ${
+                className={`px-2 py-1.5 font-medium rounded-md text-xs transition-all whitespace-nowrap ${
                   datePreset === preset.value
                     ? "bg-white text-gray-900 shadow-sm dark:bg-gray-800 dark:text-white"
                     : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
@@ -385,29 +385,30 @@ export default function AiAnalyticsPage() {
             ))}
           </div>
 
-          {filterOptions && filterOptions.agentes.length > 0 && (
-            <Select value={selectedAgente} onValueChange={setSelectedAgente}>
-              <SelectTrigger className="w-[150px] bg-white dark:bg-gray-800" data-testid="select-agente">
-                <SelectValue placeholder="Agente" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os agentes</SelectItem>
-                {filterOptions.agentes.map(agente => (
-                  <SelectItem key={agente} value={agente}>{agente}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          <div className="flex items-center gap-1">
+            {filterOptions && filterOptions.agentes.length > 0 && (
+              <Select value={selectedAgente} onValueChange={setSelectedAgente}>
+                <SelectTrigger className="w-[120px] h-8 text-xs bg-white dark:bg-gray-800" data-testid="select-agente">
+                  <SelectValue placeholder="Agente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {filterOptions.agentes.map(agente => (
+                    <SelectItem key={agente} value={agente}>{agente}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
 
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={() => refetchSummary()} 
-            data-testid="button-refresh"
-            className="bg-white dark:bg-gray-800"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </Button>
+            <Button 
+              size="icon" 
+              onClick={() => refetchSummary()} 
+              data-testid="button-refresh"
+              className="h-8 w-8"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
