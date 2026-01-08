@@ -5388,6 +5388,17 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
 
   // ==================== AI ANALYTICS MODULE ROUTES ====================
   
+  // Helper function para construir a configuração do Supabase com nomes de tabelas
+  function buildSupabaseConfig(tenant: any) {
+    return {
+      supabaseUrl: tenant.supabaseUrl,
+      supabaseDatabase: tenant.supabaseDatabase,
+      supabaseAnonKey: tenant.supabaseAnonKey,
+      tableAtendimentos: tenant.supabaseTableAtendimentos || 'atendimentos',
+      tableMensagens: tenant.supabaseTableMensagens || 'mensagens',
+    };
+  }
+  
   // Get AI Analytics Summary Metrics
   app.get("/api/analytics/ai/summary", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
@@ -5413,11 +5424,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       };
 
       const supabaseService = await import('./supabaseService');
-      const summary = await supabaseService.getAiMetricsSummary({
-        supabaseUrl: tenant.supabaseUrl,
-        supabaseDatabase: tenant.supabaseDatabase,
-        supabaseAnonKey: tenant.supabaseAnonKey,
-      }, filters);
+      const summary = await supabaseService.getAiMetricsSummary(buildSupabaseConfig(tenant), filters);
 
       res.json(summary);
     } catch (error: any) {
@@ -5446,11 +5453,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       };
 
       const supabaseService = await import('./supabaseService');
-      const heatmap = await supabaseService.getHourlyDayHeatmap({
-        supabaseUrl: tenant.supabaseUrl,
-        supabaseDatabase: tenant.supabaseDatabase,
-        supabaseAnonKey: tenant.supabaseAnonKey,
-      }, filters);
+      const heatmap = await supabaseService.getHourlyDayHeatmap(buildSupabaseConfig(tenant), filters);
 
       res.json(heatmap);
     } catch (error: any) {
@@ -5479,11 +5482,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       };
 
       const supabaseService = await import('./supabaseService');
-      const trends = await supabaseService.getDailyTrends({
-        supabaseUrl: tenant.supabaseUrl,
-        supabaseDatabase: tenant.supabaseDatabase,
-        supabaseAnonKey: tenant.supabaseAnonKey,
-      }, filters);
+      const trends = await supabaseService.getDailyTrends(buildSupabaseConfig(tenant), filters);
 
       res.json(trends);
     } catch (error: any) {
@@ -5512,11 +5511,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       };
 
       const supabaseService = await import('./supabaseService');
-      const funnel = await supabaseService.getConversionFunnel({
-        supabaseUrl: tenant.supabaseUrl,
-        supabaseDatabase: tenant.supabaseDatabase,
-        supabaseAnonKey: tenant.supabaseAnonKey,
-      }, filters);
+      const funnel = await supabaseService.getConversionFunnel(buildSupabaseConfig(tenant), filters);
 
       res.json(funnel);
     } catch (error: any) {
@@ -5546,11 +5541,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       };
 
       const supabaseService = await import('./supabaseService');
-      const quality = await supabaseService.getQualityMetrics({
-        supabaseUrl: tenant.supabaseUrl,
-        supabaseDatabase: tenant.supabaseDatabase,
-        supabaseAnonKey: tenant.supabaseAnonKey,
-      }, filters);
+      const quality = await supabaseService.getQualityMetrics(buildSupabaseConfig(tenant), filters);
 
       res.json(quality);
     } catch (error: any) {
@@ -5582,11 +5573,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       };
 
       const supabaseService = await import('./supabaseService');
-      const result = await supabaseService.getAtendimentosList({
-        supabaseUrl: tenant.supabaseUrl,
-        supabaseDatabase: tenant.supabaseDatabase,
-        supabaseAnonKey: tenant.supabaseAnonKey,
-      }, filters, parseInt(page as string) || 1, parseInt(limit as string) || 20);
+      const result = await supabaseService.getAtendimentosList(buildSupabaseConfig(tenant), filters, parseInt(page as string) || 1, parseInt(limit as string) || 20);
 
       res.json(result);
     } catch (error: any) {
@@ -5614,11 +5601,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       const prevMonth = previousMonth as string || `${now.getFullYear()}-${String(now.getMonth()).padStart(2, '0')}`;
 
       const supabaseService = await import('./supabaseService');
-      const comparison = await supabaseService.getMonthComparison({
-        supabaseUrl: tenant.supabaseUrl,
-        supabaseDatabase: tenant.supabaseDatabase,
-        supabaseAnonKey: tenant.supabaseAnonKey,
-      }, currMonth, prevMonth);
+      const comparison = await supabaseService.getMonthComparison(buildSupabaseConfig(tenant), currMonth, prevMonth);
 
       res.json(comparison);
     } catch (error: any) {
@@ -5641,11 +5624,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       }
 
       const supabaseService = await import('./supabaseService');
-      const filterOptions = await supabaseService.getFilterOptions({
-        supabaseUrl: tenant.supabaseUrl,
-        supabaseDatabase: tenant.supabaseDatabase,
-        supabaseAnonKey: tenant.supabaseAnonKey,
-      });
+      const filterOptions = await supabaseService.getFilterOptions(buildSupabaseConfig(tenant));
 
       res.json(filterOptions);
     } catch (error: any) {
@@ -5661,6 +5640,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         supabaseUrl: z.string().min(1, "URL é obrigatória"),
         supabaseDatabase: z.string().min(1, "Database é obrigatório"),
         supabaseAnonKey: z.string().min(1, "Chave anon é obrigatória"),
+        tableAtendimentos: z.string().optional(),
+        tableMensagens: z.string().optional(),
       });
 
       const validation = testConnectionSchema.safeParse(req.body);
@@ -5668,13 +5649,15 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(400).json({ error: validation.error.errors[0].message });
       }
 
-      const { supabaseUrl, supabaseDatabase, supabaseAnonKey } = validation.data;
+      const { supabaseUrl, supabaseDatabase, supabaseAnonKey, tableAtendimentos, tableMensagens } = validation.data;
 
       const supabaseService = await import('./supabaseService');
       const result = await supabaseService.testSupabaseConnection({
         supabaseUrl,
         supabaseDatabase,
         supabaseAnonKey,
+        tableAtendimentos: tableAtendimentos || 'atendimentos',
+        tableMensagens: tableMensagens || 'mensagens',
       });
 
       res.json(result);
@@ -5696,6 +5679,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         supabaseUrl: z.string().optional().nullable(),
         supabaseDatabase: z.string().optional().nullable(),
         supabaseAnonKey: z.string().optional().nullable(),
+        supabaseTableAtendimentos: z.string().optional().nullable(),
+        supabaseTableMensagens: z.string().optional().nullable(),
       });
 
       const validation = updateConfigSchema.safeParse(req.body);
@@ -5703,12 +5688,14 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(400).json({ error: validation.error.errors[0].message });
       }
 
-      const { supabaseUrl, supabaseDatabase, supabaseAnonKey } = validation.data;
+      const { supabaseUrl, supabaseDatabase, supabaseAnonKey, supabaseTableAtendimentos, supabaseTableMensagens } = validation.data;
 
       const updatedTenant = await storage.updateTenant(tenantId, {
         supabaseUrl: supabaseUrl || null,
         supabaseDatabase: supabaseDatabase || null,
         supabaseAnonKey: supabaseAnonKey || null,
+        supabaseTableAtendimentos: supabaseTableAtendimentos || 'atendimentos',
+        supabaseTableMensagens: supabaseTableMensagens || 'mensagens',
       });
 
       if (!updatedTenant) {
@@ -5719,6 +5706,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         message: "Configuração do Supabase atualizada com sucesso",
         supabaseUrl: updatedTenant.supabaseUrl,
         supabaseDatabase: updatedTenant.supabaseDatabase,
+        supabaseTableAtendimentos: updatedTenant.supabaseTableAtendimentos || 'atendimentos',
+        supabaseTableMensagens: updatedTenant.supabaseTableMensagens || 'mensagens',
         supabaseConfigured: !!(updatedTenant.supabaseUrl && updatedTenant.supabaseDatabase && updatedTenant.supabaseAnonKey),
       });
     } catch (error: any) {
@@ -5744,6 +5733,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         supabaseUrl: tenant.supabaseUrl || "",
         supabaseDatabase: tenant.supabaseDatabase || "",
         supabaseAnonKey: tenant.supabaseAnonKey ? "***configurado***" : "",
+        supabaseTableAtendimentos: tenant.supabaseTableAtendimentos || "atendimentos",
+        supabaseTableMensagens: tenant.supabaseTableMensagens || "mensagens",
         supabaseConfigured: !!(tenant.supabaseUrl && tenant.supabaseDatabase && tenant.supabaseAnonKey),
       });
     } catch (error: any) {
@@ -5774,11 +5765,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       };
 
       const supabaseService = await import('./supabaseService');
-      const stats = await supabaseService.getMessageStats({
-        supabaseUrl: tenant.supabaseUrl,
-        supabaseDatabase: tenant.supabaseDatabase,
-        supabaseAnonKey: tenant.supabaseAnonKey,
-      }, filters);
+      const stats = await supabaseService.getMessageStats(buildSupabaseConfig(tenant), filters);
 
       res.json(stats);
     } catch (error: any) {
@@ -5806,11 +5793,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       }
 
       const supabaseService = await import('./supabaseService');
-      const history = await supabaseService.getConversationHistory({
-        supabaseUrl: tenant.supabaseUrl,
-        supabaseDatabase: tenant.supabaseDatabase,
-        supabaseAnonKey: tenant.supabaseAnonKey,
-      }, remotejid);
+      const history = await supabaseService.getConversationHistory(buildSupabaseConfig(tenant), remotejid);
 
       res.json(history);
     } catch (error: any) {
@@ -5839,11 +5822,7 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
       };
 
       const supabaseService = await import('./supabaseService');
-      const messages = await supabaseService.getRecentMessages({
-        supabaseUrl: tenant.supabaseUrl,
-        supabaseDatabase: tenant.supabaseDatabase,
-        supabaseAnonKey: tenant.supabaseAnonKey,
-      }, filters, parseInt(page as string), parseInt(pageSize as string));
+      const messages = await supabaseService.getRecentMessages(buildSupabaseConfig(tenant), filters, parseInt(page as string), parseInt(pageSize as string));
 
       res.json(messages);
     } catch (error: any) {

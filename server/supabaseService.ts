@@ -4,6 +4,8 @@ interface TenantSupabaseConfig {
   supabaseUrl: string;
   supabaseDatabase: string;
   supabaseAnonKey: string;
+  tableAtendimentos?: string;  // Nome da tabela de atendimentos (default: 'atendimentos')
+  tableMensagens?: string;     // Nome da tabela de mensagens (default: 'mensagens')
 }
 
 // Estrutura real das tabelas do tenant
@@ -91,17 +93,24 @@ function getSupabaseClient(config: TenantSupabaseConfig): SupabaseClient {
   return client;
 }
 
-// Nome da tabela no Supabase do tenant
-const TABLE_NAME = 'atendimentos';
+// Funções helper para obter nomes de tabelas
+function getTableName(config: TenantSupabaseConfig): string {
+  return config.tableAtendimentos || 'atendimentos';
+}
+
+function getMensagensTableName(config: TenantSupabaseConfig): string {
+  return config.tableMensagens || 'mensagens';
+}
 
 export async function getAiMetricsSummary(
   config: TenantSupabaseConfig,
   filters: AnalyticsFilters
 ): Promise<AiMetricsSummary> {
   const client = getSupabaseClient(config);
+  const tableName = getTableName(config);
   
   let query = client
-    .from(TABLE_NAME)
+    .from(tableName)
     .select('*')
     .gte('timestamp', filters.startDate)
     .lte('timestamp', filters.endDate);
@@ -144,9 +153,10 @@ export async function getHourlyDayHeatmap(
   filters: AnalyticsFilters
 ): Promise<HeatmapCell[]> {
   const client = getSupabaseClient(config);
+  const tableName = getTableName(config);
   
   const { data: records, error } = await client
-    .from(TABLE_NAME)
+    .from(tableName)
     .select('timestamp')
     .gte('timestamp', filters.startDate)
     .lte('timestamp', filters.endDate);
@@ -186,9 +196,10 @@ export async function getDailyTrends(
   filters: AnalyticsFilters
 ): Promise<{ daily: TrendDataPoint[]; hourly: TrendDataPoint[] }> {
   const client = getSupabaseClient(config);
+  const tableName = getTableName(config);
   
   const { data: records, error } = await client
-    .from(TABLE_NAME)
+    .from(tableName)
     .select('timestamp, atendimento_finalizado')
     .gte('timestamp', filters.startDate)
     .lte('timestamp', filters.endDate)
@@ -231,9 +242,10 @@ export async function getConversionFunnel(
   filters: AnalyticsFilters
 ): Promise<FunnelStep[]> {
   const client = getSupabaseClient(config);
+  const tableName = getTableName(config);
   
   const { data: records, error } = await client
-    .from(TABLE_NAME)
+    .from(tableName)
     .select('atendimento_finalizado, follow_up')
     .gte('timestamp', filters.startDate)
     .lte('timestamp', filters.endDate);
@@ -284,9 +296,10 @@ export async function getQualityMetrics(
   filters: AnalyticsFilters
 ): Promise<QualityMetrics> {
   const client = getSupabaseClient(config);
+  const tableName = getTableName(config);
   
   const { data: records, error } = await client
-    .from(TABLE_NAME)
+    .from(tableName)
     .select('agente_atual, atendimento_finalizado, follow_up')
     .gte('timestamp', filters.startDate)
     .lte('timestamp', filters.endDate);
@@ -339,11 +352,12 @@ export async function getAtendimentosList(
   pageSize: number = 20
 ): Promise<{ data: AtendimentoRecord[]; total: number; page: number; pageSize: number }> {
   const client = getSupabaseClient(config);
+  const tableName = getTableName(config);
   
   const offset = (page - 1) * pageSize;
   
   let query = client
-    .from(TABLE_NAME)
+    .from(tableName)
     .select('*', { count: 'exact' })
     .gte('timestamp', filters.startDate)
     .lte('timestamp', filters.endDate)
@@ -381,9 +395,10 @@ export async function getFilterOptions(
   config: TenantSupabaseConfig
 ): Promise<{ agentes: string[]; followUps: string[] }> {
   const client = getSupabaseClient(config);
+  const tableName = getTableName(config);
   
   const { data: records, error } = await client
-    .from(TABLE_NAME)
+    .from(tableName)
     .select('agente_atual, follow_up');
   
   if (error) {
@@ -438,36 +453,38 @@ export async function getMonthComparison(
 export async function testSupabaseConnection(config: TenantSupabaseConfig): Promise<{ success: boolean; message: string }> {
   try {
     const client = getSupabaseClient(config);
+    const tableName = getTableName(config);
+    const mensagensTableName = getMensagensTableName(config);
     
     // Testar conexão buscando 1 registro da tabela de atendimentos
     const { data: atendData, error: atendError } = await client
-      .from(TABLE_NAME)
+      .from(tableName)
       .select('id')
       .limit(1);
     
     if (atendError) {
       return { 
         success: false, 
-        message: `Erro na tabela '${TABLE_NAME}': ${atendError.message}` 
+        message: `Erro na tabela '${tableName}': ${atendError.message}` 
       };
     }
     
     // Testar conexão com a tabela de mensagens
     const { data: msgData, error: msgError } = await client
-      .from(MENSAGENS_TABLE_NAME)
+      .from(mensagensTableName)
       .select('id')
       .limit(1);
     
     if (msgError) {
       return { 
         success: true, 
-        message: `Tabela '${TABLE_NAME}' OK. Tabela '${MENSAGENS_TABLE_NAME}' não encontrada (opcional).` 
+        message: `Tabela '${tableName}' OK. Tabela '${mensagensTableName}' não encontrada (opcional).` 
       };
     }
     
     return { 
       success: true, 
-      message: `Conexão OK! Tabelas '${TABLE_NAME}' e '${MENSAGENS_TABLE_NAME}' acessíveis.` 
+      message: `Conexão OK! Tabelas '${tableName}' e '${mensagensTableName}' acessíveis.` 
     };
   } catch (error: any) {
     return { 
@@ -479,17 +496,16 @@ export async function testSupabaseConnection(config: TenantSupabaseConfig): Prom
 
 // ==================== TABELA MENSAGENS ====================
 
-const MENSAGENS_TABLE_NAME = 'mensagens';
-
 // Buscar histórico de conversa por remotejid
 export async function getConversationHistory(
   config: TenantSupabaseConfig,
   remotejid: string
 ): Promise<MensagemRecord[]> {
   const client = getSupabaseClient(config);
+  const tableName = getMensagensTableName(config);
   
   const { data, error } = await client
-    .from(MENSAGENS_TABLE_NAME)
+    .from(tableName)
     .select('*')
     .eq('remotejid', remotejid)
     .order('timestamp', { ascending: true });
@@ -508,9 +524,10 @@ export async function getMessageStats(
   filters: AnalyticsFilters
 ): Promise<{ total_messages: number; unique_contacts: number; avg_messages_per_contact: number }> {
   const client = getSupabaseClient(config);
+  const tableName = getMensagensTableName(config);
   
   const { data, error, count } = await client
-    .from(MENSAGENS_TABLE_NAME)
+    .from(tableName)
     .select('remotejid', { count: 'exact' })
     .gte('timestamp', filters.startDate)
     .lte('timestamp', filters.endDate);
@@ -540,10 +557,11 @@ export async function getRecentMessages(
   pageSize: number = 20
 ): Promise<{ data: MensagemRecord[]; total: number; page: number; pageSize: number }> {
   const client = getSupabaseClient(config);
+  const tableName = getMensagensTableName(config);
   const offset = (page - 1) * pageSize;
   
   const { data, count, error } = await client
-    .from(MENSAGENS_TABLE_NAME)
+    .from(tableName)
     .select('*', { count: 'exact' })
     .gte('timestamp', filters.startDate)
     .lte('timestamp', filters.endDate)

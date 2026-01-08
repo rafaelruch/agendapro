@@ -65,6 +65,13 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tenants' AND column_name = 'supabase_anon_key') THEN
         ALTER TABLE tenants ADD COLUMN supabase_anon_key TEXT;
     END IF;
+    -- Nomes configuráveis das tabelas do Supabase
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tenants' AND column_name = 'supabase_table_atendimentos') THEN
+        ALTER TABLE tenants ADD COLUMN supabase_table_atendimentos TEXT DEFAULT 'atendimentos';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tenants' AND column_name = 'supabase_table_mensagens') THEN
+        ALTER TABLE tenants ADD COLUMN supabase_table_mensagens TEXT DEFAULT 'mensagens';
+    END IF;
 END $$;
 
 -- ========== TABELA: users ==========

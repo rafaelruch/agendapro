@@ -83,6 +83,8 @@ interface SupabaseConfig {
   supabaseUrl: string;
   supabaseDatabase: string;
   supabaseAnonKey: string;
+  supabaseTableAtendimentos?: string;
+  supabaseTableMensagens?: string;
   supabaseConfigured: boolean;
 }
 
@@ -745,6 +747,8 @@ function SupabaseConfigForm({ currentConfig }: { currentConfig?: SupabaseConfig 
   const [supabaseUrl, setSupabaseUrl] = useState(currentConfig?.supabaseUrl || "");
   const [supabaseDatabase, setSupabaseDatabase] = useState(currentConfig?.supabaseDatabase || "");
   const [supabaseAnonKey, setSupabaseAnonKey] = useState("");
+  const [tableAtendimentos, setTableAtendimentos] = useState(currentConfig?.supabaseTableAtendimentos || "atendimentos");
+  const [tableMensagens, setTableMensagens] = useState(currentConfig?.supabaseTableMensagens || "mensagens");
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -760,12 +764,18 @@ function SupabaseConfigForm({ currentConfig }: { currentConfig?: SupabaseConfig 
       if (!supabaseDatabase && configData.supabaseDatabase) {
         setSupabaseDatabase(configData.supabaseDatabase);
       }
+      if (configData.supabaseTableAtendimentos) {
+        setTableAtendimentos(configData.supabaseTableAtendimentos);
+      }
+      if (configData.supabaseTableMensagens) {
+        setTableMensagens(configData.supabaseTableMensagens);
+      }
     }
   }, [configData]);
 
   const handleTest = async () => {
     if (!supabaseUrl || !supabaseDatabase || !supabaseAnonKey) {
-      toast({ title: "Preencha todos os campos", variant: "destructive" });
+      toast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" });
       return;
     }
 
@@ -774,7 +784,9 @@ function SupabaseConfigForm({ currentConfig }: { currentConfig?: SupabaseConfig 
       const response = await apiRequest("POST", "/api/analytics/ai/test-connection", { 
         supabaseUrl, 
         supabaseDatabase, 
-        supabaseAnonKey 
+        supabaseAnonKey,
+        tableAtendimentos: tableAtendimentos || 'atendimentos',
+        tableMensagens: tableMensagens || 'mensagens'
       });
       const result = await response.json();
 
@@ -805,7 +817,9 @@ function SupabaseConfigForm({ currentConfig }: { currentConfig?: SupabaseConfig 
     try {
       const configPayload: any = { 
         supabaseUrl, 
-        supabaseDatabase 
+        supabaseDatabase,
+        supabaseTableAtendimentos: tableAtendimentos || 'atendimentos',
+        supabaseTableMensagens: tableMensagens || 'mensagens'
       };
       
       if (supabaseAnonKey) {
@@ -896,6 +910,36 @@ function SupabaseConfigForm({ currentConfig }: { currentConfig?: SupabaseConfig 
           </p>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="tableAtendimentos">Nome da Tabela de Atendimentos</Label>
+            <Input
+              id="tableAtendimentos"
+              placeholder="atendimentos"
+              value={tableAtendimentos}
+              onChange={e => setTableAtendimentos(e.target.value)}
+              data-testid="input-table-atendimentos"
+            />
+            <p className="text-xs text-muted-foreground">
+              Nome da tabela principal (padrão: atendimentos)
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="tableMensagens">Nome da Tabela de Mensagens</Label>
+            <Input
+              id="tableMensagens"
+              placeholder="mensagens"
+              value={tableMensagens}
+              onChange={e => setTableMensagens(e.target.value)}
+              data-testid="input-table-mensagens"
+            />
+            <p className="text-xs text-muted-foreground">
+              Nome da tabela de histórico (padrão: mensagens)
+            </p>
+          </div>
+        </div>
+
         <div className="flex gap-3 pt-4">
           <Button variant="outline" onClick={handleTest} disabled={testing} data-testid="button-test-connection">
             {testing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : null}
@@ -908,9 +952,9 @@ function SupabaseConfigForm({ currentConfig }: { currentConfig?: SupabaseConfig 
         </div>
 
         <div className="mt-6 p-4 bg-muted rounded-lg">
-          <h4 className="font-medium mb-2">Estrutura Esperada da Tabela</h4>
+          <h4 className="font-medium mb-2">Estrutura Esperada das Tabelas</h4>
           <p className="text-sm text-muted-foreground mb-3">
-            O Supabase deve conter a tabela <code className="bg-background px-1 rounded">atendimentos</code> com os campos:
+            O Supabase deve conter a tabela de atendimentos (nome configurável acima) com os campos:
           </p>
           <div className="text-xs font-mono bg-background p-3 rounded border space-y-1">
             <p><strong>id</strong> - UUID do registro</p>
@@ -921,6 +965,9 @@ function SupabaseConfigForm({ currentConfig }: { currentConfig?: SupabaseConfig 
             <p><strong>atendimento_finalizado</strong> - Boolean (true quando agendou)</p>
             <p><strong>follow_up</strong> - follow_up_01, follow_up_02, follow_up_03 ou follow_up_04</p>
           </div>
+          <p className="text-sm text-muted-foreground mt-3 mb-2">
+            A tabela de mensagens (nome configurável acima) é opcional e contém o histórico de conversas.
+          </p>
         </div>
       </CardContent>
     </Card>

@@ -147,6 +147,8 @@ export const tenants = pgTable("tenants", {
   supabaseUrl: text("supabase_url"), // URL do Supabase (ex: supabase.ruch.com.br)
   supabaseDatabase: text("supabase_database"), // Nome do banco de dados específico do tenant
   supabaseAnonKey: text("supabase_anon_key"), // Chave anon do Supabase
+  supabaseTableAtendimentos: text("supabase_table_atendimentos").default("atendimentos"), // Nome da tabela de atendimentos
+  supabaseTableMensagens: text("supabase_table_mensagens").default("mensagens"), // Nome da tabela de mensagens
   createdAt: timestamp("created_at").defaultNow(),
 });
 
