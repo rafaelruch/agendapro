@@ -5399,8 +5399,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     };
   }
   
-  // Get AI Analytics Summary Metrics
-  app.get("/api/analytics/ai/summary", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
+  // Get AI Analytics Summary Metrics (supports path params: /summary/:startDate/:endDate/:agente?)
+  app.get("/api/analytics/ai/summary/:startDate?/:endDate?/:agente?", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5412,15 +5412,15 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(400).json({ error: "Configuração do Supabase não encontrada. Configure nas configurações do tenant." });
       }
 
-      const { startDate, endDate, channel, status, intent, agentName } = req.query;
+      // Support both path params and query params
+      const startDate = req.params.startDate || req.query.startDate as string;
+      const endDate = req.params.endDate || req.query.endDate as string;
+      const agente = req.params.agente || req.query.agente as string;
       
       const filters = {
-        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        endDate: endDate as string || new Date().toISOString(),
-        channel: channel as string,
-        status: status as string,
-        intent: intent as string,
-        agentName: agentName as string,
+        startDate: startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: endDate || new Date().toISOString(),
+        agente: agente && agente !== 'all' ? agente : undefined,
       };
 
       const supabaseService = await import('./supabaseService');
@@ -5433,8 +5433,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
-  // Get Heatmap Data (hour x day)
-  app.get("/api/analytics/ai/heatmap/hourly", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
+  // Get Heatmap Data (hour x day) - supports path params: /heatmap/hourly/:startDate/:endDate
+  app.get("/api/analytics/ai/heatmap/hourly/:startDate?/:endDate?", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5446,10 +5446,11 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
       }
 
-      const { startDate, endDate } = req.query;
+      const startDate = req.params.startDate || req.query.startDate as string;
+      const endDate = req.params.endDate || req.query.endDate as string;
       const filters = {
-        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        endDate: endDate as string || new Date().toISOString(),
+        startDate: startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: endDate || new Date().toISOString(),
       };
 
       const supabaseService = await import('./supabaseService');
@@ -5462,8 +5463,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
-  // Get Trend Data
-  app.get("/api/analytics/ai/trends", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
+  // Get Trend Data - supports path params: /trends/:startDate/:endDate
+  app.get("/api/analytics/ai/trends/:startDate?/:endDate?", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5475,10 +5476,11 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
       }
 
-      const { startDate, endDate } = req.query;
+      const startDate = req.params.startDate || req.query.startDate as string;
+      const endDate = req.params.endDate || req.query.endDate as string;
       const filters = {
-        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        endDate: endDate as string || new Date().toISOString(),
+        startDate: startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: endDate || new Date().toISOString(),
       };
 
       const supabaseService = await import('./supabaseService');
@@ -5491,8 +5493,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
-  // Get Conversion Funnel
-  app.get("/api/analytics/ai/funnel", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
+  // Get Conversion Funnel - supports path params: /funnel/:startDate/:endDate
+  app.get("/api/analytics/ai/funnel/:startDate?/:endDate?", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5504,10 +5506,11 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
       }
 
-      const { startDate, endDate } = req.query;
+      const startDate = req.params.startDate || req.query.startDate as string;
+      const endDate = req.params.endDate || req.query.endDate as string;
       const filters = {
-        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        endDate: endDate as string || new Date().toISOString(),
+        startDate: startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: endDate || new Date().toISOString(),
       };
 
       const supabaseService = await import('./supabaseService');
@@ -5520,8 +5523,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
-  // Get Quality Metrics (por agente e por follow-up)
-  app.get("/api/analytics/ai/quality", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
+  // Get Quality Metrics (por agente e por follow-up) - supports path params: /quality/:startDate/:endDate/:agente?
+  app.get("/api/analytics/ai/quality/:startDate?/:endDate?/:agente?", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5533,11 +5536,13 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
       }
 
-      const { startDate, endDate, agente } = req.query;
+      const startDate = req.params.startDate || req.query.startDate as string;
+      const endDate = req.params.endDate || req.query.endDate as string;
+      const agente = req.params.agente || req.query.agente as string;
       const filters = {
-        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        endDate: endDate as string || new Date().toISOString(),
-        agente: agente as string,
+        startDate: startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: endDate || new Date().toISOString(),
+        agente: agente && agente !== 'all' ? agente : undefined,
       };
 
       const supabaseService = await import('./supabaseService');
@@ -5550,8 +5555,8 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
     }
   });
 
-  // Get Atendimentos List
-  app.get("/api/analytics/ai/conversations", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
+  // Get Atendimentos List - supports path params: /conversations/:startDate/:endDate/:status?/:followUp?
+  app.get("/api/analytics/ai/conversations/:startDate?/:endDate?/:status?/:followUp?", authenticateRequest, requireAuth, requireModule("ai-analytics"), async (req, res) => {
     try {
       const tenantId = getTenantId(req);
       if (!tenantId) {
@@ -5563,13 +5568,18 @@ Limpeza de Pele,Beleza,120.00,Limpeza de pele profunda`;
         return res.status(400).json({ error: "Configuração do Supabase não encontrada" });
       }
 
-      const { startDate, endDate, status, agente, followUp, page, limit } = req.query;
+      const startDate = req.params.startDate || req.query.startDate as string;
+      const endDate = req.params.endDate || req.query.endDate as string;
+      const status = req.params.status || req.query.status as string;
+      const followUp = req.params.followUp || req.query.followUp as string;
+      const { agente, page, limit } = req.query;
+      
       const filters = {
-        startDate: startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        endDate: endDate as string || new Date().toISOString(),
-        status: status as string,
+        startDate: startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: endDate || new Date().toISOString(),
+        status: status && status !== 'all' ? status : undefined,
         agente: agente as string,
-        followUp: followUp as string,
+        followUp: followUp && followUp !== 'all' ? followUp : undefined,
       };
 
       const supabaseService = await import('./supabaseService');
